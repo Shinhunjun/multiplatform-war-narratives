@@ -42,15 +42,13 @@ Venezuela humanitarian
 
 ## Data Access
 
-**Full dataset available on Google Drive**: [Link TBD]
+**Full dataset available on Google Drive**: [Download Here](https://drive.google.com/drive/folders/1MV2-ktL-OsiT4cDmoGWwlmt9l-OY_j-U?usp=sharing)
 
-The `data/` folder contains:
 ```
-data/
-├── submissions/          # Reddit posts (.json)
-├── comments/             # Comment threads (.json)
-├── analysis/             # Generated reports
-└── exports/              # Parquet exports
+venezuela/
+└── reddit/
+    ├── post/             # Reddit posts (.json)
+    └── comment/          # Comment threads (.json)
 ```
 
 ## Data Structure
