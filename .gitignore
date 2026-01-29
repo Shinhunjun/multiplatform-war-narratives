@@ -1,0 +1,28 @@
+# Data files (too large for git)
+*.json
+*.parquet
+*.csv
+!**/pyproject.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.log
+*.tmp
+BAScraper-*-temp*/

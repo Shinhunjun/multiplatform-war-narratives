@@ -1,0 +1,25 @@
+[project]
+name = "venezuela-us-reddit-discourse"
+version = "0.1.0"
+description = "Longitudinal analysis of Venezuela-US relations discourse on Reddit (2013-2025)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+    { name = "Hunjun Shin" }
+]
+keywords = ["reddit", "nlp", "discourse-analysis", "venezuela", "us-relations", "social-media"]
+
+dependencies = [
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "BAScraper>=0.1.0",
+    "scipy>=1.10.0",
+    "wordcloud>=1.8.0",
+    "nltk>=3.9",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pyarrow>=14.0.0",
+]
