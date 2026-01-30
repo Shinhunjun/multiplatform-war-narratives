@@ -29,8 +29,8 @@ class PipelineConfig:
     def exports_dir(self) -> Path:
         return self.base_dir / "exports"
 
-    # Arctic Shift settings (0.5s works for submissions, 1.0s needed for comments)
-    sleep_sec: float = 1.0      # 요청 간 대기 시간
+    # Arctic Shift settings
+    sleep_sec: float = 1.0      # 요청 간 대기 시간 (rate limit 방지)
     backoff_sec: float = 10.0   # 실패 시 백오프
     max_retries: int = 5        # 재시도 횟수
     timeout: int = 60           # 타임아웃
@@ -56,8 +56,8 @@ class PipelineConfig:
 # =============================================================================
 
 # Historical collection default range (Maduro era: 2013-present)
-HISTORICAL_DEFAULT_START: str = "2013-01-01"
-HISTORICAL_DEFAULT_END: str = "2025-01-27"
+HISTORICAL_DEFAULT_START: str = "2025-01-27"
+HISTORICAL_DEFAULT_END: str = "2026-01-29"
 
 # Comments collection default date range
 COMMENTS_DEFAULT_START: str = "2005-01-01"
