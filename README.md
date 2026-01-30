@@ -1,6 +1,6 @@
 # Venezuela-US Reddit Discourse Analysis
 
-Reddit data collection and analysis pipeline for studying online discourse about Venezuela-US relations during the Maduro era (2013-2025).
+Reddit data collection and analysis pipeline for studying online discourse about Venezuela-US relations during the Maduro era (2013-2026).
 
 ## Project Overview
 
@@ -9,13 +9,26 @@ This project collects and analyzes Reddit discussions related to Venezuela-US re
 - Crisis period narratives and sentiment shifts
 - Cross-community engagement patterns
 
-## Data Collection
+## Data Statistics
 
-### Time Period
-- **Start**: January 1, 2013 (Maduro era begins)
-- **End**: January 27, 2025
+| Metric | Raw Data | After Preprocessing |
+|--------|----------|---------------------|
+| **Time Period** | 2013-01-01 ~ 2026-01-29 | - |
+| **Total Submissions** | 101,960 | 86,809 |
+| **Total Comments** | 431,981 | 339,626 |
+| **Total Data Points** | 533,941 | 426,435 |
+| **Unique Submission Authors** | 26,363 | 23,497 |
+| **Unique Comment Authors** | 129,740 | 119,021 |
+| **Subreddits** | 11 | 11 |
 
-### Target Subreddits (11)
+### Regional Distribution
+
+| Region | Submissions | Comments |
+|--------|-------------|----------|
+| Venezuela (r/vzla, r/venezuela) | 64.9% | 54.3% |
+| US/English | 35.1% | 45.7% |
+
+## Target Subreddits (11)
 
 | Category | Subreddits |
 |----------|------------|
@@ -24,77 +37,61 @@ This project collects and analyzes Reddit discussions related to Venezuela-US re
 | Ideological | r/Conservative, r/neoliberal, r/socialism, r/Libertarian |
 | Regional | r/LatinAmerica, r/geopolitics |
 
-### Search Queries
-```
-Venezuela, Maduro, Venezuela US, Venezuela sanctions, Guaido,
-Venezuelan crisis, Venezuela oil, Caracas, Venezuela election,
-Venezuela humanitarian
-```
+## Key Crisis Periods (Flashpoints)
 
-### Key Crisis Periods (Flashpoints)
-- **2013**: Maduro Inauguration
-- **2014**: Venezuelan Protests, Oil Price Crash
-- **2017**: Trump Administration Sanctions
-- **2018**: Disputed Election
-- **2019**: Guaido Recognition Crisis, April Uprising
-- **2021**: Biden Policy Shift
-- **2024**: Election Crisis, González Exile
+| Date | Event |
+|------|-------|
+| 2013-04 | Maduro Inauguration |
+| 2014-02 | Venezuelan Protests |
+| 2014-11 | Oil Price Crash |
+| 2017-08 | Trump Administration Sanctions |
+| 2018-05 | Disputed Election |
+| 2019-01 | Guaido Recognition Crisis |
+| 2019-04 | April Uprising |
+| 2021-01 | Biden Policy Shift |
+| 2024-07 | 2024 Election Crisis |
+| 2024-09 | Gonzalez Exile |
+| 2026-01 | Maduro Captured by US Forces |
 
 ## Data Access
 
 **Full dataset available on Google Drive**: [Download Here](https://drive.google.com/drive/folders/1MV2-ktL-OsiT4cDmoGWwlmt9l-OY_j-U?usp=sharing)
 
-```
-venezuela/
-└── reddit/
-    ├── post/             # Reddit posts (.json)
-    └── comment/          # Comment threads (.json)
-```
+## Project Structure
 
-## Data Structure
-
-### Submission Example
-```json
-{
-  "18gnc5": {
-    "author": "username",
-    "created_utc": 1360783918,
-    "id": "18gnc5",
-    "num_comments": 20,
-    "score": 4,
-    "selftext": "Post content here...",
-    "subreddit": "Libertarian",
-    "title": "Post title here",
-    "url": "https://reddit.com/r/...",
-    "_matched_queries": ["Venezuela", "Venezuela US"],
-    "_window_start": "2013-02-01",
-    "_window_end": "2013-02-28",
-    "_granularity": "monthly",
-    "_collection_type": "historical"
-  }
-}
 ```
-
-### Comment Example
-```json
-{
-  "dh8pguz": {
-    "author": "username",
-    "body": "Comment text here...",
-    "controversiality": 0,
-    "created_utc": 1494161422,
-    "id": "dh8pguz",
-    "link_id": "t3_69r06f",
-    "parent_id": "t3_69r06f",
-    "score": 46,
-    "subreddit": "Libertarian",
-    "_submission_id": "69r06f",
-    "_submission_title": "Original post title",
-    "_depth": 0,
-    "_is_top_level": true,
-    "_parent_comment_id": null
-  }
-}
+capstone/
+├── README.md
+├── .gitignore
+└── venezuela-us-reddit-discourse/
+    ├── EDA/
+    │   ├── EDA_Report.md              # Analysis report
+    │   ├── 01_timeline.png            # Timeline visualization
+    │   ├── 02_yearly_distribution.png
+    │   ├── 03_subreddit_distribution.png
+    │   ├── 04_region_comparison.png
+    │   ├── 05_engagement_metrics.png
+    │   ├── 06_top_authors.png
+    │   └── run_eda_clean.py           # EDA script
+    ├── preprocessing/
+    │   ├── __init__.py
+    │   ├── config.py                  # Preprocessing config
+    │   ├── filters.py                 # Bot/deleted filters
+    │   ├── text_cleaner.py            # Text cleaning functions
+    │   └── preprocessor.py            # Main preprocessing class
+    └── data-collection/
+        ├── main.py                    # CLI entry point
+        ├── pyproject.toml             # Dependencies
+        ├── scripts/
+        │   ├── config.py              # Collection config
+        │   ├── collectors.py          # Data collection
+        │   ├── processors.py          # Data processing
+        │   ├── analyzers.py           # Analysis functions
+        │   └── visualizers.py         # Visualization
+        └── data/
+            ├── submissions/           # Raw submission JSON
+            ├── comments/              # Raw comment JSON
+            └── preprocessed/          # Cleaned Parquet files
 ```
 
 ## Usage
@@ -105,63 +102,43 @@ cd venezuela-us-reddit-discourse/data-collection
 uv sync
 ```
 
-### Data Collection Commands
+### Data Collection
 ```bash
-# Collect historical posts (2013-2025)
-uv run main.py historical
+# Collect historical posts
+uv run main.py historical --start 2013-01-01 --end 2026-01-29
 
 # Collect comments for all posts
 uv run main.py comments
 
 # Collect crisis period data
 uv run main.py crisis --all
-
-# Export to Parquet format
-uv run main.py export
-
-# Run analysis
-uv run main.py analyze
 ```
 
-### List Available Crisis Periods
+### Preprocessing
 ```bash
-uv run main.py list-flashpoints
+cd venezuela-us-reddit-discourse
+python -m preprocessing.preprocessor
 ```
 
-## Data Statistics
+**Preprocessing removes:**
+- `[deleted]` and `[removed]` content
+- Bot accounts (AutoModerator, autotldr, etc.)
+- Comments with < 5 words
+- URLs, markdown formatting, edit markers
 
-| Metric | Count |
-|--------|-------|
-| Subreddits | 11 |
-| Time Period | 12 years |
-| Total Posts | ~90,000 |
-| Total Comments | TBD |
-| Crisis Periods | 10 |
+**Output:** `data/preprocessed/submissions_clean.parquet`, `comments_clean.parquet`
+
+### EDA
+```bash
+python EDA/run_eda_clean.py
+```
 
 ## Technical Details
 
 - **Data Source**: [Arctic Shift API](https://arctic-shift.photon-reddit.com/) (Reddit historical archive)
 - **Collection Tool**: [BAScraper](https://github.com/Jython1415/BAScraper) (async Python wrapper)
-- **Rate Limiting**: 2.0s between requests
-- **Resume Support**: Collections can be interrupted and resumed
-
-## Project Structure
-
-```
-capstone/
-├── README.md                          # This file
-├── .gitignore
-└── venezuela-us-reddit-discourse/
-    └── data-collection/
-        ├── main.py                    # CLI entry point
-        ├── pyproject.toml             # Dependencies
-        └── scripts/
-            ├── config.py              # Configuration
-            ├── collectors.py          # Data collection
-            ├── processors.py          # Data processing
-            ├── analyzers.py           # Analysis functions
-            └── visualizers.py         # Visualization
-```
+- **Rate Limiting**: 1.0s between requests
+- **Output Format**: Parquet (preprocessed), JSON (raw)
 
 ## License
 
