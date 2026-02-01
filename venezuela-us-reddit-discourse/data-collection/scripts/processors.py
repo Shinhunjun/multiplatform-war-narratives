@@ -125,27 +125,27 @@ def load_all_comments(data_dir: Path) -> pd.DataFrame:
     return df
 
 
-def export_sub_to_parquet(data_dir: Path, output_file: Path) -> pd.DataFrame:
-    """Export all JSON submissions to Parquet."""
-    df = load_all_submissions(data_dir)
+def _export_to_parquet(
+    df: pd.DataFrame, output_file: Path, data_type: str
+) -> pd.DataFrame:
+    """Generic export to Parquet format."""
     if len(df) == 0:
-        print("No submissions found to export.")
+        print(f"No {data_type} found to export.")
         return df
     output_file.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(output_file, compression="snappy", index=False)
-    print(f"Exported {len(df):,} submissions to {output_file}")
+    print(f"Exported {len(df):,} {data_type} to {output_file}")
     return df
+
+
+def export_sub_to_parquet(data_dir: Path, output_file: Path) -> pd.DataFrame:
+    """Export all JSON submissions to Parquet."""
+    return _export_to_parquet(load_all_submissions(data_dir), output_file, "submissions")
+
 
 def export_comments_to_parquet(data_dir: Path, output_file: Path) -> pd.DataFrame:
     """Export all JSON comments to Parquet."""
-    df = load_all_comments(data_dir)
-    if len(df) == 0:
-        print("No comments found to export.")
-        return df
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(output_file, compression="snappy", index=False)
-    print(f"Exported {len(df):,} comments to {output_file}")
-    return df
+    return _export_to_parquet(load_all_comments(data_dir), output_file, "comments")
 
 def preprocess_text(text: Any) -> str:
     """Clean text for NLP analysis."""

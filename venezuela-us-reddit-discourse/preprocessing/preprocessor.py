@@ -13,6 +13,11 @@ from .config import PreprocessConfig
 from .filters import is_valid_comment, is_valid_submission
 from .text_cleaner import clean_text
 
+# Known bot accounts to filter
+BOT_AUTHORS = frozenset([
+    "AutoModerator", "autotldr", "empleadoEstatalBot", "RemindMeBot"
+])
+
 
 class RedditPreprocessor:
     """Main class for preprocessing Reddit submissions and comments."""
@@ -40,6 +45,26 @@ class RedditPreprocessor:
                 "too_short": 0,
             },
         }
+
+    def _track_filtering_stats(
+        self, df: pd.DataFrame, data_type: str, content_col: str
+    ) -> None:
+        """Track filtering statistics for submissions or comments."""
+        deleted_values = {"[deleted]", "[removed]"}
+
+        deleted_content = df[content_col].apply(
+            lambda x: x in deleted_values if isinstance(x, str) else False
+        ).sum()
+        deleted_author = df["author"].apply(
+            lambda x: x in {"[deleted]", None} if isinstance(x, str) or x is None else False
+        ).sum()
+        bot_author = df["author"].apply(
+            lambda x: x in BOT_AUTHORS if isinstance(x, str) else False
+        ).sum()
+
+        self.stats[data_type]["deleted_content"] = deleted_content
+        self.stats[data_type]["deleted_author"] = deleted_author
+        self.stats[data_type]["bot_author"] = bot_author
 
     def load_json_files(self, directory: Path, pattern: str = "*.json") -> Dict:
         """Load all JSON files from directory into a single dict."""
@@ -103,21 +128,7 @@ class RedditPreprocessor:
         original_count = len(df)
 
         # Track filtering reasons
-        deleted_content_mask = df["title"].apply(
-            lambda x: x in ["[deleted]", "[removed]"] if isinstance(x, str) else False
-        )
-        deleted_author_mask = df["author"].apply(
-            lambda x: x in ["[deleted]", None] if isinstance(x, str) or x is None else False
-        )
-        bot_mask = df["author"].apply(
-            lambda x: x in [
-                "AutoModerator", "autotldr", "empleadoEstatalBot", "RemindMeBot"
-            ] if isinstance(x, str) else False
-        )
-
-        self.stats["submissions"]["deleted_content"] = deleted_content_mask.sum()
-        self.stats["submissions"]["deleted_author"] = deleted_author_mask.sum()
-        self.stats["submissions"]["bot_author"] = bot_mask.sum()
+        self._track_filtering_stats(df, "submissions", "title")
 
         # Apply filtering
         valid_mask = df.apply(
@@ -183,21 +194,7 @@ class RedditPreprocessor:
         original_count = len(df)
 
         # Track filtering reasons
-        deleted_content_mask = df["body"].apply(
-            lambda x: x in ["[deleted]", "[removed]"] if isinstance(x, str) else False
-        )
-        deleted_author_mask = df["author"].apply(
-            lambda x: x in ["[deleted]", None] if isinstance(x, str) or x is None else False
-        )
-        bot_mask = df["author"].apply(
-            lambda x: x in [
-                "AutoModerator", "autotldr", "empleadoEstatalBot", "RemindMeBot"
-            ] if isinstance(x, str) else False
-        )
-
-        self.stats["comments"]["deleted_content"] = deleted_content_mask.sum()
-        self.stats["comments"]["deleted_author"] = deleted_author_mask.sum()
-        self.stats["comments"]["bot_author"] = bot_mask.sum()
+        self._track_filtering_stats(df, "comments", "body")
 
         # Apply filtering
         valid_mask = df.apply(
