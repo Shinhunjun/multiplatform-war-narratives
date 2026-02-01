@@ -15,8 +15,6 @@ from tqdm import tqdm
 
 from .config import (
     COMMENT_FIELDS_TO_KEEP,
-    COMMENTS_DEFAULT_END,
-    COMMENTS_DEFAULT_START,
     CRISIS_QUERIES,
     PipelineConfig,
     PRIORITY_QUERIES,
@@ -560,17 +558,17 @@ async def collect_comments(
         "posts_processed": 0,
         "posts_with_comments": 0,
         "tree_success": 0,
-        "flat_fallback": 0,
     }
 
     for post_id, post_data in tqdm(posts, desc="Fetching comments"):
         try:
+            # Increased params for better coverage
             tree = await client.fetch(
                 mode="comments_tree_search",
                 link_id=f"t3_{post_id}",
-                limit=25000,
-                start_breadth=1000,
-                start_depth=1000,
+                limit=2000,
+                start_breadth=100,
+                start_depth=100,
             )
 
             if tree:
@@ -580,39 +578,6 @@ async def collect_comments(
 
                 if post_comments:
                     stats["posts_with_comments"] += 1
-
-            expected = post_data.get("num_comments", 0)
-            collected = len(
-                [c for c in all_comments.values() if c.get(
-                    "_submission_id") == post_id]
-            )
-
-            if expected > 0 and collected < expected * 0.5:
-                flat_result = await client.fetch(
-                    mode="comments_search",
-                    link_id=f"t3_{post_id}",
-                    limit=0,
-                    sort="asc",
-                    after=COMMENTS_DEFAULT_START,
-                    before=COMMENTS_DEFAULT_END,
-                )
-
-                if flat_result:
-                    stats["flat_fallback"] += 1
-                    for cid, cdata in flat_result.items():
-                        if cid not in all_comments:
-                            filtered = filter_comment_fields(cdata)
-                            filtered["_submission_id"] = post_id
-                            filtered["_submission_title"] = post_data.get(
-                                "title", "")
-                            parent = filtered.get("parent_id", "")
-                            filtered["_is_top_level"] = parent.startswith(
-                                "t3_")
-                            filtered["_parent_comment_id"] = (
-                                parent[3:] if parent.startswith(
-                                    "t1_") else None
-                            )
-                            all_comments[cid] = filtered
 
             stats["posts_processed"] += 1
 
@@ -634,7 +599,6 @@ async def collect_comments(
     print(f"Posts with comments: {stats['posts_with_comments']}")
     print(f"Total comments: {len(all_comments):,}")
     print(f"Tree search success: {stats['tree_success']}")
-    print(f"Flat search fallbacks: {stats['flat_fallback']}")
     if total_expected > 0:
         rate = len(all_comments) / total_expected * 100
         print(f"Collection rate: {rate:.1f}%")
