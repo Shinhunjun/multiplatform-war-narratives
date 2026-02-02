@@ -1,0 +1,32 @@
+# Analysis Pipeline Requirements
+
+# Core
+pandas>=2.0.0
+numpy>=1.24.0
+tqdm>=4.65.0
+
+# Sentiment Analysis
+transformers>=4.30.0
+torch>=2.0.0
+
+# Topic Modeling
+bertopic>=0.15.0
+sentence-transformers>=2.2.0
+
+# Clustering & Dimensionality Reduction
+hdbscan>=0.8.29
+umap-learn>=0.5.3
+scikit-learn>=1.2.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.14.0
+pillow>=9.5.0  # For GIF animation
+
+# LLM Summarization (optional)
+openai>=1.0.0
+anthropic>=0.18.0
+
+# Data formats
+pyarrow>=12.0.0  # For parquet
