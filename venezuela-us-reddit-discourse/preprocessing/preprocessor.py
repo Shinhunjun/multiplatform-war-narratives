@@ -10,7 +10,13 @@ import pandas as pd
 from tqdm import tqdm
 
 from .config import PreprocessConfig
-from .filters import is_valid_comment, is_valid_submission
+from .filters import (
+    is_valid_comment,
+    is_valid_submission,
+    is_mostly_url,
+    is_moderation_content,
+    is_low_value_content,
+)
 from .text_cleaner import clean_text
 
 # Known bot accounts to filter
@@ -35,6 +41,9 @@ class RedditPreprocessor:
                 "deleted_author": 0,
                 "bot_author": 0,
                 "too_short": 0,
+                "media_only": 0,
+                "moderation": 0,
+                "low_value": 0,
             },
             "comments": {
                 "total": 0,
@@ -43,6 +52,9 @@ class RedditPreprocessor:
                 "deleted_author": 0,
                 "bot_author": 0,
                 "too_short": 0,
+                "media_only": 0,
+                "moderation": 0,
+                "low_value": 0,
             },
         }
 
@@ -62,9 +74,23 @@ class RedditPreprocessor:
             lambda x: x in BOT_AUTHORS if isinstance(x, str) else False
         ).sum()
 
+        # Track new filter categories
+        media_only = df[content_col].apply(
+            lambda x: is_mostly_url(x) if isinstance(x, str) else False
+        ).sum()
+        moderation = df[content_col].apply(
+            lambda x: is_moderation_content(x) if isinstance(x, str) else False
+        ).sum()
+        low_value = df[content_col].apply(
+            lambda x: is_low_value_content(x) if isinstance(x, str) else False
+        ).sum()
+
         self.stats[data_type]["deleted_content"] = deleted_content
         self.stats[data_type]["deleted_author"] = deleted_author
         self.stats[data_type]["bot_author"] = bot_author
+        self.stats[data_type]["media_only"] = media_only
+        self.stats[data_type]["moderation"] = moderation
+        self.stats[data_type]["low_value"] = low_value
 
     def load_json_files(self, directory: Path, pattern: str = "*.json") -> Dict:
         """Load all JSON files from directory into a single dict."""
@@ -301,18 +327,23 @@ class RedditPreprocessor:
 
         for data_type in ["submissions", "comments"]:
             stats = self.stats[data_type]
+            total = stats['total'] if stats['total'] > 0 else 1
             print(f"\n{data_type.upper()}:")
             print(f"  Total:           {stats['total']:,}")
-            print(f"  Kept:            {stats['kept']:,} ({stats['kept']/stats['total']*100:.1f}%)")
+            print(f"  Kept:            {stats['kept']:,} ({stats['kept']/total*100:.1f}%)")
             print(f"  Deleted content: {stats['deleted_content']:,}")
             print(f"  Deleted author:  {stats['deleted_author']:,}")
             print(f"  Bot author:      {stats['bot_author']:,}")
+            print(f"  Media only:      {stats['media_only']:,}")
+            print(f"  Moderation:      {stats['moderation']:,}")
+            print(f"  Low value:       {stats['low_value']:,}")
             if data_type == "comments":
                 print(f"  Too short:       {stats['too_short']:,}")
 
         total_original = self.stats["submissions"]["total"] + self.stats["comments"]["total"]
         total_kept = self.stats["submissions"]["kept"] + self.stats["comments"]["kept"]
-        print(f"\nTOTAL: {total_original:,} -> {total_kept:,} ({total_kept/total_original*100:.1f}% kept)")
+        if total_original > 0:
+            print(f"\nTOTAL: {total_original:,} -> {total_kept:,} ({total_kept/total_original*100:.1f}% kept)")
         print("=" * 60)
 
     def run(self) -> Tuple[pd.DataFrame, pd.DataFrame]:

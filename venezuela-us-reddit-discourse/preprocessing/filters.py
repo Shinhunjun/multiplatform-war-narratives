@@ -2,9 +2,60 @@
 Filtering functions for Reddit data preprocessing.
 """
 
+import re
 from typing import Optional
 
 from .config import BOT_ACCOUNTS, DELETED_MARKERS
+
+
+# Patterns for noise content
+URL_HEAVY_PATTERN = re.compile(
+    r'^https?://|'
+    r'^\[.*\]\(https?://|'
+    r'^!\[.*\]\(|'
+    r'(https?://\S+\s*){2,}',  # Multiple URLs
+    re.IGNORECASE
+)
+
+# Media link domains to filter
+MEDIA_DOMAINS = [
+    'imgur.com', 'i.imgur.com', 'i.redd.it', 'v.redd.it',
+    'giphy.com', 'gfycat.com', 'streamable.com',
+    'youtube.com', 'youtu.be', 'twitter.com', 'x.com',
+    'preview.redd.it', 'external-preview.redd.it',
+]
+
+# Moderation and meta content patterns
+MODERATION_PATTERNS = [
+    r'this (post|comment|submission) has been removed',
+    r'your (post|comment|submission) has been removed',
+    r'removed.*rule',
+    r'rule \d+',
+    r'violat(es?|ing|ion)',
+    r'banned from',
+    r'moderator(s)?',
+    r'automod(erator)?',
+    r'please read (the|our) rules',
+    r'flair your post',
+    r'this is a reminder',
+    r'i am a bot',
+    r'beep boop',
+    r'\*i am a bot\*',
+    r'bot action',
+    r'this action was performed automatically',
+]
+MODERATION_REGEX = re.compile('|'.join(MODERATION_PATTERNS), re.IGNORECASE)
+
+# Low-value content patterns
+LOW_VALUE_PATTERNS = [
+    r'^(lol|lmao|haha|jaja|xd|ok|yes|no|this|same|true|nice|thanks|agreed)\.?$',
+    r'^\^this\.?$',
+    r'^r/\w+$',  # Just a subreddit link
+    r'^u/\w+$',  # Just a user mention
+    r'^\[deleted\]$',
+    r'^\[removed\]$',
+]
+LOW_VALUE_REGEX = re.compile('|'.join(LOW_VALUE_PATTERNS), re.IGNORECASE)
 
 
 def is_deleted_content(text: Optional[str]) -> bool:
@@ -49,12 +100,85 @@ def is_too_long(text: Optional[str], max_chars: int = 10000) -> bool:
     return len(text) > max_chars
 
 
+def is_mostly_url(text: Optional[str], threshold: float = 0.7) -> bool:
+    """Check if text is mostly URLs (low content value)."""
+    if text is None or not isinstance(text, str):
+        return False
+
+    text = text.strip()
+    if not text:
+        return True
+
+    # Check for media domains
+    text_lower = text.lower()
+    for domain in MEDIA_DOMAINS:
+        if domain in text_lower:
+            # If the text is short and contains media domain, likely just a link
+            if len(text) < 200:
+                return True
+
+    # Remove URLs and check remaining content
+    url_pattern = r'https?://\S+'
+    text_without_urls = re.sub(url_pattern, '', text).strip()
+
+    if not text_without_urls:
+        return True
+
+    # Check ratio of non-URL content
+    if len(text_without_urls) / len(text) < (1 - threshold):
+        return True
+
+    return False
+
+
+def is_moderation_content(text: Optional[str]) -> bool:
+    """Check if text is moderation-related (rule violations, bot messages, etc.)."""
+    if text is None or not isinstance(text, str):
+        return False
+
+    return bool(MODERATION_REGEX.search(text))
+
+
+def is_low_value_content(text: Optional[str]) -> bool:
+    """Check if text is low-value (very short responses, just links, etc.)."""
+    if text is None or not isinstance(text, str):
+        return False
+
+    text = text.strip()
+
+    # Check against low-value patterns
+    if LOW_VALUE_REGEX.match(text):
+        return True
+
+    return False
+
+
+def has_meaningful_content(text: Optional[str], min_alpha_ratio: float = 0.5) -> bool:
+    """Check if text has meaningful alphabetic content (not just symbols/numbers)."""
+    if text is None or not isinstance(text, str):
+        return False
+
+    text = text.strip()
+    if not text:
+        return False
+
+    # Count alphabetic characters
+    alpha_chars = sum(1 for c in text if c.isalpha())
+
+    if len(text) == 0:
+        return False
+
+    return (alpha_chars / len(text)) >= min_alpha_ratio
+
+
 def is_valid_submission(
     title: Optional[str],
     selftext: Optional[str],
     author: Optional[str],
     remove_deleted: bool = True,
     remove_bots: bool = True,
+    remove_media_posts: bool = True,
+    remove_moderation: bool = True,
     min_words: int = 5,
 ) -> bool:
     """
@@ -80,6 +204,18 @@ def is_valid_submission(
     if is_too_short(title, min_words=2):  # Titles can be shorter
         return False
 
+    # NEW: Filter media-only posts
+    if remove_media_posts:
+        combined = (title or '') + ' ' + (selftext or '')
+        if is_mostly_url(combined):
+            return False
+
+    # NEW: Filter moderation content
+    if remove_moderation:
+        combined = (title or '') + ' ' + (selftext or '')
+        if is_moderation_content(combined):
+            return False
+
     return True
 
 
@@ -88,6 +224,9 @@ def is_valid_comment(
     author: Optional[str],
     remove_deleted: bool = True,
     remove_bots: bool = True,
+    remove_media_posts: bool = True,
+    remove_moderation: bool = True,
+    remove_low_value: bool = True,
     min_words: int = 5,
 ) -> bool:
     """
@@ -107,6 +246,22 @@ def is_valid_comment(
 
     # Check minimum length
     if is_too_short(body, min_words=min_words):
+        return False
+
+    # NEW: Filter media-only comments
+    if remove_media_posts and is_mostly_url(body):
+        return False
+
+    # NEW: Filter moderation content
+    if remove_moderation and is_moderation_content(body):
+        return False
+
+    # NEW: Filter low-value content
+    if remove_low_value and is_low_value_content(body):
+        return False
+
+    # NEW: Check for meaningful content
+    if not has_meaningful_content(body, min_alpha_ratio=0.3):
         return False
 
     return True
