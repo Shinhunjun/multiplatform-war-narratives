@@ -1,8 +1,19 @@
 # Data files (too large for git)
-*.json
 *.parquet
 *.csv
 !**/pyproject.toml
+
+# Raw JSON data (large)
+data-collection/data/**/*.json
+pipeline_data/
+
+# Allow config JSONs
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.*.json
+!eslint.config.js
+!.env.example
 
 # Python
 __pycache__/
@@ -10,7 +21,14 @@ __pycache__/
 *$py.class
 .venv/
 venv/
+venv-graphrag/
 .env
+
+# Node
+node_modules/
+
+# Build outputs
+dist/
 
 # IDE
 .idea/
