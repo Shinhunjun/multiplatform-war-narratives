@@ -1,0 +1,30 @@
+# Data files
+data/
+*.json
+*.parquet
+*.csv
+!pyproject.toml
+
+# Credentials
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+*.log
+*.tmp
