@@ -81,56 +81,71 @@ def is_valid_comment(record: dict) -> bool:
 
 
 def preprocess_reddit(
-    submissions: List[dict], comments: List[dict]
+    submissions_dict: dict, comments_dict: dict
 ) -> pd.DataFrame:
     """
     Preprocess Reddit data into a unified DataFrame.
-    Same structure as the existing analysis pipeline expects.
+    Accepts Arctic Shift format: {id: data, ...} dicts.
+    Same output structure as the existing analysis pipeline expects.
     """
+    from datetime import datetime, timezone
+
     rows = []
 
-    for sub in submissions:
+    # Submissions: Arctic Shift returns {post_id: {field: value, ...}}
+    for post_id, sub in submissions_dict.items():
+        sub["id"] = sub.get("id", post_id)
         if not is_valid_submission(sub):
             continue
-        text = clean_text(f"{sub['title']} {sub.get('selftext', '')}".strip())
+        text = clean_text(f"{sub.get('title', '')} {sub.get('selftext', '')}".strip())
         if len(text.split()) < MIN_WORDS:
             continue
 
-        from datetime import datetime, timezone
-        created_dt = datetime.fromtimestamp(sub["created_utc"], tz=timezone.utc)
+        created_utc = sub.get("created_utc", 0)
+        if isinstance(created_utc, str):
+            created_dt = datetime.fromisoformat(created_utc.replace("Z", "+00:00"))
+            created_utc = created_dt.timestamp()
+        else:
+            created_dt = datetime.fromtimestamp(created_utc, tz=timezone.utc)
 
         rows.append({
             "id": sub["id"],
             "type": "submission",
-            "subreddit": sub["subreddit"],
-            "author": sub["author"],
+            "subreddit": sub.get("subreddit", ""),
+            "author": sub.get("author", ""),
             "text": text,
             "score": sub.get("score", 0),
-            "created_utc": sub["created_utc"],
+            "created_utc": created_utc,
             "created_datetime": created_dt,
             "year": created_dt.year,
             "month": created_dt.month,
             "year_month": created_dt.strftime("%Y-%m"),
         })
 
-    for com in comments:
+    # Comments: Arctic Shift returns {comment_id: {field: value, ...}}
+    for comment_id, com in comments_dict.items():
+        com["id"] = com.get("id", comment_id)
         if not is_valid_comment(com):
             continue
-        text = clean_text(com["body"])
+        text = clean_text(com.get("body", ""))
         if len(text.split()) < MIN_WORDS:
             continue
 
-        from datetime import datetime, timezone
-        created_dt = datetime.fromtimestamp(com["created_utc"], tz=timezone.utc)
+        created_utc = com.get("created_utc", 0)
+        if isinstance(created_utc, str):
+            created_dt = datetime.fromisoformat(created_utc.replace("Z", "+00:00"))
+            created_utc = created_dt.timestamp()
+        else:
+            created_dt = datetime.fromtimestamp(created_utc, tz=timezone.utc)
 
         rows.append({
             "id": com["id"],
             "type": "comment",
-            "subreddit": com["subreddit"],
-            "author": com["author"],
+            "subreddit": com.get("subreddit", ""),
+            "author": com.get("author", ""),
             "text": text,
             "score": com.get("score", 0),
-            "created_utc": com["created_utc"],
+            "created_utc": created_utc,
             "created_datetime": created_dt,
             "year": created_dt.year,
             "month": created_dt.month,
@@ -138,11 +153,9 @@ def preprocess_reddit(
         })
 
     df = pd.DataFrame(rows)
-    logger.info(
-        f"Preprocessed: {len(df)} records "
-        f"({len([r for r in rows if r['type'] == 'submission'])} submissions, "
-        f"{len([r for r in rows if r['type'] == 'comment'])} comments)"
-    )
+    sub_count = sum(1 for r in rows if r["type"] == "submission")
+    com_count = sum(1 for r in rows if r["type"] == "comment")
+    logger.info(f"Preprocessed: {len(df)} records ({sub_count} submissions, {com_count} comments)")
     return df
 
 
@@ -197,13 +210,13 @@ class Preprocessor:
     def __init__(self, config: PipelineConfig):
         self.config = config
 
-    def load_raw_reddit(self, run_date: str) -> tuple[List[dict], List[dict]]:
-        """Load raw Reddit JSON files for a run date."""
+    def load_raw_reddit(self, run_date: str) -> tuple[dict, dict]:
+        """Load raw Reddit JSON files for a run date (Arctic Shift dict format)."""
         sub_path = self.config.raw_dir / "reddit" / "submissions" / f"submissions_{run_date}.json"
         com_path = self.config.raw_dir / "reddit" / "comments" / f"comments_{run_date}.json"
 
-        submissions = []
-        comments = []
+        submissions = {}
+        comments = {}
 
         if sub_path.exists():
             with open(sub_path) as f:

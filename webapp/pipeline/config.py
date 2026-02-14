@@ -39,19 +39,12 @@ class PipelineConfig:
     )
     gcs_data_prefix: str = "pipeline_data"
 
-    # --- Reddit API (PRAW) ---
-    reddit_client_id: str = field(
-        default_factory=lambda: os.environ.get("REDDIT_CLIENT_ID", "")
-    )
-    reddit_client_secret: str = field(
-        default_factory=lambda: os.environ.get("REDDIT_CLIENT_SECRET", "")
-    )
-    reddit_user_agent: str = field(
-        default_factory=lambda: os.environ.get(
-            "REDDIT_USER_AGENT",
-            "venezuela-narrative-analysis/1.0 (capstone research project)",
-        )
-    )
+    # --- Arctic Shift (Reddit) ---
+    arctic_sleep_sec: float = 1.0
+    arctic_backoff_sec: float = 10.0
+    arctic_max_retries: int = 5
+    arctic_timeout: int = 60
+    arctic_task_num: int = 1
 
     # Subreddits to monitor
     subreddits: List[str] = field(
@@ -64,18 +57,26 @@ class PipelineConfig:
         ]
     )
 
-    # Keywords for filtering Reddit posts
-    reddit_keywords: List[str] = field(
+    # Search queries for Arctic Shift
+    reddit_queries: List[str] = field(
         default_factory=lambda: [
-            "venezuela", "maduro", "guaidó", "guaido", "caracas",
-            "pdvsa", "citgo", "petro", "bolivar",
-            "sanctions", "oil embargo",
+            "Venezuela",
+            "Maduro",
+            "Venezuela US",
+            "Venezuela sanctions",
+            "Guaido",
+            "Venezuelan crisis",
+            "Venezuela oil",
+            "Caracas",
+            "Venezuela election",
+            "Venezuela humanitarian",
         ]
     )
 
-    # Max posts to fetch per subreddit per run
-    reddit_posts_per_sub: int = 100
-    reddit_comments_per_post: int = 50
+    # Venezuela-specific subs (no keyword filtering needed)
+    venezuela_subreddits: List[str] = field(
+        default_factory=lambda: ["venezuela", "vzla"]
+    )
 
     # --- GDELT BigQuery ---
     gcp_project: str = field(
