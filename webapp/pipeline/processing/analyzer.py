@@ -190,31 +190,108 @@ class IncrementalAnalyzer:
         logger.info("Updated sentiment output files")
 
     def run_topics(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Transform new documents using existing BERTopic model."""
+        """Assign topics to new documents.
+
+        Strategy:
+        1. Try loading existing BERTopic model
+        2. If model incompatible, use embedding similarity to existing topic
+           representative embeddings (cosine similarity fallback)
+        """
         topics_dir = self.config.outputs_dir / "topics"
         model_path = topics_dir / "bertopic_model"
 
-        if not model_path.exists():
-            logger.warning("No existing BERTopic model found. Skipping topics.")
+        # Try BERTopic model first
+        if model_path.exists():
+            try:
+                from bertopic import BERTopic
+                logger.info("Loading existing BERTopic model...")
+                topic_model = BERTopic.load(str(model_path))
+                texts = df["text"].tolist()
+                topics, probs = topic_model.transform(texts)
+                df["topic_id"] = topics
+                df["topic_prob"] = probs
+                topic_info = topic_model.get_topic_info()
+                id_to_name = dict(zip(topic_info["Topic"], topic_info["Name"]))
+                df["topic_label"] = df["topic_id"].map(id_to_name).fillna("Unknown")
+                logger.info(f"Topic assignment done (BERTopic). {(df['topic_id'] >= 0).sum()} assigned")
+                return df
+            except Exception as e:
+                logger.warning(f"BERTopic model load failed: {e}")
+                logger.info("Falling back to embedding-based topic assignment...")
+
+        # Fallback: embedding similarity using existing topic assignments
+        return self._assign_topics_by_embedding(df, topics_dir)
+
+    def _assign_topics_by_embedding(self, df: pd.DataFrame, topics_dir: Path) -> pd.DataFrame:
+        """Assign topics using cosine similarity to topic centroids.
+
+        Uses saved embeddings + topic assignments to compute topic centroids,
+        then assigns new documents to nearest centroid.
+        """
+        from sentence_transformers import SentenceTransformer
+        from sklearn.metrics.pairwise import cosine_similarity
+
+        clusters_dir = self.config.outputs_dir / "clusters"
+        embeddings_path = topics_dir / "document_embeddings.npy"
+        assignments_path = topics_dir / "topic_assignments.parquet"
+        topic_info_path = topics_dir / "topic_info.csv"
+
+        if not assignments_path.exists() or not topic_info_path.exists():
+            logger.warning("No topic assignments or info found. Skipping topics.")
             return df
 
-        from bertopic import BERTopic
-
-        logger.info("Loading existing BERTopic model...")
-        topic_model = BERTopic.load(str(model_path))
-
-        texts = df["text"].tolist()
-        topics, probs = topic_model.transform(texts)
-
-        df["topic_id"] = topics
-        df["topic_prob"] = probs
-
-        # Get topic labels
-        topic_info = topic_model.get_topic_info()
+        # Load topic info for labels
+        topic_info = pd.read_csv(topic_info_path)
         id_to_name = dict(zip(topic_info["Topic"], topic_info["Name"]))
-        df["topic_label"] = df["topic_id"].map(id_to_name).fillna("Unknown")
 
-        logger.info(f"Topic assignment done. {(df['topic_id'] >= 0).sum()} assigned to topics")
+        # Compute topic centroids from existing embeddings
+        if embeddings_path.exists():
+            logger.info("Computing topic centroids from existing embeddings...")
+            existing_embeddings = np.load(embeddings_path)
+            existing_assignments = pd.read_parquet(assignments_path)
+
+            # Build centroids for each topic
+            centroids = {}
+            for topic_id in topic_info[topic_info["Topic"] >= 0]["Topic"]:
+                mask = existing_assignments["topic_id"] == topic_id
+                if mask.sum() > 0:
+                    indices = existing_assignments.index[mask].tolist()
+                    # Limit indices to embedding array size
+                    valid_indices = [i for i in indices if i < len(existing_embeddings)]
+                    if valid_indices:
+                        centroids[topic_id] = existing_embeddings[valid_indices].mean(axis=0)
+
+            if not centroids:
+                logger.warning("Could not compute centroids. Skipping topics.")
+                return df
+
+            centroid_ids = list(centroids.keys())
+            centroid_matrix = np.array([centroids[tid] for tid in centroid_ids])
+
+            # Embed new documents
+            logger.info(f"Embedding {len(df)} new documents...")
+            model = SentenceTransformer(self.config.embedding_model)
+            new_embeddings = model.encode(df["text"].tolist(), show_progress_bar=False, batch_size=self.config.batch_size)
+
+            # Assign by cosine similarity
+            sims = cosine_similarity(new_embeddings, centroid_matrix)
+            best_idx = sims.argmax(axis=1)
+            best_sim = sims.max(axis=1)
+
+            # Assign topic if similarity > threshold, else -1 (outlier)
+            threshold = 0.25
+            df["topic_id"] = [
+                centroid_ids[idx] if best_sim[i] > threshold else -1
+                for i, idx in enumerate(best_idx)
+            ]
+            df["topic_prob"] = best_sim
+            df["topic_label"] = df["topic_id"].map(id_to_name).fillna("Outlier")
+
+            assigned = (df["topic_id"] >= 0).sum()
+            logger.info(f"Topic assignment done (embedding fallback). {assigned}/{len(df)} assigned")
+        else:
+            logger.warning("No embeddings found. Skipping topics.")
+
         return df
 
     def update_topic_outputs(self, new_df: pd.DataFrame) -> None:
@@ -279,20 +356,28 @@ class IncrementalAnalyzer:
             return results
 
         # Sentiment
-        reddit_df = self.run_sentiment(reddit_df)
-        self.update_sentiment_outputs(reddit_df)
-        results["sentiment"] = {
-            "mean_score": float(reddit_df["sentiment_score"].mean()),
-            "count": len(reddit_df),
-        }
-
-        # Topics
-        reddit_df = self.run_topics(reddit_df)
-        self.update_topic_outputs(reddit_df)
-        if "topic_id" in reddit_df.columns:
-            results["topics"] = {
-                "assigned": int((reddit_df["topic_id"] >= 0).sum()),
+        try:
+            reddit_df = self.run_sentiment(reddit_df)
+            self.update_sentiment_outputs(reddit_df)
+            results["sentiment"] = {
+                "mean_score": float(reddit_df["sentiment_score"].mean()),
                 "count": len(reddit_df),
             }
+        except Exception as e:
+            logger.error(f"Sentiment analysis failed: {e}")
+            results["sentiment"] = {"error": str(e)}
+
+        # Topics
+        try:
+            reddit_df = self.run_topics(reddit_df)
+            self.update_topic_outputs(reddit_df)
+            if "topic_id" in reddit_df.columns:
+                results["topics"] = {
+                    "assigned": int((reddit_df["topic_id"] >= 0).sum()),
+                    "count": len(reddit_df),
+                }
+        except Exception as e:
+            logger.error(f"Topic analysis failed: {e}")
+            results["topics"] = {"error": str(e)}
 
         return results
