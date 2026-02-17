@@ -237,6 +237,6 @@ npm run dev    # → http://localhost:5173 (proxies /api to localhost:8000)
 
 For academic research purposes only.
 
-## Author
+## Authors
 
-Hunjun Shin
+Hunjun Shin, Rich Goodier, Ameir El Ouadi
