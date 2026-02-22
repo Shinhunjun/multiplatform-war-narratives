@@ -2,101 +2,158 @@ import { useEffect, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
 } from 'recharts';
-import { fetchClusterSummaries } from '../lib/api';
+import { fetchClusterSummaries, fetchTemporalClusters } from '../lib/api';
 import type { ClusterSummary } from '../lib/api';
+import { useTimeRange } from '../lib/TimeRangeContext';
+
+const COLORS_CHART = [
+  '#6366f1', '#34d399', '#f87171', '#fbbf24', '#38bdf8',
+  '#a78bfa', '#fb923c', '#e879f9', '#2dd4bf', '#f472b6',
+];
+
+const chartGrid = '#2a2e3d';
+const chartTick = { fontSize: 11, fill: '#8b8fa3' };
+const chartAxisLine = { stroke: '#2a2e3d' };
 
 function sentimentColor(val: number): string {
-  if (val < -0.3) return '#e63946';
-  if (val < -0.1) return '#f4a261';
-  if (val < 0.1) return '#a8dadc';
-  return '#2a9d8f';
+  if (val < -0.3) return '#f87171';
+  if (val < -0.1) return '#fbbf24';
+  if (val < 0.1) return '#64748b';
+  return '#34d399';
+}
+
+function DarkTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-[#1a1d27] border border-[#2a2e3d] rounded-lg px-3 py-2 shadow-xl">
+      <p className="text-[11px] text-[#8b8fa3] mb-1 font-mono">{label}</p>
+      {payload.map((p: any, i: number) => (
+        <p key={i} className="text-[12px] font-medium" style={{ color: p.color || '#e8eaed' }}>
+          {p.name}: {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 export default function ClustersPage() {
+  const { selected } = useTimeRange();
   const [clusters, setClusters] = useState<ClusterSummary[]>([]);
+  const [temporal, setTemporal] = useState<{ year_month: string; cluster_id: number; count: number }[]>([]);
 
   useEffect(() => {
     fetchClusterSummaries(30, 20).then(setClusters);
   }, []);
 
+  useEffect(() => {
+    if (!selected) return;
+    const [start, end] = selected;
+    fetchTemporalClusters(10, start, end).then(setTemporal);
+  }, [selected]);
+
   const topClusters = clusters.slice(0, 20).map(c => ({
     ...c,
     label: c.theme !== 'Error' ? c.theme : `Cluster ${c.cluster_id}`,
-    keywords: c.summary !== 'Anthropic API key required' ? c.summary : '-',
   }));
 
-  return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-xl font-bold text-slate-800">Cluster Analysis (HDBSCAN)</h2>
-      <p className="text-sm text-slate-500">
-        {clusters.length} clusters with 20+ documents (of 3,406 total)
-      </p>
+  const temporalMap: Record<string, any> = {};
+  const clusterIds = [...new Set(temporal.map(t => t.cluster_id))];
+  temporal.forEach(row => {
+    if (!temporalMap[row.year_month]) temporalMap[row.year_month] = { year_month: row.year_month };
+    temporalMap[row.year_month][`c${row.cluster_id}`] = row.count;
+  });
+  const temporalRows = Object.values(temporalMap).sort((a: any, b: any) => a.year_month.localeCompare(b.year_month));
 
-      {/* Top Clusters by Size */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">Top 20 Clusters by Size</h3>
+  return (
+    <div className="px-6 py-8 space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-[#e8eaed] tracking-tight">Cluster Analysis (HDBSCAN)</h2>
+        <p className="text-[13px] text-[#8b8fa3] mt-1">
+          {clusters.length} clusters with 20+ documents
+        </p>
+        <div className="h-[2px] w-10 bg-[#6366f1] mt-2 rounded-full" />
+      </div>
+
+      <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Top 20 Clusters by Size</h3>
         <ResponsiveContainer width="100%" height={500}>
           <BarChart data={topClusters} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" tick={{ fontSize: 11 }} />
-            <YAxis type="category" dataKey="label" width={120} tick={{ fontSize: 10 }} />
+            <CartesianGrid stroke={chartGrid} horizontal={false} />
+            <XAxis type="number" tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+            <YAxis type="category" dataKey="label" width={120} tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
             <Tooltip
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;
                 const d = payload[0].payload;
                 return (
-                  <div className="bg-white border rounded shadow p-2 text-xs max-w-xs">
-                    <p className="font-bold">{d.label}</p>
-                    <p>Documents: {d.count.toLocaleString()}</p>
-                    <p>Top Subreddit: r/{d.top_subreddit}</p>
-                    <p>Sentiment: {d.sentiment_mean.toFixed(3)}</p>
-                    <p>Period: {d.time_start?.slice(0, 10)} ~ {d.time_end?.slice(0, 10)}</p>
+                  <div className="bg-[#1a1d27] border border-[#2a2e3d] rounded-lg shadow-xl p-3 text-xs">
+                    <p className="font-semibold text-[#e8eaed]">{d.label}</p>
+                    <p className="text-[#8b8fa3] mt-1">Documents: <span className="text-[#e8eaed] font-mono">{d.count.toLocaleString()}</span></p>
+                    <p className="text-[#8b8fa3]">Top Subreddit: <span className="text-[#e8eaed]">r/{d.top_subreddit}</span></p>
+                    <p className="text-[#8b8fa3]">Sentiment: <span className="font-mono" style={{ color: sentimentColor(d.sentiment_mean) }}>{d.sentiment_mean.toFixed(3)}</span></p>
+                    <p className="text-[#8b8fa3]">Period: <span className="text-[#e8eaed] font-mono">{d.time_start?.slice(0, 10)} — {d.time_end?.slice(0, 10)}</span></p>
                   </div>
                 );
               }}
             />
-            <Bar dataKey="count" name="Documents">
+            <Bar dataKey="count" name="Documents" radius={[0, 3, 3, 0]}>
               {topClusters.map((c, i) => (
                 <Cell key={i} fill={sentimentColor(c.sentiment_mean)} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <div className="flex gap-4 mt-2 text-xs text-slate-500">
-          <span><span className="inline-block w-3 h-3 rounded mr-1" style={{ backgroundColor: '#e63946' }} />Very Negative</span>
-          <span><span className="inline-block w-3 h-3 rounded mr-1" style={{ backgroundColor: '#f4a261' }} />Negative</span>
-          <span><span className="inline-block w-3 h-3 rounded mr-1" style={{ backgroundColor: '#a8dadc' }} />Neutral</span>
-          <span><span className="inline-block w-3 h-3 rounded mr-1" style={{ backgroundColor: '#2a9d8f' }} />Positive</span>
+        <div className="flex gap-5 mt-3 text-[11px] text-[#8b8fa3]">
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#f87171' }} />Very Negative</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#fbbf24' }} />Negative</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#64748b' }} />Neutral</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#34d399' }} />Positive</span>
         </div>
       </div>
 
-      {/* Cluster Detail Table */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">Cluster Details</h3>
+      {temporalRows.length > 0 && (
+        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Cluster Volume Over Time (Top 10)</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={temporalRows}>
+              <CartesianGrid stroke={chartGrid} />
+              <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(temporalRows.length / 8))} />
+              <YAxis tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+              <Tooltip content={<DarkTooltip />} />
+              {clusterIds.slice(0, 10).map((cid, i) => (
+                <Bar key={cid} dataKey={`c${cid}`} stackId="a" fill={COLORS_CHART[i % COLORS_CHART.length]} name={`Cluster ${cid}`} />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Cluster Details</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-left text-slate-500">
-                <th className="py-2 w-12">ID</th>
-                <th className="py-2">Theme</th>
-                <th className="py-2 w-24">Docs</th>
-                <th className="py-2 w-28">Subreddit</th>
-                <th className="py-2 w-24">Sentiment</th>
-                <th className="py-2 w-48">Period</th>
+              <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
+                <th className="py-2.5 w-12 font-medium">ID</th>
+                <th className="py-2.5 font-medium">Theme</th>
+                <th className="py-2.5 w-24 font-medium">Docs</th>
+                <th className="py-2.5 w-28 font-medium">Subreddit</th>
+                <th className="py-2.5 w-24 font-medium">Sentiment</th>
+                <th className="py-2.5 w-48 font-medium">Period</th>
               </tr>
             </thead>
             <tbody>
               {clusters.slice(0, 50).map(c => (
-                <tr key={c.cluster_id} className="border-b hover:bg-slate-50">
-                  <td className="py-2 font-mono text-slate-400">{c.cluster_id}</td>
-                  <td className="py-2">{c.theme !== 'Error' ? c.theme : '-'}</td>
-                  <td className="py-2">{c.count.toLocaleString()}</td>
-                  <td className="py-2 text-slate-600">r/{c.top_subreddit}</td>
-                  <td className="py-2" style={{ color: sentimentColor(c.sentiment_mean) }}>
+                <tr key={c.cluster_id} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
+                  <td className="py-2.5 font-mono text-[#64748b] text-xs">{c.cluster_id}</td>
+                  <td className="py-2.5 text-[#e8eaed]">{c.theme !== 'Error' ? c.theme : '-'}</td>
+                  <td className="py-2.5 text-[#8b8fa3] font-mono text-[13px]">{c.count.toLocaleString()}</td>
+                  <td className="py-2.5 text-[#8b8fa3]">r/{c.top_subreddit}</td>
+                  <td className="py-2.5 font-mono text-[13px]" style={{ color: sentimentColor(c.sentiment_mean) }}>
                     {c.sentiment_mean.toFixed(3)}
                   </td>
-                  <td className="py-2 text-xs text-slate-400">
-                    {c.time_start?.slice(0, 10)} ~ {c.time_end?.slice(0, 10)}
+                  <td className="py-2.5 text-xs text-[#64748b] font-mono">
+                    {c.time_start?.slice(0, 10)} — {c.time_end?.slice(0, 10)}
                   </td>
                 </tr>
               ))}

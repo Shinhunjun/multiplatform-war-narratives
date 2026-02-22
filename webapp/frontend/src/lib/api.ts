@@ -48,6 +48,18 @@ export interface TopicOverTime {
   Timestamp: string;
 }
 
+export interface BoxPlotStat {
+  subreddit: string;
+  min: number;
+  q1: number;
+  median: number;
+  q3: number;
+  max: number;
+  mean: number;
+  std: number;
+  count: number;
+}
+
 export interface ClusterSummary {
   cluster_id: number;
   theme: string;
@@ -73,9 +85,19 @@ export const fetchSentimentByMonth = (start?: string, end?: string) => {
 export const fetchSentimentBySubreddit = () =>
   api.get<SentimentSubreddit[]>('/api/sentiment/by-subreddit').then(r => r.data);
 
-export const fetchSentimentBySubredditMonth = (subreddit?: string) => {
-  const params = subreddit ? `?subreddit=${subreddit}` : '';
-  return api.get<SentimentMonth[]>(`/api/sentiment/by-subreddit-month${params}`).then(r => r.data);
+export const fetchSentimentBySubredditMonth = (subreddit?: string, start?: string, end?: string) => {
+  const params = new URLSearchParams();
+  if (subreddit) params.set('subreddit', subreddit);
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  return api.get<SentimentMonth[]>(`/api/sentiment/by-subreddit-month?${params}`).then(r => r.data);
+};
+
+export const fetchSentimentBoxplot = (start?: string, end?: string) => {
+  const params = new URLSearchParams();
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  return api.get<BoxPlotStat[]>(`/api/sentiment/boxplot?${params}`).then(r => r.data);
 };
 
 export const fetchTopicInfo = () =>
@@ -92,5 +114,10 @@ export const fetchTopicsBySubreddit = () =>
 export const fetchClusterSummaries = (limit = 30, minCount = 20) =>
   api.get<ClusterSummary[]>(`/api/clusters/summaries?limit=${limit}&min_count=${minCount}`).then(r => r.data);
 
-export const fetchTemporalClusters = (limit = 10) =>
-  api.get<{ year_month: string; cluster_id: number; count: number; proportion: number }[]>(`/api/clusters/temporal?limit=${limit}`).then(r => r.data);
+export const fetchTemporalClusters = (limit = 10, start?: string, end?: string) => {
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  return api.get<{ year_month: string; cluster_id: number; count: number; proportion: number }[]>(`/api/clusters/temporal?${params}`).then(r => r.data);
+};

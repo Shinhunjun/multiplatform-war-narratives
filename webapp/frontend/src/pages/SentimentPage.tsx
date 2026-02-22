@@ -2,31 +2,59 @@ import { useEffect, useState } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts';
-import { fetchSentimentBySubredditMonth, fetchSentimentBySubreddit } from '../lib/api';
-import type { SentimentSubreddit } from '../lib/api';
+import { fetchSentimentBySubredditMonth, fetchSentimentBySubreddit, fetchSentimentBoxplot } from '../lib/api';
+import type { SentimentSubreddit, BoxPlotStat } from '../lib/api';
+import { useTimeRange } from '../lib/TimeRangeContext';
+import BoxPlotChart from '../components/charts/BoxPlotChart';
 
 const COLORS = [
-  '#e63946', '#1e3a5f', '#2a9d8f', '#f4a261', '#264653',
-  '#e76f51', '#457b9d', '#9467bd', '#bcbd22', '#17becf', '#d62728',
+  '#6366f1', '#34d399', '#f87171', '#fbbf24', '#38bdf8',
+  '#a78bfa', '#fb923c', '#e879f9', '#2dd4bf', '#f472b6',
 ];
 
+const chartGrid = '#2a2e3d';
+const chartTick = { fontSize: 11, fill: '#8b8fa3' };
+const chartAxisLine = { stroke: '#2a2e3d' };
+
+function DarkTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-[#1a1d27] border border-[#2a2e3d] rounded-lg px-3 py-2 shadow-xl">
+      <p className="text-[11px] text-[#8b8fa3] mb-1 font-mono">{label}</p>
+      {payload.map((p: any, i: number) => (
+        <p key={i} className="text-[12px] font-medium" style={{ color: p.color }}>
+          {p.name}: {typeof p.value === 'number' ? p.value.toFixed(3) : p.value}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 export default function SentimentPage() {
+  const { selected } = useTimeRange();
   const [subreddits, setSubreddits] = useState<SentimentSubreddit[]>([]);
-  const [selected, setSelected] = useState<string[]>(['worldnews', 'politics', 'venezuela', 'vzla']);
+  const [sel, setSel] = useState<string[]>(['worldnews', 'politics', 'venezuela', 'vzla']);
   const [timelineData, setTimelineData] = useState<Record<string, any>[]>([]);
+  const [boxplotData, setBoxplotData] = useState<BoxPlotStat[]>([]);
 
   useEffect(() => {
     fetchSentimentBySubreddit().then(setSubreddits);
   }, []);
 
   useEffect(() => {
-    if (selected.length === 0) return;
-    Promise.all(selected.map(sub => fetchSentimentBySubredditMonth(sub)))
+    if (!selected) return;
+    const [start, end] = selected;
+    fetchSentimentBoxplot(start, end).then(setBoxplotData);
+  }, [selected]);
+
+  useEffect(() => {
+    if (sel.length === 0 || !selected) return;
+    const [start, end] = selected;
+    Promise.all(sel.map(sub => fetchSentimentBySubredditMonth(sub, start, end)))
       .then(results => {
-        // Merge into single timeline
         const merged: Record<string, any> = {};
         results.forEach((data, i) => {
-          const sub = selected[i];
+          const sub = sel[i];
           data.forEach((row: any) => {
             if (!merged[row.year_month]) merged[row.year_month] = { year_month: row.year_month };
             merged[row.year_month][sub] = row.mean_sentiment;
@@ -34,28 +62,30 @@ export default function SentimentPage() {
         });
         setTimelineData(Object.values(merged).sort((a, b) => a.year_month.localeCompare(b.year_month)));
       });
-  }, [selected]);
+  }, [sel, selected]);
 
   const toggleSubreddit = (sub: string) => {
-    setSelected(prev =>
+    setSel(prev =>
       prev.includes(sub) ? prev.filter(s => s !== sub) : [...prev, sub]
     );
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-xl font-bold text-slate-800">Sentiment Analysis</h2>
+    <div className="px-6 py-8 space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-[#e8eaed] tracking-tight">Sentiment Analysis</h2>
+        <div className="h-[2px] w-10 bg-[#6366f1] mt-2 rounded-full" />
+      </div>
 
-      {/* Subreddit Selector */}
       <div className="flex flex-wrap gap-2">
         {subreddits.map(s => (
           <button
             key={s.subreddit}
             onClick={() => toggleSubreddit(s.subreddit)}
-            className={`px-3 py-1 text-xs rounded-full border transition ${
-              selected.includes(s.subreddit)
-                ? 'bg-slate-800 text-white border-slate-800'
-                : 'bg-white text-slate-600 border-slate-300 hover:border-slate-500'
+            className={`px-3 py-1 text-[12px] rounded-full border transition-colors font-medium ${
+              sel.includes(s.subreddit)
+                ? 'bg-[#6366f1]/15 text-[#6366f1] border-[#6366f1]/40'
+                : 'bg-[#1a1d27] text-[#8b8fa3] border-[#2a2e3d] hover:border-[#6366f1]/30 hover:text-[#e8eaed]'
             }`}
           >
             r/{s.subreddit}
@@ -63,19 +93,18 @@ export default function SentimentPage() {
         ))}
       </div>
 
-      {/* Multi-Subreddit Sentiment Timeline */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">
-          Sentiment Comparison ({selected.length} subreddits)
+      <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">
+          Sentiment Comparison — {sel.length} subreddit{sel.length !== 1 && 's'}
         </h3>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={timelineData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="year_month" tick={{ fontSize: 10 }} interval={11} />
-            <YAxis domain={[-0.8, 0.3]} tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Legend />
-            {selected.map((sub, i) => (
+            <CartesianGrid stroke={chartGrid} />
+            <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(timelineData.length / 8))} />
+            <YAxis domain={[-0.8, 0.3]} tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+            <Tooltip content={<DarkTooltip />} />
+            <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 12 }} />
+            {sel.map((sub, i) => (
               <Line
                 key={sub}
                 type="monotone"
@@ -90,29 +119,33 @@ export default function SentimentPage() {
         </ResponsiveContainer>
       </div>
 
-      {/* Sentiment Distribution Table */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">Subreddit Sentiment Overview</h3>
+      <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Distribution by Subreddit</h3>
+        <BoxPlotChart data={boxplotData} />
+      </div>
+
+      <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Subreddit Sentiment Overview</h3>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-left text-slate-500">
-              <th className="py-2">Subreddit</th>
-              <th className="py-2">Mean Sentiment</th>
-              <th className="py-2">Positive %</th>
-              <th className="py-2">Negative %</th>
-              <th className="py-2">Documents</th>
+            <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
+              <th className="py-2.5 font-medium">Subreddit</th>
+              <th className="py-2.5 font-medium">Mean Sentiment</th>
+              <th className="py-2.5 font-medium">Positive</th>
+              <th className="py-2.5 font-medium">Negative</th>
+              <th className="py-2.5 font-medium">Documents</th>
             </tr>
           </thead>
           <tbody>
             {[...subreddits].sort((a, b) => a.mean_sentiment - b.mean_sentiment).map(s => (
-              <tr key={s.subreddit} className="border-b hover:bg-slate-50">
-                <td className="py-2 font-medium">r/{s.subreddit}</td>
-                <td className={`py-2 ${s.mean_sentiment < -0.3 ? 'text-red-600' : s.mean_sentiment > 0 ? 'text-green-600' : 'text-slate-600'}`}>
+              <tr key={s.subreddit} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
+                <td className="py-2.5 font-medium text-[#e8eaed]">r/{s.subreddit}</td>
+                <td className={`py-2.5 font-mono text-[13px] ${s.mean_sentiment < -0.3 ? 'text-[#f87171]' : s.mean_sentiment > 0 ? 'text-[#34d399]' : 'text-[#64748b]'}`}>
                   {s.mean_sentiment.toFixed(3)}
                 </td>
-                <td className="py-2 text-green-600">{(s.positive_ratio * 100).toFixed(1)}%</td>
-                <td className="py-2 text-red-600">{(s.negative_ratio * 100).toFixed(1)}%</td>
-                <td className="py-2 text-slate-500">{s.total_count.toLocaleString()}</td>
+                <td className="py-2.5 text-[#34d399] font-mono text-[13px]">{(s.positive_ratio * 100).toFixed(1)}%</td>
+                <td className="py-2.5 text-[#f87171] font-mono text-[13px]">{(s.negative_ratio * 100).toFixed(1)}%</td>
+                <td className="py-2.5 text-[#64748b] font-mono text-[13px]">{s.total_count.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
