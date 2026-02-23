@@ -56,7 +56,12 @@ def download_from_gcs() -> None:
     for blob in blobs:
         if blob.name.endswith("/"):
             continue
-        local_path = ANALYSIS_DIR / blob.name
+        # Route outputs_news/ blobs to NEWS_ANALYSIS_DIR, rest to ANALYSIS_DIR
+        if blob.name.startswith("outputs_news/"):
+            rel = blob.name[len("outputs_news/"):]
+            local_path = NEWS_ANALYSIS_DIR / rel
+        else:
+            local_path = ANALYSIS_DIR / blob.name
         local_path.parent.mkdir(parents=True, exist_ok=True)
         blob.download_to_filename(str(local_path))
         logger.info(f"  Downloaded {blob.name} ({blob.size:,} bytes)")

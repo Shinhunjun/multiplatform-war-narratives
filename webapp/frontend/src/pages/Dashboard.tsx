@@ -48,7 +48,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchOverview('reddit').then(setRedditStats);
-    fetchOverview('news').then(setNewsStats).catch(() => setNewsStats(null));
+    fetchOverview('news').then(d => setNewsStats(d?.total_documents != null ? d : null)).catch(() => setNewsStats(null));
   }, []);
 
   useEffect(() => {
