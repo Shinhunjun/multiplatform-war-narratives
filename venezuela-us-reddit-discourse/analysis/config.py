@@ -32,7 +32,7 @@ class AnalysisConfig:
 
     # Model settings
     sentiment_model: str = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
     # Processing settings
     batch_size: int = 64  # Larger batch for GPU

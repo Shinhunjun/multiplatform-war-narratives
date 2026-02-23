@@ -111,11 +111,14 @@ export default function TopicsPage() {
   const [newsTimeline, setNewsTimeline] = useState<TopicOverTime[]>([]);
 
   useEffect(() => {
-    fetchTopicInfo('reddit').then(setRedditTopics);
+    const start = selected?.[0];
+    const end = selected?.[1];
+
+    fetchTopicInfo('reddit', start, end).then(setRedditTopics);
     fetchTopicsOverTime(undefined, 'reddit').then(setRedditTimeline);
-    fetchTopicInfo('news').then(setNewsTopics).catch(() => setNewsTopics([]));
+    fetchTopicInfo('news', start, end).then(setNewsTopics).catch(() => setNewsTopics([]));
     fetchTopicsOverTime(undefined, 'news').then(setNewsTimeline).catch(() => setNewsTimeline([]));
-  }, []);
+  }, [selected]);
 
   const hasNews = newsTopics.length > 0;
 

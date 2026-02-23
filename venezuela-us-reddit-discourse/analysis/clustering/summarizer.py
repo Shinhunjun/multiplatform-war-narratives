@@ -298,6 +298,36 @@ def summarize_all_clusters(
     return pd.DataFrame(summaries)
 
 
+_SPANISH_STOP_WORDS = [
+    "de", "la", "que", "el", "en", "y", "a", "los", "del", "se", "las", "por",
+    "un", "para", "con", "no", "una", "su", "al", "lo", "como", "más", "pero",
+    "sus", "le", "ya", "o", "este", "sí", "porque", "esta", "entre", "cuando",
+    "muy", "sin", "sobre", "también", "me", "hasta", "hay", "donde", "quien",
+    "desde", "todo", "nos", "durante", "todos", "uno", "les", "ni", "contra",
+    "otros", "ese", "eso", "ante", "ellos", "e", "esto", "mí", "antes", "algunos",
+    "qué", "unos", "yo", "otro", "otras", "otra", "él", "tanto", "esa", "estos",
+    "mucho", "quienes", "nada", "muchos", "cual", "poco", "ella", "estar", "estas",
+    "algunas", "algo", "nosotros", "mi", "mis", "tú", "te", "ti", "tu", "tus",
+    "ellas", "nosotras", "vosotros", "vosotras", "os", "mío", "mía", "míos",
+    "mías", "tuyo", "tuya", "tuyos", "tuyas", "suyo", "suya", "suyos", "suyas",
+    "nuestro", "nuestra", "nuestros", "nuestras", "vuestro", "vuestra", "vuestros",
+    "vuestras", "esos", "esas", "estoy", "estás", "está", "estamos", "estáis",
+    "están", "esté", "estés", "estemos", "estéis", "estén", "estaré", "estarás",
+    "estará", "estaremos", "estaréis", "estarán", "estaría", "estarías",
+    "estaríamos", "estaríais", "estarían", "estaba", "estabas", "estábamos",
+    "estabais", "estaban", "estuve", "estuviste", "estuvo", "estuvimos",
+    "estuvisteis", "estuvieron", "ser", "soy", "eres", "es", "somos", "sois",
+    "son", "sea", "seas", "seamos", "seáis", "sean", "fue", "fuiste", "fuimos",
+    "fuisteis", "fueron", "era", "eras", "éramos", "erais", "eran", "sido",
+    "tiene", "tienen", "hacer", "hace", "hecho", "puede", "pueden", "va", "van",
+    "hay", "sido", "tiene", "tienen", "ver", "así", "mas", "ahora", "aquí",
+    "cada", "si", "solo", "tan", "bien", "dijo", "ño",
+    # Reddit-specific
+    "http", "https", "www", "com", "reddit", "subreddit", "wiki",
+    "removed", "deleted", "edit", "update",
+]
+
+
 def generate_keyword_summary(
     df: pd.DataFrame,
     cluster_id: int,
@@ -307,18 +337,20 @@ def generate_keyword_summary(
     """
     Generate keyword-based summary without LLM.
 
-    Uses TF-IDF to extract key terms.
+    Uses TF-IDF to extract key terms with English + Spanish stop words.
     """
-    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.feature_extraction.text import TfidfVectorizer, ENGLISH_STOP_WORDS
 
     cluster_texts = df[df["cluster_id"] == cluster_id][text_column].tolist()
 
     if not cluster_texts:
         return []
 
+    combined_stop_words = list(ENGLISH_STOP_WORDS) + _SPANISH_STOP_WORDS
+
     vectorizer = TfidfVectorizer(
         max_features=1000,
-        stop_words="english",
+        stop_words=combined_stop_words,
         ngram_range=(1, 2),
     )
 

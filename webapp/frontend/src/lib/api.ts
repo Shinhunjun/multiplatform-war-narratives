@@ -81,6 +81,16 @@ export interface ClusterSummary {
   sentiment_mean: number;
   time_start: string;
   time_end: string;
+  keywords?: string;
+  keywords_short?: string;
+}
+
+export interface ClusterScatterPoint {
+  x: number;
+  y: number;
+  cluster_id: number;
+  subreddit: string;
+  keywords: string;
 }
 
 // API calls
@@ -121,9 +131,11 @@ export const fetchSentimentBoxplot = (start?: string, end?: string, platform?: P
   return api.get<BoxPlotStat[]>(`/api/sentiment/boxplot?${params}`).then(r => r.data);
 };
 
-export const fetchTopicInfo = (platform?: Platform) => {
+export const fetchTopicInfo = (platform?: Platform, start?: string, end?: string) => {
   const params = new URLSearchParams();
   if (platform) params.set('platform', platform);
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
   return api.get<TopicInfo[]>(`/api/topics/info?${params}`).then(r => r.data);
 };
 
@@ -140,8 +152,23 @@ export const fetchTopicsBySubreddit = (platform?: Platform) => {
   return api.get<{ subreddit: string; topic_id: number; count: number; proportion: number }[]>(`/api/topics/by-subreddit?${params}`).then(r => r.data);
 };
 
-export const fetchClusterSummaries = (limit = 30, minCount = 20) =>
-  api.get<ClusterSummary[]>(`/api/clusters/summaries?limit=${limit}&min_count=${minCount}`).then(r => r.data);
+export const fetchClusterSummaries = (limit = 30, minCount = 20, start?: string, end?: string) => {
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+  params.set('min_count', String(minCount));
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  return api.get<ClusterSummary[]>(`/api/clusters/summaries?${params}`).then(r => r.data);
+};
+
+export const fetchClusterScatter = (topN = 50, maxPoints = 30000, start?: string, end?: string) => {
+  const params = new URLSearchParams();
+  params.set('top_n', String(topN));
+  params.set('max_points', String(maxPoints));
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  return api.get<ClusterScatterPoint[]>(`/api/clusters/scatter?${params}`).then(r => r.data);
+};
 
 export const fetchTemporalClusters = (limit = 10, start?: string, end?: string) => {
   const params = new URLSearchParams();

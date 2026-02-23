@@ -36,6 +36,10 @@ _extra_origins = os.environ.get("CORS_ORIGINS", "").split(",")
 _origins = [
     "http://localhost:3000",
     "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
+    "http://localhost:5177",
 ] + [o.strip() for o in _extra_origins if o.strip()]
 
 app.add_middleware(
