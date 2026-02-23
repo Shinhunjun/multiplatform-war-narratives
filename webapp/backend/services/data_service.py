@@ -181,12 +181,18 @@ def get_news_sentiment_by_month() -> pd.DataFrame:
 
 @functools.lru_cache(maxsize=1)
 def get_news_sentiment_by_source() -> pd.DataFrame:
-    return pd.read_csv(NEWS_SENTIMENT_DIR / "sentiment_by_source.csv")
+    df = pd.read_csv(NEWS_SENTIMENT_DIR / "sentiment_by_source.csv")
+    df = df.fillna(0)
+    df["source"] = df["source"].astype(str)
+    return df
 
 
 @functools.lru_cache(maxsize=1)
 def get_news_sentiment_by_source_month() -> pd.DataFrame:
-    return pd.read_csv(NEWS_SENTIMENT_DIR / "sentiment_by_source_month.csv")
+    df = pd.read_csv(NEWS_SENTIMENT_DIR / "sentiment_by_source_month.csv")
+    df = df.fillna(0)
+    df["source"] = df["source"].astype(str)
+    return df
 
 
 @functools.lru_cache(maxsize=1)
@@ -237,5 +243,5 @@ def get_news_overview_stats() -> Optional[dict]:
         "num_topics": len(topics),
         "num_clusters": 0,
         "avg_sentiment": round(float(sentiment_src["mean_sentiment"].mean()), 4),
-        "source_list": sorted(sentiment_src["source"].tolist()),
+        "source_list": sorted(sentiment_src["source"].dropna().astype(str).tolist()),
     }
