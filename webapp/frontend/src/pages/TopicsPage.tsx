@@ -6,38 +6,7 @@ import {
 import { fetchTopicInfo, fetchTopicsOverTime } from '../lib/api';
 import type { TopicInfo, TopicOverTime } from '../lib/api';
 import { useTimeRange } from '../lib/TimeRangeContext';
-
-const COLORS = [
-  '#6366f1', '#34d399', '#f87171', '#fbbf24', '#38bdf8',
-  '#a78bfa', '#fb923c', '#e879f9', '#2dd4bf', '#f472b6',
-];
-
-const chartGrid = '#2a2e3d';
-const chartTick = { fontSize: 11, fill: '#8b8fa3' };
-const chartAxisLine = { stroke: '#2a2e3d' };
-
-function DarkTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-[#1a1d27] border border-[#2a2e3d] rounded-lg px-3 py-2 shadow-xl">
-      <p className="text-[11px] text-[#8b8fa3] mb-1 font-mono">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} className="text-[12px] font-medium" style={{ color: p.color }}>
-          {p.name}: {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
-        </p>
-      ))}
-    </div>
-  );
-}
-
-function PlatformLabel({ platform, color }: { platform: string; color: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium border" style={{ color, borderColor: `${color}40`, backgroundColor: `${color}10` }}>
-      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-      {platform}
-    </span>
-  );
-}
+import { DarkTooltip, PlatformLabel, COLORS, chartGrid, chartTick, chartAxisLine } from '../components/charts/shared';
 
 function parseTopicLabel(name: string): string {
   const parts = name.split('_').slice(1, 4);
@@ -157,6 +126,16 @@ export default function TopicsPage() {
         <div className="h-[2px] w-10 bg-[#6366f1] mt-2 rounded-full" />
       </div>
 
+      {/* Filter banner */}
+      <div className="bg-[#f59e0b]/10 border border-[#f59e0b]/20 rounded-lg px-4 py-2.5 flex items-center gap-2">
+        <svg className="w-4 h-4 text-[#f59e0b] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+        <p className="text-[12px] text-[#f59e0b]">
+          Non-English topics (Spanish-dominated Topic 0) filtered from display for clarity.
+        </p>
+      </div>
+
       {/* Topic distribution side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div>
@@ -189,34 +168,9 @@ export default function TopicsPage() {
             <PlatformLabel platform="Reddit" color="#6366f1" />
             <h3 className="text-[13px] font-semibold text-[#e8eaed]">Topic Details</h3>
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
-                <th className="py-2.5 w-12 font-medium">ID</th>
-                <th className="py-2.5 font-medium">Top Keywords</th>
-                <th className="py-2.5 w-20 font-medium">Docs</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...redditTopics].sort((a, b) => b.Count - a.Count).map(t => (
-                <tr key={t.Topic} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
-                  <td className="py-2 font-mono text-[#64748b] text-xs">{t.Topic}</td>
-                  <td className="py-2 text-[#e8eaed] text-[12px]">{parseTopicLabel(t.Name)}</td>
-                  <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{t.Count.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <PlatformLabel platform="GDELT News" color="#f59e0b" />
-            <h3 className="text-[13px] font-semibold text-[#e8eaed]">Topic Details</h3>
-          </div>
-          {newsTopics.length > 0 ? (
+          <div className="max-h-[500px] overflow-y-auto">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 bg-[#1a1d27]">
                 <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
                   <th className="py-2.5 w-12 font-medium">ID</th>
                   <th className="py-2.5 font-medium">Top Keywords</th>
@@ -224,7 +178,7 @@ export default function TopicsPage() {
                 </tr>
               </thead>
               <tbody>
-                {[...newsTopics].sort((a, b) => b.Count - a.Count).map(t => (
+                {[...redditTopics].sort((a, b) => b.Count - a.Count).map(t => (
                   <tr key={t.Topic} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
                     <td className="py-2 font-mono text-[#64748b] text-xs">{t.Topic}</td>
                     <td className="py-2 text-[#e8eaed] text-[12px]">{parseTopicLabel(t.Name)}</td>
@@ -233,6 +187,35 @@ export default function TopicsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <PlatformLabel platform="GDELT News" color="#f59e0b" />
+            <h3 className="text-[13px] font-semibold text-[#e8eaed]">Topic Details</h3>
+          </div>
+          {newsTopics.length > 0 ? (
+            <div className="max-h-[500px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-[#1a1d27]">
+                  <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
+                    <th className="py-2.5 w-12 font-medium">ID</th>
+                    <th className="py-2.5 font-medium">Top Keywords</th>
+                    <th className="py-2.5 w-20 font-medium">Docs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...newsTopics].sort((a, b) => b.Count - a.Count).map(t => (
+                    <tr key={t.Topic} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
+                      <td className="py-2 font-mono text-[#64748b] text-xs">{t.Topic}</td>
+                      <td className="py-2 text-[#e8eaed] text-[12px]">{parseTopicLabel(t.Name)}</td>
+                      <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{t.Count.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <div className="flex items-center justify-center h-32 text-[#64748b] text-sm">No news data available</div>
           )}

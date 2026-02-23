@@ -7,24 +7,7 @@ import { fetchOverview, fetchSentimentByMonth, fetchSentimentBoxplot } from '../
 import type { OverviewStats, SentimentMonth, BoxPlotStat } from '../lib/api';
 import { useTimeRange } from '../lib/TimeRangeContext';
 import BoxPlotChart from '../components/charts/BoxPlotChart';
-
-const chartGrid = '#2a2e3d';
-const chartTick = { fontSize: 11, fill: '#8b8fa3' };
-const chartAxisLine = { stroke: '#2a2e3d' };
-
-function DarkTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-[#1a1d27] border border-[#2a2e3d] rounded-lg px-3 py-2 shadow-xl">
-      <p className="text-[11px] text-[#8b8fa3] mb-1 font-mono">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} className="text-[12px] font-medium" style={{ color: p.color }}>
-          {p.name}: {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
-        </p>
-      ))}
-    </div>
-  );
-}
+import { DarkTooltip, PlatformLabel, chartGrid, chartTick, chartAxisLine } from '../components/charts/shared';
 
 function StatCard({ label, value, sub, accent }: { label: string; value: string | number; sub?: string; accent?: string }) {
   return (
@@ -54,15 +37,6 @@ function LoadingSkeleton() {
   );
 }
 
-function PlatformLabel({ platform, color }: { platform: string; color: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium border" style={{ color, borderColor: `${color}40`, backgroundColor: `${color}10` }}>
-      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-      {platform}
-    </span>
-  );
-}
-
 export default function Dashboard() {
   const { selected } = useTimeRange();
   const [redditStats, setRedditStats] = useState<OverviewStats | null>(null);
@@ -70,6 +44,7 @@ export default function Dashboard() {
   const [redditMonth, setRedditMonth] = useState<SentimentMonth[]>([]);
   const [newsMonth, setNewsMonth] = useState<SentimentMonth[]>([]);
   const [boxplotData, setBoxplotData] = useState<BoxPlotStat[]>([]);
+  const [newsBoxplotData, setNewsBoxplotData] = useState<BoxPlotStat[]>([]);
 
   useEffect(() => {
     fetchOverview('reddit').then(setRedditStats);
@@ -82,6 +57,7 @@ export default function Dashboard() {
     fetchSentimentByMonth(start, end, 'reddit').then(setRedditMonth);
     fetchSentimentByMonth(start, end, 'news').then(setNewsMonth).catch(() => setNewsMonth([]));
     fetchSentimentBoxplot(start, end).then(setBoxplotData);
+    fetchSentimentBoxplot(start, end, 'news').then(setNewsBoxplotData).catch(() => setNewsBoxplotData([]));
   }, [selected]);
 
   if (!redditStats) return <LoadingSkeleton />;
@@ -209,10 +185,20 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Box plot — Reddit only */}
-      <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Distribution by Subreddit (Reddit)</h3>
-        <BoxPlotChart data={boxplotData} />
+      {/* Box plots — Reddit & News side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Distribution — Reddit</h3>
+          <BoxPlotChart data={boxplotData} />
+        </div>
+        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Distribution — News Top 20</h3>
+          {newsBoxplotData.length > 0 ? (
+            <BoxPlotChart data={newsBoxplotData} labelPrefix="" />
+          ) : (
+            <div className="flex items-center justify-center h-[200px] text-[#64748b] text-sm">No news data available</div>
+          )}
+        </div>
       </div>
     </div>
   );

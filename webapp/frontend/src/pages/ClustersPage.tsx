@@ -5,35 +5,13 @@ import {
 import { fetchClusterSummaries, fetchTemporalClusters } from '../lib/api';
 import type { ClusterSummary } from '../lib/api';
 import { useTimeRange } from '../lib/TimeRangeContext';
-
-const COLORS_CHART = [
-  '#6366f1', '#34d399', '#f87171', '#fbbf24', '#38bdf8',
-  '#a78bfa', '#fb923c', '#e879f9', '#2dd4bf', '#f472b6',
-];
-
-const chartGrid = '#2a2e3d';
-const chartTick = { fontSize: 11, fill: '#8b8fa3' };
-const chartAxisLine = { stroke: '#2a2e3d' };
+import { DarkTooltip, COLORS as COLORS_CHART, chartGrid, chartTick, chartAxisLine } from '../components/charts/shared';
 
 function sentimentColor(val: number): string {
   if (val < -0.3) return '#f87171';
   if (val < -0.1) return '#fbbf24';
   if (val < 0.1) return '#64748b';
   return '#34d399';
-}
-
-function DarkTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-[#1a1d27] border border-[#2a2e3d] rounded-lg px-3 py-2 shadow-xl">
-      <p className="text-[11px] text-[#8b8fa3] mb-1 font-mono">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} className="text-[12px] font-medium" style={{ color: p.color || '#e8eaed' }}>
-          {p.name}: {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
-        </p>
-      ))}
-    </div>
-  );
 }
 
 export default function ClustersPage() {

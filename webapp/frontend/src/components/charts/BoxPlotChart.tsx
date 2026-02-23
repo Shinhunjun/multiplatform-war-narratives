@@ -5,9 +5,10 @@ const PADDING = { top: 20, right: 30, bottom: 30, left: 100 };
 
 interface Props {
   data: BoxPlotStat[];
+  labelPrefix?: string;
 }
 
-export default function BoxPlotChart({ data }: Props) {
+export default function BoxPlotChart({ data, labelPrefix = 'r/' }: Props) {
   if (data.length === 0) return <p className="text-sm text-[#8b8fa3]">No data</p>;
 
   const width = 600;
@@ -69,7 +70,7 @@ export default function BoxPlotChart({ data }: Props) {
               x={PADDING.left - 8} y={cy + 4}
               textAnchor="end" fontSize={11} fill="#8b8fa3"
             >
-              r/{d.subreddit}
+              {labelPrefix}{d.subreddit}
             </text>
 
             {/* Whisker line */}
@@ -100,7 +101,7 @@ export default function BoxPlotChart({ data }: Props) {
 
             {/* Tooltip area */}
             <title>
-              {`r/${d.subreddit}\nMean: ${d.mean.toFixed(4)} (±${d.std.toFixed(4)})\nMedian: ${d.median.toFixed(4)}\nQ1: ${d.q1.toFixed(4)}, Q3: ${d.q3.toFixed(4)}\nMin: ${d.min.toFixed(4)}, Max: ${d.max.toFixed(4)}\nDocs: ${d.count.toLocaleString()}`}
+              {`${labelPrefix}${d.subreddit}\nMean: ${d.mean.toFixed(4)} (±${d.std.toFixed(4)})\nMedian: ${d.median.toFixed(4)}\nQ1: ${d.q1.toFixed(4)}, Q3: ${d.q3.toFixed(4)}\nMin: ${d.min.toFixed(4)}, Max: ${d.max.toFixed(4)}\nDocs: ${d.count.toLocaleString()}`}
             </title>
           </g>
         );

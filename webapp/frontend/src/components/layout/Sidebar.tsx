@@ -75,8 +75,17 @@ export default function Sidebar() {
       </nav>
 
       <div className="px-5 py-4 border-t border-[#2a2e3d]">
-        <p className="text-[11px] text-[#8b8fa3] font-medium uppercase tracking-wider">Platform</p>
-        <p className="text-[12px] text-[#64748b] mt-1">Reddit</p>
+        <p className="text-[11px] text-[#8b8fa3] font-medium uppercase tracking-wider mb-2">Platforms</p>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#6366f1]" />
+            <span className="text-[12px] text-[#e8eaed]">Reddit</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
+            <span className="text-[12px] text-[#e8eaed]">GDELT News</span>
+          </div>
+        </div>
       </div>
     </aside>
   );

@@ -69,24 +69,32 @@ def sentiment_by_subreddit_month(
 
 @router.get("/boxplot")
 def sentiment_boxplot(
+    platform: Optional[str] = Query(None, description="Platform: reddit or news"),
     start: Optional[str] = Query(None, description="Start month YYYY-MM"),
     end: Optional[str] = Query(None, description="End month YYYY-MM"),
+    limit: int = Query(20, description="Max groups to return (news only)"),
 ):
-    """Box plot statistics per subreddit from monthly sentiment values. Reddit only."""
-    df = get_sentiment_by_subreddit_month()
+    """Box plot statistics per subreddit/source from monthly sentiment values."""
+    if platform == "news":
+        df = get_news_sentiment_by_source_month()
+        group_col = "source"
+    else:
+        df = get_sentiment_by_subreddit_month()
+        group_col = "subreddit"
+
     if start:
         df = df[df["year_month"] >= start]
     if end:
         df = df[df["year_month"] <= end]
 
     results = []
-    for subreddit, group in df.groupby("subreddit"):
+    for name, group in df.groupby(group_col):
         vals = group["mean_sentiment"].dropna()
         if len(vals) < 3:
             continue
         q1, median, q3 = np.percentile(vals, [25, 50, 75])
         results.append({
-            "subreddit": subreddit,
+            "subreddit": str(name),
             "min": round(float(vals.min()), 4),
             "q1": round(float(q1), 4),
             "median": round(float(median), 4),
@@ -98,4 +106,9 @@ def sentiment_boxplot(
         })
 
     results.sort(key=lambda x: x["mean"])
+    if platform == "news":
+        # Return top N by document count for readability
+        results.sort(key=lambda x: x["count"], reverse=True)
+        results = results[:limit]
+        results.sort(key=lambda x: x["mean"])
     return results

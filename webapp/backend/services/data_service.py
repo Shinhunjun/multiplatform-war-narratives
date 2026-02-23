@@ -86,20 +86,20 @@ def get_sentiment_by_subreddit_month() -> pd.DataFrame:
 @functools.lru_cache(maxsize=1)
 def get_topic_info() -> pd.DataFrame:
     df = pd.read_csv(TOPICS_DIR / "topic_info.csv")
-    # Drop outlier topic -1 for display
-    return df[df["Topic"] >= 0].reset_index(drop=True)
+    # Drop outlier topic -1 and Topic 0 (non-English / Spanish-dominated) for display
+    return df[df["Topic"] >= 1].reset_index(drop=True)
 
 
 @functools.lru_cache(maxsize=1)
 def get_topics_by_subreddit() -> pd.DataFrame:
     df = pd.read_csv(TOPICS_DIR / "topics_by_subreddit.csv")
-    return df[df["topic_id"] >= 0].reset_index(drop=True)
+    return df[df["topic_id"] >= 1].reset_index(drop=True)
 
 
 @functools.lru_cache(maxsize=1)
 def get_topics_over_time() -> pd.DataFrame:
     df = pd.read_csv(TOPICS_DIR / "topics_over_time.csv")
-    return df[df["Topic"] >= 0].reset_index(drop=True)
+    return df[df["Topic"] >= 1].reset_index(drop=True)
 
 
 @functools.lru_cache(maxsize=1)
@@ -200,7 +200,7 @@ def get_news_topic_info() -> pd.DataFrame:
     path = NEWS_TOPICS_DIR / "topic_info.csv"
     if path.exists():
         df = pd.read_csv(path)
-        return df[df["Topic"] >= 0].reset_index(drop=True)
+        return df[df["Topic"] >= 1].reset_index(drop=True)
     return pd.DataFrame(columns=["Topic", "Count", "Name", "Representation"])
 
 
@@ -209,7 +209,7 @@ def get_news_topics_over_time() -> pd.DataFrame:
     path = NEWS_TOPICS_DIR / "topics_over_time.csv"
     if path.exists():
         df = pd.read_csv(path)
-        return df[df["Topic"] >= 0].reset_index(drop=True)
+        return df[df["Topic"] >= 1].reset_index(drop=True)
     return pd.DataFrame(columns=["Topic", "Timestamp", "Frequency"])
 
 
@@ -218,7 +218,7 @@ def get_news_topics_by_source() -> pd.DataFrame:
     path = NEWS_TOPICS_DIR / "topics_by_source.csv"
     if path.exists():
         df = pd.read_csv(path)
-        return df[df["topic_id"] >= 0].reset_index(drop=True)
+        return df[df["topic_id"] >= 1].reset_index(drop=True)
     return pd.DataFrame(columns=["source", "topic_id", "count"])
 
 

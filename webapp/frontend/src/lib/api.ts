@@ -113,10 +113,11 @@ export const fetchSentimentBySubredditMonth = (subreddit?: string, start?: strin
   return api.get<SentimentMonth[]>(`/api/sentiment/by-subreddit-month?${params}`).then(r => r.data);
 };
 
-export const fetchSentimentBoxplot = (start?: string, end?: string) => {
+export const fetchSentimentBoxplot = (start?: string, end?: string, platform?: Platform) => {
   const params = new URLSearchParams();
   if (start) params.set('start', start);
   if (end) params.set('end', end);
+  if (platform) params.set('platform', platform);
   return api.get<BoxPlotStat[]>(`/api/sentiment/boxplot?${params}`).then(r => r.data);
 };
 
