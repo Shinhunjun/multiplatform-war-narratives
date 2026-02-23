@@ -54,31 +54,64 @@ function LoadingSkeleton() {
   );
 }
 
+function PlatformLabel({ platform, color }: { platform: string; color: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium border" style={{ color, borderColor: `${color}40`, backgroundColor: `${color}10` }}>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+      {platform}
+    </span>
+  );
+}
+
 export default function Dashboard() {
   const { selected } = useTimeRange();
-  const [stats, setStats] = useState<OverviewStats | null>(null);
-  const [monthData, setMonthData] = useState<SentimentMonth[]>([]);
+  const [redditStats, setRedditStats] = useState<OverviewStats | null>(null);
+  const [newsStats, setNewsStats] = useState<OverviewStats | null>(null);
+  const [redditMonth, setRedditMonth] = useState<SentimentMonth[]>([]);
+  const [newsMonth, setNewsMonth] = useState<SentimentMonth[]>([]);
   const [boxplotData, setBoxplotData] = useState<BoxPlotStat[]>([]);
 
   useEffect(() => {
-    fetchOverview().then(setStats);
+    fetchOverview('reddit').then(setRedditStats);
+    fetchOverview('news').then(setNewsStats).catch(() => setNewsStats(null));
   }, []);
 
   useEffect(() => {
     if (!selected) return;
     const [start, end] = selected;
-    fetchSentimentByMonth(start, end).then(setMonthData);
+    fetchSentimentByMonth(start, end, 'reddit').then(setRedditMonth);
+    fetchSentimentByMonth(start, end, 'news').then(setNewsMonth).catch(() => setNewsMonth([]));
     fetchSentimentBoxplot(start, end).then(setBoxplotData);
   }, [selected]);
 
-  if (!stats) return <LoadingSkeleton />;
+  if (!redditStats) return <LoadingSkeleton />;
 
-  const volumeData = monthData.map(d => ({
+  const redditVolume = redditMonth.map(d => ({
     year_month: d.year_month,
     Positive: Math.round(d.positive_ratio * d.total_count),
     Neutral: Math.round((1 - d.positive_ratio - d.negative_ratio) * d.total_count),
     Negative: Math.round(d.negative_ratio * d.total_count),
   }));
+
+  const newsVolume = newsMonth.map(d => ({
+    year_month: d.year_month,
+    Positive: Math.round(d.positive_ratio * d.total_count),
+    Neutral: Math.round((1 - d.positive_ratio - d.negative_ratio) * d.total_count),
+    Negative: Math.round(d.negative_ratio * d.total_count),
+  }));
+
+  // Merge sentiment for comparison chart
+  const mergedSentiment: Record<string, any> = {};
+  redditMonth.forEach(d => {
+    mergedSentiment[d.year_month] = { year_month: d.year_month, reddit: d.mean_sentiment };
+  });
+  newsMonth.forEach(d => {
+    if (!mergedSentiment[d.year_month]) mergedSentiment[d.year_month] = { year_month: d.year_month };
+    mergedSentiment[d.year_month].news = d.mean_sentiment;
+  });
+  const comparisonData = Object.values(mergedSentiment).sort((a: any, b: any) => a.year_month.localeCompare(b.year_month));
+
+  const hasNews = newsStats !== null;
 
   return (
     <div className="px-6 py-8 space-y-6">
@@ -87,54 +120,99 @@ export default function Dashboard() {
         <div className="h-[2px] w-10 bg-[#6366f1] mt-2 rounded-full" />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Documents" value={stats.total_documents.toLocaleString()} sub="Reddit posts & comments" accent="#6366f1" />
-        <StatCard label="Subreddits" value={stats.subreddits} sub={`${stats.date_range.start} — ${stats.date_range.end}`} accent="#34d399" />
-        <StatCard label="Topics" value={stats.num_topics} sub="BERTopic clusters" accent="#fbbf24" />
-        <StatCard label="Avg Sentiment" value={stats.avg_sentiment.toFixed(3)} sub="Mean across all subreddits" accent="#f87171" />
+      {/* Stats cards — side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Reddit stats */}
+        <div className="space-y-3">
+          <PlatformLabel platform="Reddit" color="#6366f1" />
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard label="Documents" value={redditStats.total_documents.toLocaleString()} sub="Posts & comments" accent="#6366f1" />
+            <StatCard label="Subreddits" value={redditStats.subreddits ?? 0} sub={`${redditStats.date_range.start} — ${redditStats.date_range.end}`} accent="#6366f1" />
+            <StatCard label="Topics" value={redditStats.num_topics} sub="BERTopic clusters" accent="#6366f1" />
+            <StatCard label="Avg Sentiment" value={redditStats.avg_sentiment.toFixed(3)} sub="Mean across subreddits" accent="#6366f1" />
+          </div>
+        </div>
+
+        {/* News stats */}
+        <div className="space-y-3">
+          <PlatformLabel platform="GDELT News" color="#f59e0b" />
+          {hasNews ? (
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard label="Documents" value={newsStats.total_documents.toLocaleString()} sub="News articles" accent="#f59e0b" />
+              <StatCard label="Sources" value={newsStats.sources ?? 0} sub={`${newsStats.date_range.start} — ${newsStats.date_range.end}`} accent="#f59e0b" />
+              <StatCard label="Topics" value={newsStats.num_topics} sub="Mapped from Reddit" accent="#f59e0b" />
+              <StatCard label="Avg Sentiment" value={newsStats.avg_sentiment.toFixed(3)} sub="Mean across sources" accent="#f59e0b" />
+            </div>
+          ) : (
+            <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-8 text-center">
+              <p className="text-[#8b8fa3] text-sm">News data not available yet.</p>
+              <p className="text-[#64748b] text-xs mt-1">Run <code className="text-[#f59e0b]">python scripts/analyze_gdelt.py</code> to generate.</p>
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Sentiment comparison chart */}
+      {hasNews && comparisonData.length > 0 && (
+        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Over Time — Reddit vs News</h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={comparisonData}>
+              <CartesianGrid stroke={chartGrid} />
+              <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(comparisonData.length / 10))} />
+              <YAxis domain={[-0.8, 0.4]} tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+              <Tooltip content={<DarkTooltip />} />
+              <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 12 }} />
+              <Line type="monotone" dataKey="reddit" stroke="#6366f1" strokeWidth={2} dot={false} name="Reddit" />
+              <Line type="monotone" dataKey="news" stroke="#f59e0b" strokeWidth={2} dot={false} name="GDELT News" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Volume side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Over Time</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={monthData}>
+          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-1">Document Volume — Reddit</h3>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={redditVolume}>
               <CartesianGrid stroke={chartGrid} />
-              <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(monthData.length / 8))} />
-              <YAxis domain={[-0.8, 0.2]} tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+              <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(redditVolume.length / 6))} />
+              <YAxis tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
               <Tooltip content={<DarkTooltip />} />
-              <Line
-                type="monotone"
-                dataKey="mean_sentiment"
-                stroke="#6366f1"
-                strokeWidth={2}
-                dot={false}
-                name="Mean Sentiment"
-              />
-            </LineChart>
+              <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 11 }} />
+              <Bar dataKey="Positive" stackId="a" fill="#34d399" />
+              <Bar dataKey="Neutral" stackId="a" fill="#64748b" />
+              <Bar dataKey="Negative" stackId="a" fill="#f87171" radius={[2, 2, 0, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
 
         <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Distribution by Subreddit</h3>
-          <BoxPlotChart data={boxplotData} />
+          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-1">Document Volume — News</h3>
+          {newsVolume.length > 0 ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={newsVolume}>
+                <CartesianGrid stroke={chartGrid} />
+                <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(newsVolume.length / 6))} />
+                <YAxis tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+                <Tooltip content={<DarkTooltip />} />
+                <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 11 }} />
+                <Bar dataKey="Positive" stackId="a" fill="#34d399" />
+                <Bar dataKey="Neutral" stackId="a" fill="#64748b" />
+                <Bar dataKey="Negative" stackId="a" fill="#f87171" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[260px] text-[#64748b] text-sm">No news data available</div>
+          )}
         </div>
       </div>
 
+      {/* Box plot — Reddit only */}
       <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Document Volume Over Time</h3>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={volumeData}>
-            <CartesianGrid stroke={chartGrid} />
-            <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(volumeData.length / 8))} />
-            <YAxis tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
-            <Tooltip content={<DarkTooltip />} />
-            <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 12 }} />
-            <Bar dataKey="Positive" stackId="a" fill="#34d399" />
-            <Bar dataKey="Neutral" stackId="a" fill="#64748b" />
-            <Bar dataKey="Negative" stackId="a" fill="#f87171" radius={[2, 2, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Distribution by Subreddit (Reddit)</h3>
+        <BoxPlotChart data={boxplotData} />
       </div>
     </div>
   );
