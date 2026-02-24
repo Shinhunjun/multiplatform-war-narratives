@@ -36,6 +36,27 @@ def _filtered_counts(start: Optional[str], end: Optional[str]) -> Optional[dict]
 
 
 @functools.lru_cache(maxsize=64)
+def _filtered_stats(start: Optional[str], end: Optional[str]) -> Optional[pd.DataFrame]:
+    """Cluster stats (count, top_subreddit) filtered by time range."""
+    assignments = get_cluster_assignments()
+    if assignments is None:
+        return None
+    adf = assignments[assignments["cluster_id"] != -1]
+    if start:
+        adf = adf[adf["year_month"] >= start]
+    if end:
+        adf = adf[adf["year_month"] <= end]
+    if adf.empty:
+        return None
+
+    counts = adf.groupby("cluster_id").agg(
+        count=("cluster_id", "size"),
+        top_subreddit=("subreddit", lambda s: s.value_counts().index[0] if len(s) > 0 else ""),
+    ).reset_index()
+    return counts
+
+
+@functools.lru_cache(maxsize=64)
 def _scatter_data(
     top_n: int, max_points: int,
     start: Optional[str], end: Optional[str],
@@ -110,12 +131,14 @@ def cluster_summaries(
     """Get cluster summaries sorted by document count, with keywords."""
     df = get_cluster_summaries()
 
-    # If time range specified, recompute counts from assignments (cached)
+    # If time range specified, recompute counts and top_subreddit from assignments
     if start or end:
-        counts = _filtered_counts(start, end)
-        if counts is not None:
+        stats = _filtered_stats(start, end)
+        if stats is not None:
+            stats_map = stats.set_index("cluster_id")
             df = df.copy()
-            df["count"] = df["cluster_id"].map(counts).fillna(0).astype(int)
+            df["count"] = df["cluster_id"].map(stats_map["count"]).fillna(0).astype(int)
+            df["top_subreddit"] = df["cluster_id"].map(stats_map["top_subreddit"]).fillna(df["top_subreddit"])
 
     df = df[df["count"] >= min_count]
     df = df.sort_values("count", ascending=False).head(limit)
