@@ -1,5 +1,5 @@
 [project]
-name = "venezuela-tiktok-discourse"
+name = "tiktok-discourse"
 version = "0.1.0"
 description = "Longitudinal analysis of Venezuela discourse on TikTok (2013-2026)"
 readme = "README.md"

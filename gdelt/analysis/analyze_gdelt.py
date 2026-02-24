@@ -4,7 +4,7 @@ Processes gdelt_scraped.csv → sentiment + topic assignment → output CSVs
 matching the same schema as the Reddit analysis pipeline.
 
 Usage:
-    python scripts/analyze_gdelt.py
+    python gdelt/analysis/analyze_gdelt.py
 """
 
 import json
@@ -17,10 +17,10 @@ import pandas as pd
 from tqdm import tqdm
 
 # Paths
-PROJECT_ROOT = Path(__file__).parent.parent
-GDELT_CSV = PROJECT_ROOT / "gdelt" / "gdelt_scraped.csv"
-REDDIT_OUTPUTS = PROJECT_ROOT / "venezuela-us-reddit-discourse" / "analysis" / "outputs"
-OUTPUT_DIR = PROJECT_ROOT / "venezuela-us-reddit-discourse" / "analysis" / "outputs_news"
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+GDELT_CSV = PROJECT_ROOT / "data" / "gdelt" / "gdelt_scraped.csv"
+REDDIT_OUTPUTS = PROJECT_ROOT / "reddit" / "analysis" / "outputs"
+OUTPUT_DIR = PROJECT_ROOT / "reddit" / "analysis" / "outputs_news"
 
 SENTIMENT_DIR = OUTPUT_DIR / "sentiment"
 TOPICS_DIR = OUTPUT_DIR / "topics"
@@ -73,7 +73,7 @@ def run_sentiment_analysis(df: pd.DataFrame) -> pd.DataFrame:
     print("\n--- Sentiment Analysis ---")
 
     # Import here so we can fail fast if dependencies missing
-    sys.path.insert(0, str(PROJECT_ROOT / "venezuela-us-reddit-discourse" / "analysis"))
+    sys.path.insert(0, str(PROJECT_ROOT / "reddit" / "analysis"))
     from sentiment.roberta_analyzer import analyze_sentiment_batch
 
     texts = df["Text"].tolist()

@@ -75,6 +75,7 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 
 ### Knowledge Graph — Microsoft GraphRAG
 - **Framework:** [Microsoft GraphRAG](https://github.com/microsoft/graphrag) with local LLM
+- **Instance:** `graphrag/` — custom config, prompts, and indexed output
 - **LLM:** Ollama `llama3.1:8b` (entity extraction, community reports)
 - **Embedding:** `nomic-embed-text` (768-dim, via Ollama)
 - **Vector Store:** LanceDB
@@ -126,7 +127,7 @@ gcloud run deploy backend-api \
   --memory 1Gi
 ```
 
-The backend downloads data from GCS on startup (`download_from_gcs()` in lifespan handler).
+The backend downloads data from GCS on startup (`download_from_gcs()` in `webapp/backend/services/data_service.py`).
 
 ### Frontend (Vercel)
 
@@ -163,42 +164,34 @@ gcloud builds submit --config webapp/pipeline/deploy/cloudbuild.yaml .
 ```
 capstone/
 ├── README.md                              # This file
-├── PIPELINE.md                            # Detailed pipeline & algorithm docs
-├── venezuela-us-reddit-discourse/         # Reddit data + analysis
+├── reddit/                                # Reddit data + analysis
 │   ├── data-collection/                   # Arctic Shift API collection
 │   ├── preprocessing/                     # Text cleaning pipeline
 │   ├── analysis/                          # Sentiment, topics, clustering
-│   │   └── outputs/                       # CSV/Parquet/npy results
-│   └── EDA/                               # Exploratory data analysis
-├── venezuela-tiktok-discourse/            # TikTok collection pipeline
-├── graphrag/                              # Microsoft GraphRAG framework (source)
-├── venezuela-graphrag/                    # GraphRAG knowledge graph for Venezuela data
-│   ├── settings.yaml                      # GraphRAG config (Ollama LLM + embeddings)
+│   └── eda/                               # Exploratory data analysis
+├── gdelt/                                 # GDELT news data collection + analysis
+│   ├── data-collection/                   # BigQuery export + web scraping
+│   ├── preprocessing/                     # Text relevance filtering
+│   └── analysis/                          # EDA + analyze_gdelt.py
+├── tiktok/                                # TikTok collection pipeline
+│   ├── data-collection/                   # TikTok Research API
+│   └── preprocessing/                     # Video/comment filtering
+├── graphrag/                              # GraphRAG knowledge graph instance
+│   ├── settings.yaml                      # Config (Ollama LLM + embeddings)
 │   ├── input/                             # 200 Reddit thread documents (.txt)
-│   ├── output/                            # Indexed entities, communities, text units
-│   ├── prompts/                           # Custom extraction & search prompts
-│   └── cache/                             # LLM response cache
-├── gdelt/                                 # GDELT BigQuery export data
+│   ├── output/                            # Indexed entities, communities
+│   └── prompts/                           # Custom extraction prompts
 ├── webapp/
-│   ├── backend/                           # FastAPI + GCS data loading
-│   │   ├── main.py                        # App entry, CORS, lifespan
-│   │   ├── routers/                       # API route handlers
-│   │   ├── services/data_service.py       # Data loading + GCS download
-│   │   ├── Dockerfile                     # Cloud Run container
-│   │   ├── cloudbuild.yaml                # Cloud Build config
-│   │   └── requirements.txt
-│   ├── frontend/                          # React + Vite + TailwindCSS
-│   │   ├── src/
-│   │   │   ├── pages/                     # Dashboard, Sentiment, Topics, Clusters
-│   │   │   ├── components/                # Layout, charts
-│   │   │   └── lib/api.ts                 # API client
-│   │   ├── vercel.json                    # Vercel SPA config
-│   │   └── .env.production                # VITE_API_URL
+│   ├── backend/                           # FastAPI + GCS (Cloud Run)
+│   ├── frontend/                          # React + Vite + Recharts (Vercel)
 │   └── pipeline/                          # Daily ETL (Cloud Run Jobs)
-│       ├── collectors/                    # Reddit, GDELT, news scraper
-│       ├── processing/                    # Preprocessing + analysis
-│       └── deploy/                        # Cloud Build + Scheduler
-└── pipeline_data/                         # Pipeline runtime data
+├── data/                                  # Raw data files (gitignored)
+│   └── gdelt/                             # GDELT BigQuery exports + scraped CSVs
+└── docs/                                  # Documentation
+    ├── PIPELINE.md                        # Detailed pipeline & algorithm docs
+    ├── CODE_WALK.md                       # Code walk presentation guide
+    ├── research-questions.md              # Research questions
+    └── RelatedWork_Dataset.pdf            # Related work reference
 ```
 
 ## Local Development

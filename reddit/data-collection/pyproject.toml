@@ -1,5 +1,5 @@
 [project]
-name = "venezuela-us-reddit-discourse"
+name = "reddit-discourse"
 version = "0.1.0"
 description = "Longitudinal analysis of Venezuela-US relations discourse on Reddit (2013-2025)"
 readme = "README.md"

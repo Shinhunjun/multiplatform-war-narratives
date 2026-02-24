@@ -20,7 +20,7 @@ _data_dir_env = os.environ.get("DATA_DIR")
 if _data_dir_env:
     ANALYSIS_DIR = Path(_data_dir_env)
 else:
-    ANALYSIS_DIR = Path(__file__).parent.parent.parent.parent / "venezuela-us-reddit-discourse" / "analysis" / "outputs"
+    ANALYSIS_DIR = Path(__file__).parent.parent.parent.parent / "reddit" / "analysis" / "outputs"
 
 NEWS_ANALYSIS_DIR = ANALYSIS_DIR.parent / "outputs_news"
 

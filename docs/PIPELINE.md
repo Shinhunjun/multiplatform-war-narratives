@@ -596,17 +596,20 @@ gcloud run jobs update pipeline-etl-daily --region=us-central1 \
 ```
 capstone/
 ├── README.md                              # Project overview
-├── PIPELINE.md                            # This document (pipeline & algorithms)
-├── .gitignore
+├── docs/
+│   ├── PIPELINE.md                        # This document (pipeline & algorithms)
+│   ├── CODE_WALK.md                       # Code walk presentation guide
+│   ├── research-questions.md              # Research questions
+│   └── RelatedWork_Dataset.pdf            # Related work reference
 │
-├── venezuela-us-reddit-discourse/         # Reddit analysis project
+├── reddit/                                # Reddit analysis project
 │   ├── data-collection/
 │   │   ├── main.py                        # Collection CLI (historical/crisis/comments)
 │   │   ├── pyproject.toml
 │   │   └── scripts/
 │   │       ├── config.py                  # Subreddit, keyword, flashpoint settings
 │   │       ├── collectors.py              # Arctic Shift API calls
-│   │       └── processors.py             # JSON load/save/merge/dedup
+│   │       └── processors.py              # JSON load/save/merge/dedup
 │   │
 │   ├── preprocessing/
 │   │   ├── config.py                      # Preprocessing settings
@@ -628,14 +631,22 @@ capstone/
 │   │   │   ├── summarizer.py              # TF-IDF + LLM cluster summarization
 │   │   │   └── temporal_viz.py            # UMAP scatter, animation, heatmap
 │   │   └── outputs/                       # Analysis results (CSV, Parquet, npy)
-│   │       ├── sentiment/
-│   │       ├── topics/
-│   │       ├── clusters/
-│   │       └── visualizations/
 │   │
-│   └── EDA/                               # Exploratory data analysis
+│   └── eda/                               # Exploratory data analysis
 │
-├── venezuela-tiktok-discourse/            # TikTok collection pipeline
+├── gdelt/                                 # GDELT news data collection + analysis
+│   ├── data-collection/
+│   │   ├── scrape_by_year.py              # Year-by-year GDELT scraping
+│   │   ├── rescue_by_year.py              # Retry failed scrapes
+│   │   └── consolidate_yearly.py          # Merge yearly CSVs
+│   ├── preprocessing/
+│   │   └── build_text_relevance_tokens.py # Text relevance filtering
+│   └── analysis/
+│       ├── run_eda.py                     # BigQuery export EDA
+│       ├── run_eda_scraped.py             # Scraped data EDA
+│       └── analyze_gdelt.py              # GDELT analysis script
+│
+├── tiktok/                                # TikTok collection pipeline
 │   ├── data-collection/
 │   │   ├── main.py
 │   │   └── scripts/
@@ -646,6 +657,12 @@ capstone/
 │       ├── filters.py                     # TikTok-specific filters
 │       └── preprocessor.py
 │
+├── graphrag/                              # GraphRAG knowledge graph instance
+│   ├── settings.yaml                      # Config (Ollama LLM + embeddings)
+│   ├── input/                             # 200 Reddit thread documents (.txt)
+│   ├── output/                            # Indexed entities, communities
+│   └── prompts/                           # Custom extraction prompts
+│
 ├── webapp/
 │   ├── backend/                           # FastAPI backend
 │   │   ├── main.py                        # FastAPI app, CORS, router registration
@@ -655,7 +672,7 @@ capstone/
 │   │   │   ├── topics.py                  # /api/topics/*
 │   │   │   └── clusters.py                # /api/clusters/*
 │   │   └── services/
-│   │       └── data_service.py            # CSV/Parquet loading + LRU cache
+│   │       └── data_service.py            # CSV/Parquet loading + GCS download
 │   │
 │   ├── frontend/                          # React dashboard
 │   │   ├── src/
@@ -688,14 +705,6 @@ capstone/
 │       ├── Dockerfile
 │       └── requirements.txt
 │
-└── pipeline_data/                         # Pipeline runtime data
-    ├── raw/
-    │   ├── reddit/submissions/            # Daily collected JSON
-    │   ├── reddit/comments/
-    │   ├── gdelt/                         # GDELT Parquet
-    │   └── news/                          # Scraped article JSON
-    ├── processed/
-    │   ├── reddit/                        # Preprocessed Parquet
-    │   └── gdelt/
-    └── reports/                           # Pipeline execution report JSON
+└── data/                                  # Raw data files (gitignored)
+    └── gdelt/                             # GDELT BigQuery exports + scraped CSVs
 ```
