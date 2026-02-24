@@ -98,7 +98,7 @@ export default function ClustersPage() {
                     <p className="font-semibold text-[#e8eaed]">{d.label}</p>
                     <p className="text-[#8b8fa3] mt-1">Documents: <span className="text-[#e8eaed] font-mono">{d.count.toLocaleString()}</span></p>
                     <p className="text-[#8b8fa3]">Top Subreddit: <span className="text-[#e8eaed]">r/{d.top_subreddit}</span></p>
-                    <p className="text-[#8b8fa3]">Sentiment: <span className="font-mono" style={{ color: sentimentColor(d.sentiment_mean) }}>{d.sentiment_mean.toFixed(3)}</span></p>
+                    {d.sentiment_mean != null && <p className="text-[#8b8fa3]">Sentiment: <span className="font-mono" style={{ color: sentimentColor(d.sentiment_mean) }}>{d.sentiment_mean.toFixed(3)}</span></p>}
                     <p className="text-[#8b8fa3]">Period: <span className="text-[#e8eaed] font-mono">{d.time_start?.slice(0, 10)} — {d.time_end?.slice(0, 10)}</span></p>
                   </div>
                 );
@@ -106,7 +106,7 @@ export default function ClustersPage() {
             />
             <Bar dataKey="count" name="Documents" radius={[0, 3, 3, 0]}>
               {topClusters.map((c, i) => (
-                <Cell key={i} fill={sentimentColor(c.sentiment_mean)} />
+                <Cell key={i} fill={sentimentColor(c.sentiment_mean ?? 0)} />
               ))}
             </Bar>
           </BarChart>
@@ -158,8 +158,8 @@ export default function ClustersPage() {
                   <td className="py-2.5 text-[#e8eaed]">{clusterLabel(c)}</td>
                   <td className="py-2.5 text-[#8b8fa3] font-mono text-[13px]">{c.count.toLocaleString()}</td>
                   <td className="py-2.5 text-[#8b8fa3]">r/{c.top_subreddit}</td>
-                  <td className="py-2.5 font-mono text-[13px]" style={{ color: sentimentColor(c.sentiment_mean) }}>
-                    {c.sentiment_mean.toFixed(3)}
+                  <td className="py-2.5 font-mono text-[13px]" style={{ color: sentimentColor(c.sentiment_mean ?? 0) }}>
+                    {c.sentiment_mean != null ? c.sentiment_mean.toFixed(3) : '—'}
                   </td>
                   <td className="py-2.5 text-xs text-[#64748b] font-mono">
                     {c.time_start?.slice(0, 10)} — {c.time_end?.slice(0, 10)}

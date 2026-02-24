@@ -37,6 +37,8 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 
 ## Data Statistics
 
+### Reddit
+
 | Metric | Raw Data | After Preprocessing |
 |--------|----------|---------------------|
 | **Time Period** | 2013-01 ~ 2026-02 | — |
@@ -47,7 +49,7 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 | **Unique Comment Authors** | 129,740 | 119,021 |
 | **Subreddits** | 11 | 11 |
 
-### Target Subreddits (11)
+**Target Subreddits (11):**
 
 | Category | Subreddits |
 |----------|------------|
@@ -56,12 +58,29 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 | Ideological | r/Conservative, r/neoliberal, r/socialism, r/Libertarian |
 | Regional | r/LatinAmerica, r/geopolitics |
 
+### GDELT News
+
+| Metric | Value |
+|--------|-------|
+| **Data Period** | 2013-01 ~ 2026-01 |
+| **Total Events** | 292,566 |
+| **Successful Scrapes** | 211,071 (72.1% success rate) |
+| **Unique URLs** | 105,095 |
+| **Avg Goldstein Scale** | 0.04 |
+| **Avg Tone** | -3.08 |
+| **Initiator Split (VEN / USA)** | 136,614 / 155,952 |
+
+- **Source:** GDELT Global Knowledge Graph via BigQuery (Venezuela-US filtered interactions)
+- **Collection:** `gdelt/data-collection/` — yearly BigQuery exports + news article scraping
+- **Analysis:** Sentiment (RoBERTa), topic assignment using Reddit-trained BERTopic model
+
 ## Analysis Pipeline
 
 ### Sentiment Analysis — RoBERTa
 - **Model:** `cardiffnlp/twitter-roberta-base-sentiment-latest` (124M params)
 - **Output:** sentiment score (-1 to +1), label, confidence per document
-- **Aggregation:** by month, by subreddit, by subreddit×month
+- **Applied to:** Reddit posts/comments + GDELT scraped news articles
+- **Aggregation:** by month, by subreddit/source, by subreddit×month
 
 ### Topic Modeling — BERTopic
 - **Embedding:** Sentence-BERT (`all-MiniLM-L6-v2`, 384-dim)
