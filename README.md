@@ -6,7 +6,7 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 
 | Service | URL | Status |
 |---------|-----|--------|
-| **Dashboard** | [capstone-dashboard.vercel.app](https://capstone-dashboard.vercel.app) | Deployed |
+| **Dashboard** | [capstone-dashboard-iota.vercel.app](https://capstone-dashboard-iota.vercel.app) | Deployed |
 | **API** | [backend-api-762303020827.us-central1.run.app](https://backend-api-762303020827.us-central1.run.app/docs) | Deployed |
 | **API Health** | [/health](https://backend-api-762303020827.us-central1.run.app/health) | `{"status":"ok"}` |
 
