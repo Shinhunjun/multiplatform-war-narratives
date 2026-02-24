@@ -151,7 +151,7 @@ capstone/
    - Data loaded from GCS on startup → served from memory
 
 2. **Frontend Dashboard** (1 min)
-   - **Live demo**: open the [deployed dashboard](https://frontend-a26f9qr47-shinhunjuns-projects.vercel.app)
+   - **Live demo**: open the [deployed dashboard](https://capstone-dashboard.vercel.app)
    - 4 pages: Dashboard, Sentiment, Topics, Clusters
    - Show: interactive time-range filtering, subreddit comparison, cluster scatter plot
 
