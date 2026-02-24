@@ -83,10 +83,11 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 - **Aggregation:** by month, by subreddit/source, by subreddit×month
 
 ### Topic Modeling — BERTopic
-- **Embedding:** Sentence-BERT (`all-MiniLM-L6-v2`, 384-dim)
+- **Embedding:** Sentence-BERT (`paraphrase-multilingual-MiniLM-L12-v2`, 384-dim)
 - **Reduction:** UMAP (384→5 dim)
 - **Clustering:** HDBSCAN (min_cluster_size=50)
-- **Result:** 15 topics discovered (+ outlier topic -1)
+- **Stopwords:** Combined EN+ES (504 words) for bilingual topic representation
+- **Result:** 647 topics discovered (+ outlier topic -1)
 
 ### Semantic Clustering — HDBSCAN + UMAP
 - **Separate from BERTopic** — finer-grained global clustering

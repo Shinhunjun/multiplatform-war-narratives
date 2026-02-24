@@ -4,12 +4,21 @@ BERTopic-based topic modeling with temporal analysis.
 
 from typing import Dict, List, Optional, Tuple
 
+import nltk
 import numpy as np
 import pandas as pd
 
+nltk.download("stopwords", quiet=True)
+from nltk.corpus import stopwords
+
+# Combined EN + ES stopwords for multilingual topic representation
+_EN_STOPS = set(stopwords.words("english"))
+_ES_STOPS = set(stopwords.words("spanish"))
+COMBINED_STOPWORDS = list(_EN_STOPS | _ES_STOPS)
+
 
 def create_bertopic_model(
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
+    embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
     n_topics: Optional[int] = None,
     min_topic_size: int = 50,
     n_gram_range: Tuple[int, int] = (1, 2),
@@ -53,11 +62,11 @@ def create_bertopic_model(
         prediction_data=True,
     )
 
-    # Vectorizer for topic representation
+    # Vectorizer with combined EN+ES stopwords for multilingual support
     vectorizer_model = CountVectorizer(
         ngram_range=n_gram_range,
-        stop_words="english",
-        min_df=2,  # Lower threshold for smaller datasets
+        stop_words=COMBINED_STOPWORDS,
+        min_df=2,
     )
 
     # Representation model
