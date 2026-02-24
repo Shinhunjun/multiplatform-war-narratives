@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import argparse
+import json
 import math
 import re
 from collections import Counter
@@ -59,6 +60,7 @@ DOMAIN_STOPWORDS = {
     "last",
     "new",
     "old",
+    "house",
     "call",
     "called",
     "include",
@@ -78,24 +80,23 @@ DOMAIN_STOPWORDS = {
     "two",
     "three",
     "million",
-    "member",
-    "hold",
-    "back",
-    "add",
 }
 
 TOKEN_RE = re.compile(r"[a-z][a-z']{2,}")
 
 
 def parse_args() -> argparse.Namespace:
-    default_data = Path(__file__).resolve().parents[1] / "data" / "gdelt_scraped.csv"
+    base_dir = Path(__file__).resolve().parents[1]
+    default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
     default_out = Path(__file__).resolve().parent / "text_relevance_tokens.csv"
 
     parser = argparse.ArgumentParser(
-        description="Build token relevance scores from gdelt_scraped Text field."
+        description="Build token relevance scores from pre-tokenized url_lookup.csv Tokens."
     )
-    parser.add_argument("--input", type=Path, default=default_data, help="Path to gdelt_scraped.csv")
+    parser.add_argument("--lookup", type=Path, default=default_lookup, help="Path to url_lookup.csv")
     parser.add_argument("--output", type=Path, default=default_out, help="Path to output token score CSV")
+    parser.add_argument("--tokens-col", default="Tokens", help="Name of token-array column")
+    parser.add_argument("--status-col", default="Scrape_Status", help="Name of scrape status column")
     parser.add_argument(
         "--seed-terms",
         nargs="+",
@@ -137,7 +138,6 @@ def ensure_nltk_resources() -> None:
         except LookupError:
             nltk.download(download_name, quiet=True)
 
-    # NLTK tagger path differs by version.
     try:
         nltk.data.find("taggers/averaged_perceptron_tagger_eng")
     except LookupError:
@@ -164,24 +164,6 @@ def penn_to_wordnet(tag: str) -> str:
     return wordnet.NOUN
 
 
-def normalize_seed_terms(seed_terms: list[str], lemmatizer: WordNetLemmatizer) -> set[str]:
-    normalized: set[str] = set()
-    for term in seed_terms:
-        lowered = term.lower().strip()
-        tokens = TOKEN_RE.findall(lowered)
-        if tokens:
-            tagged = pos_tag(tokens)
-            for token, pos in tagged:
-                lemma = lemmatizer.lemmatize(token, pos=penn_to_wordnet(pos)).strip("'")
-                if lemma:
-                    normalized.add(lemma)
-        else:
-            collapsed = re.sub(r"[^a-z]+", "", lowered)
-            if collapsed:
-                normalized.add(collapsed)
-    return normalized
-
-
 def tokenize(text: str, lemmatizer: WordNetLemmatizer, stopword_set: set[str]) -> set[str]:
     raw_tokens = TOKEN_RE.findall(text.lower())
     if not raw_tokens:
@@ -196,44 +178,73 @@ def tokenize(text: str, lemmatizer: WordNetLemmatizer, stopword_set: set[str]) -
     }
 
 
-def seed_tokens_in_text(text: str, lemmatizer: WordNetLemmatizer) -> set[str]:
-    text_lower = text.lower().replace("u.s.", " usa ").replace("u.s", " usa ")
-    tokens = TOKEN_RE.findall(text_lower)
-    if not tokens:
+def normalize_seed_terms(seed_terms: list[str], lemmatizer: WordNetLemmatizer) -> set[str]:
+    normalized: set[str] = set()
+    for term in seed_terms:
+        text = (
+            str(term)
+            .lower()
+            .replace("u.s.", " us ")
+            .replace("u.s", " us ")
+            .replace("united states", " united state ")
+        )
+        tokens = re.findall(r"[a-z][a-z']*", text)
+        for token in tokens:
+            lemma = lemmatizer.lemmatize(token, pos=wordnet.NOUN).strip("'")
+            if lemma:
+                normalized.add(lemma)
+    return normalized
+
+
+def parse_token_array(value: object) -> set[str]:
+    if value is None or pd.isna(value):
         return set()
-    tagged = pos_tag(tokens)
-    return {
-        lemmatizer.lemmatize(token, pos=penn_to_wordnet(pos)).strip("'")
-        for token, pos in tagged
-        if token
-    }
 
+    s = str(value).strip()
+    if not s:
+        return set()
 
-def has_seed_term(text: str, seed_term_set: set[str], lemmatizer: WordNetLemmatizer) -> bool:
-    text_seed_tokens = seed_tokens_in_text(text, lemmatizer)
-    return bool(text_seed_tokens & seed_term_set)
+    try:
+        parsed = json.loads(s)
+    except json.JSONDecodeError:
+        parsed = None
+
+    if isinstance(parsed, list):
+        return {str(x).strip() for x in parsed if str(x).strip()}
+
+    if "," in s:
+        return {p.strip() for p in s.split(",") if p.strip()}
+
+    return {s}
 
 
 def main() -> None:
     args = parse_args()
 
-    if not args.input.exists():
-        raise FileNotFoundError(f"Input file not found: {args.input}")
+    if not args.lookup.exists():
+        raise FileNotFoundError(f"Lookup file not found: {args.lookup}")
 
-    df = pd.read_csv(args.input, low_memory=False)
-    if "Text" not in df.columns:
-        raise ValueError("Expected a 'Text' column in input CSV")
+    df = pd.read_csv(args.lookup, low_memory=False)
+    required_cols = {args.tokens_col}
+    missing = required_cols - set(df.columns)
+    if missing:
+        raise ValueError(f"Lookup missing required columns: {sorted(missing)}")
 
-    if args.require_success_status and "Scrape_Status" in df.columns:
-        success_mask = df["Scrape_Status"].fillna("").str.contains("success", case=False)
+    if args.require_success_status:
+        if args.status_col not in df.columns:
+            raise ValueError(f"--require-success-status requested but missing status column: {args.status_col}")
+        success_mask = df[args.status_col].fillna("").str.contains("success", case=False)
         df = df[success_mask].copy()
 
-    texts = df["Text"].dropna().astype(str)
-    texts = texts[texts.str.strip() != ""]
+    token_sets: list[set[str]] = []
+    for token_value in tqdm(df[args.tokens_col], total=len(df), desc="Loading token arrays", unit="row"):
+        token_set = parse_token_array(token_value)
+        if token_set:
+            token_sets.append(token_set)
 
-    total_docs = int(len(texts))
+    total_docs = len(token_sets)
     if total_docs == 0:
-        raise ValueError("No non-empty text rows available after filtering")
+        raise ValueError("No tokenized documents found in lookup. Run tokenize_url_lookup.py first.")
 
     df_counter: Counter[str] = Counter()
     seed_df_counter: Counter[str] = Counter()
@@ -243,33 +254,27 @@ def main() -> None:
     nonseed_docs = 0
 
     lemmatizer = WordNetLemmatizer()
-    stopword_set = build_stopword_set()
     seed_term_set = normalize_seed_terms(args.seed_terms, lemmatizer)
 
-    for text in tqdm(texts, total=total_docs, desc="Tokenizing documents", unit="doc"):
-        tokens = tokenize(text, lemmatizer, stopword_set)
-        if not tokens:
-            continue
-
-        is_seed_doc = has_seed_term(text, seed_term_set, lemmatizer)
+    for token_set in tqdm(token_sets, total=total_docs, desc="Building document frequencies", unit="doc"):
+        is_seed_doc = bool(token_set & seed_term_set)
         if is_seed_doc:
             seed_docs += 1
-            seed_df_counter.update(tokens)
+            seed_df_counter.update(token_set)
         else:
             nonseed_docs += 1
-            nonseed_df_counter.update(tokens)
-
-        df_counter.update(tokens)
+            nonseed_df_counter.update(token_set)
+        df_counter.update(token_set)
 
     usable_docs = seed_docs + nonseed_docs
     if usable_docs == 0:
-        raise ValueError("No tokenized documents available")
+        raise ValueError("No documents available after filtering.")
     if seed_docs == 0 or nonseed_docs == 0:
         raise ValueError(
             f"Need both seed and non-seed documents for scoring (seed_docs={seed_docs}, nonseed_docs={nonseed_docs})"
         )
 
-    rows: list[dict[str, float | int | str]] = []
+    rows: list[dict[str, float | int | str | bool]] = []
     alpha = args.alpha
 
     for token, doc_freq in tqdm(df_counter.items(), total=len(df_counter), desc="Scoring tokens", unit="token"):
@@ -320,9 +325,8 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     out_df.to_csv(args.output, index=False)
 
-    print(f"Input rows after filters: {len(df):,}")
-    print(f"Non-empty text docs: {total_docs:,}")
-    print(f"Tokenized docs used: {usable_docs:,}")
+    print(f"Lookup rows after filters: {len(df):,}")
+    print(f"Tokenized docs used: {total_docs:,}")
     print(f"Seed docs: {seed_docs:,} | Non-seed docs: {nonseed_docs:,}")
     print(f"Scored tokens written: {len(out_df):,}")
     print(f"Output: {args.output}")
