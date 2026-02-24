@@ -12,6 +12,7 @@ export default function SentimentPage() {
   const { selected } = useTimeRange();
   const [subreddits, setSubreddits] = useState<SentimentSubreddit[]>([]);
   const [sel, setSel] = useState<string[]>(['worldnews', 'politics', 'venezuela', 'vzla']);
+  const [selNews, setSelNews] = useState<string[]>([]);
   const [timelineData, setTimelineData] = useState<Record<string, any>[]>([]);
   const [boxplotData, setBoxplotData] = useState<BoxPlotStat[]>([]);
   const [newsBoxplotData, setNewsBoxplotData] = useState<BoxPlotStat[]>([]);
@@ -36,27 +37,41 @@ export default function SentimentPage() {
   }, [selected]);
 
   useEffect(() => {
-    if (sel.length === 0 || !selected) return;
+    if ((sel.length === 0 && selNews.length === 0) || !selected) return;
     const [start, end] = selected;
-    Promise.all(sel.map(sub => fetchSentimentBySubredditMonth(sub, start, end)))
+    const redditFetches = sel.map(sub => fetchSentimentBySubredditMonth(sub, start, end));
+    const newsFetches = selNews.map(src => fetchSentimentBySubredditMonth(src, start, end, 'news'));
+    Promise.all([...redditFetches, ...newsFetches])
       .then(results => {
         const merged: Record<string, any> = {};
+        const allKeys = [...sel, ...selNews.map(s => `news:${s}`)];
         results.forEach((data, i) => {
-          const sub = sel[i];
+          const key = allKeys[i];
           data.forEach((row: any) => {
             if (!merged[row.year_month]) merged[row.year_month] = { year_month: row.year_month };
-            merged[row.year_month][sub] = row.mean_sentiment;
+            merged[row.year_month][key] = row.mean_sentiment;
           });
         });
         setTimelineData(Object.values(merged).sort((a, b) => a.year_month.localeCompare(b.year_month)));
       });
-  }, [sel, selected]);
+  }, [sel, selNews, selected]);
 
   const toggleSubreddit = (sub: string) => {
     setSel(prev =>
       prev.includes(sub) ? prev.filter(s => s !== sub) : [...prev, sub]
     );
   };
+
+  const toggleNewsSource = (src: string) => {
+    setSelNews(prev =>
+      prev.includes(src) ? prev.filter(s => s !== src) : [...prev, src]
+    );
+  };
+
+  // Top news sources for selector (by doc count)
+  const topNewsForSelector = [...newsSources]
+    .sort((a: any, b: any) => b.total_count - a.total_count)
+    .slice(0, 10);
 
   // Merge Reddit vs News monthly sentiment
   const comparisonData: Record<string, any>[] = [];
@@ -104,29 +119,51 @@ export default function SentimentPage() {
         </div>
       )}
 
-      {/* Reddit subreddit selector */}
-      <div>
-        <PlatformLabel platform="Reddit" color="#6366f1" />
-        <div className="flex flex-wrap gap-2 mt-2">
-          {subreddits.map(s => (
-            <button
-              key={s.subreddit}
-              onClick={() => toggleSubreddit(s.subreddit)}
-              className={`px-3 py-1 text-[12px] rounded-full border transition-colors font-medium ${
-                sel.includes(s.subreddit)
-                  ? 'bg-[#6366f1]/15 text-[#6366f1] border-[#6366f1]/40'
-                  : 'bg-[#1a1d27] text-[#8b8fa3] border-[#2a2e3d] hover:border-[#6366f1]/30 hover:text-[#e8eaed]'
-              }`}
-            >
-              r/{s.subreddit}
-            </button>
-          ))}
+      {/* Source selector */}
+      <div className="space-y-3">
+        <div>
+          <PlatformLabel platform="Reddit" color="#6366f1" />
+          <div className="flex flex-wrap gap-2 mt-2">
+            {subreddits.map(s => (
+              <button
+                key={s.subreddit}
+                onClick={() => toggleSubreddit(s.subreddit)}
+                className={`px-3 py-1 text-[12px] rounded-full border transition-colors font-medium ${
+                  sel.includes(s.subreddit)
+                    ? 'bg-[#6366f1]/15 text-[#6366f1] border-[#6366f1]/40'
+                    : 'bg-[#1a1d27] text-[#8b8fa3] border-[#2a2e3d] hover:border-[#6366f1]/30 hover:text-[#e8eaed]'
+                }`}
+              >
+                r/{s.subreddit}
+              </button>
+            ))}
+          </div>
         </div>
+        {topNewsForSelector.length > 0 && (
+          <div>
+            <PlatformLabel platform="GDELT News" color="#f59e0b" />
+            <div className="flex flex-wrap gap-2 mt-2">
+              {topNewsForSelector.map((s: any) => (
+                <button
+                  key={s.source}
+                  onClick={() => toggleNewsSource(s.source)}
+                  className={`px-3 py-1 text-[12px] rounded-full border transition-colors font-medium ${
+                    selNews.includes(s.source)
+                      ? 'bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/40'
+                      : 'bg-[#1a1d27] text-[#8b8fa3] border-[#2a2e3d] hover:border-[#f59e0b]/30 hover:text-[#e8eaed]'
+                  }`}
+                >
+                  {s.source}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
         <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">
-          Subreddit Sentiment Comparison — {sel.length} subreddit{sel.length !== 1 && 's'}
+          Sentiment Comparison — {sel.length + selNews.length} source{sel.length + selNews.length !== 1 ? 's' : ''}
         </h3>
         <ResponsiveContainer width="100%" height={360}>
           <LineChart data={timelineData}>
@@ -144,6 +181,18 @@ export default function SentimentPage() {
                 strokeWidth={1.5}
                 dot={false}
                 name={`r/${sub}`}
+              />
+            ))}
+            {selNews.map((src, i) => (
+              <Line
+                key={`news:${src}`}
+                type="monotone"
+                dataKey={`news:${src}`}
+                stroke={COLORS[(sel.length + i) % COLORS.length]}
+                strokeWidth={1.5}
+                dot={false}
+                strokeDasharray="5 3"
+                name={src}
               />
             ))}
           </LineChart>
