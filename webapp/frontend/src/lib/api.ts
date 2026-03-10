@@ -60,6 +60,15 @@ export interface TopicOverTime {
   Timestamp: string;
 }
 
+export interface TopicMonthly {
+  year_month: string;
+  topic_id: number;
+  count: number;
+  proportion: number;
+  name: string;
+  keywords: string;
+}
+
 export interface BoxPlotStat {
   subreddit: string;
   min: number;
@@ -70,6 +79,14 @@ export interface BoxPlotStat {
   mean: number;
   std: number;
   count: number;
+}
+
+export interface ClusterMonthly {
+  year_month: string;
+  cluster_id: number;
+  count: number;
+  proportion: number;
+  keywords: string;
 }
 
 export interface ClusterSummary {
@@ -146,6 +163,42 @@ export const fetchTopicsOverTime = (topicId?: number, platform?: Platform) => {
   return api.get<TopicOverTime[]>(`/api/topics/over-time?${params}`).then(r => r.data);
 };
 
+export const fetchTopicsMonthly = (month: string, topN = 15, platform?: Platform) => {
+  const params = new URLSearchParams();
+  params.set('month', month);
+  params.set('top_n', String(topN));
+  if (platform) params.set('platform', platform);
+  return api.get<TopicMonthly[]>(`/api/topics/monthly?${params}`).then(r => r.data);
+};
+
+export const fetchTopicsMonthlyMonths = (platform?: Platform) => {
+  const params = new URLSearchParams();
+  if (platform) params.set('platform', platform);
+  return api.get<string[]>(`/api/topics/monthly/months?${params}`).then(r => r.data);
+};
+
+export interface TopicMonthlyFitted {
+  year_month: string;
+  topic_id: number;
+  keywords: string;
+  count: number;
+  proportion: number;
+}
+
+export const fetchTopicsMonthlyFitted = (month: string, topN = 15, platform?: Platform) => {
+  const params = new URLSearchParams();
+  params.set('month', month);
+  params.set('top_n', String(topN));
+  if (platform) params.set('platform', platform);
+  return api.get<TopicMonthlyFitted[]>(`/api/topics/monthly-fitted?${params}`).then(r => r.data);
+};
+
+export const fetchTopicsMonthlyFittedMonths = (platform?: Platform) => {
+  const params = new URLSearchParams();
+  if (platform) params.set('platform', platform);
+  return api.get<string[]>(`/api/topics/monthly-fitted/months?${params}`).then(r => r.data);
+};
+
 export const fetchTopicsBySubreddit = (platform?: Platform) => {
   const params = new URLSearchParams();
   if (platform) params.set('platform', platform);
@@ -168,6 +221,17 @@ export const fetchClusterScatter = (topN = 50, maxPoints = 30000, start?: string
   if (start) params.set('start', start);
   if (end) params.set('end', end);
   return api.get<ClusterScatterPoint[]>(`/api/clusters/scatter?${params}`).then(r => r.data);
+};
+
+export const fetchClustersMonthly = (month: string, topN = 15) => {
+  const params = new URLSearchParams();
+  params.set('month', month);
+  params.set('top_n', String(topN));
+  return api.get<ClusterMonthly[]>(`/api/clusters/monthly?${params}`).then(r => r.data);
+};
+
+export const fetchClustersMonthlyMonths = () => {
+  return api.get<string[]>(`/api/clusters/monthly/months`).then(r => r.data);
 };
 
 export const fetchTemporalClusters = (limit = 10, start?: string, end?: string) => {

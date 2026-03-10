@@ -10,12 +10,18 @@ interface TimeRange {
 
 interface TimeRangeContextValue {
   range: TimeRange | null;
+  /** Currently selected single month (YYYY-MM) */
+  selectedMonth: string | null;
+  setSelectedMonth: (month: string) => void;
+  /** [start, end] tuple for backward compat — both equal selectedMonth */
   selected: [string, string] | null;
   setSelected: (range: [string, string]) => void;
 }
 
 const TimeRangeContext = createContext<TimeRangeContextValue>({
   range: null,
+  selectedMonth: null,
+  setSelectedMonth: () => {},
   selected: null,
   setSelected: () => {},
 });
@@ -39,19 +45,22 @@ function generateMonths(start: string, end: string): string[] {
 
 export function TimeRangeProvider({ children }: { children: ReactNode }) {
   const [range, setRange] = useState<TimeRange | null>(null);
-  const [selected, setSelected] = useState<[string, string] | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOverview().then(stats => {
       const allMonths = generateMonths(stats.date_range.start, stats.date_range.end);
-      const r = { start: stats.date_range.start, end: stats.date_range.end, allMonths };
-      setRange(r);
-      setSelected([r.start, r.end]);
+      setRange({ start: stats.date_range.start, end: stats.date_range.end, allMonths });
+      // Default to last month
+      setSelectedMonth(allMonths[allMonths.length - 1]);
     });
   }, []);
 
+  const selected: [string, string] | null = selectedMonth ? [selectedMonth, selectedMonth] : null;
+  const setSelected = (r: [string, string]) => setSelectedMonth(r[1]);
+
   return (
-    <TimeRangeContext.Provider value={{ range, selected, setSelected }}>
+    <TimeRangeContext.Provider value={{ range, selectedMonth, setSelectedMonth, selected, setSelected }}>
       {children}
     </TimeRangeContext.Provider>
   );

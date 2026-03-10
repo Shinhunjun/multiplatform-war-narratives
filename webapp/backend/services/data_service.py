@@ -48,25 +48,43 @@ def download_from_gcs() -> None:
 
     from google.cloud import storage
 
-    logger.info(f"Downloading data from gs://{bucket_name}/ to {ANALYSIS_DIR}")
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
+    # Skip large files not needed by the API server
+    _SKIP_PATTERNS = {
+        "embeddings.npy", "embeddings_2d.npy", "document_embeddings.npy",
+        "sentiment_full.parquet", "bertopic_model", "topic_assignments.parquet",
+    }
 
-    blobs = list(bucket.list_blobs())
-    for blob in blobs:
-        if blob.name.endswith("/"):
-            continue
-        # Route outputs_news/ blobs to NEWS_ANALYSIS_DIR, rest to ANALYSIS_DIR
-        if blob.name.startswith("outputs_news/"):
-            rel = blob.name[len("outputs_news/"):]
-            local_path = NEWS_ANALYSIS_DIR / rel
-        else:
-            local_path = ANALYSIS_DIR / blob.name
-        local_path.parent.mkdir(parents=True, exist_ok=True)
-        blob.download_to_filename(str(local_path))
-        logger.info(f"  Downloaded {blob.name} ({blob.size:,} bytes)")
+    def _should_skip(name: str) -> bool:
+        basename = name.rsplit("/", 1)[-1] if "/" in name else name
+        return any(pat in basename or pat in name for pat in _SKIP_PATTERNS)
 
-    logger.info(f"Download complete: {len(blobs)} objects")
+    try:
+        logger.info(f"Downloading data from gs://{bucket_name}/ to {ANALYSIS_DIR}")
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+
+        blobs = list(bucket.list_blobs())
+        downloaded = 0
+        for blob in blobs:
+            if blob.name.endswith("/"):
+                continue
+            if _should_skip(blob.name):
+                logger.info(f"  Skipped {blob.name} (not needed by API)")
+                continue
+            # Route outputs_news/ blobs to NEWS_ANALYSIS_DIR, rest to ANALYSIS_DIR
+            if blob.name.startswith("outputs_news/"):
+                rel = blob.name[len("outputs_news/"):]
+                local_path = NEWS_ANALYSIS_DIR / rel
+            else:
+                local_path = ANALYSIS_DIR / blob.name
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+            blob.download_to_filename(str(local_path))
+            logger.info(f"  Downloaded {blob.name} ({blob.size:,} bytes)")
+            downloaded += 1
+
+        logger.info(f"Download complete: {downloaded}/{len(blobs)} objects")
+    except Exception as e:
+        logger.error(f"Failed to download from GCS: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +164,51 @@ def get_cluster_assignments() -> Optional[pd.DataFrame]:
     if path.exists():
         return pd.read_parquet(path)
     return None
+
+
+@functools.lru_cache(maxsize=1)
+def get_topics_monthly() -> pd.DataFrame:
+    """Load pre-computed monthly topic counts (global model aggregation)."""
+    path = TOPICS_DIR / "topics_monthly.parquet"
+    if path.exists():
+        return pd.read_parquet(path)
+    return pd.DataFrame(columns=["year_month", "topic_id", "count", "proportion", "name", "keywords"])
+
+
+@functools.lru_cache(maxsize=1)
+def get_topics_monthly_fitted() -> pd.DataFrame:
+    """Load independently-fitted monthly topics (BERTopic per month)."""
+    path = TOPICS_DIR / "monthly_topics_fitted.parquet"
+    if path.exists():
+        return pd.read_parquet(path)
+    return pd.DataFrame(columns=["year_month", "topic_id", "keywords", "count", "proportion"])
+
+
+@functools.lru_cache(maxsize=1)
+def get_news_topics_monthly() -> pd.DataFrame:
+    """Load pre-computed monthly topic counts for news (global model aggregation)."""
+    path = NEWS_TOPICS_DIR / "topics_monthly.parquet"
+    if path.exists():
+        return pd.read_parquet(path)
+    return pd.DataFrame(columns=["year_month", "topic_id", "count", "proportion", "name", "keywords"])
+
+
+@functools.lru_cache(maxsize=1)
+def get_news_topics_monthly_fitted() -> pd.DataFrame:
+    """Load independently-fitted monthly topics for news."""
+    path = NEWS_TOPICS_DIR / "monthly_topics_fitted.parquet"
+    if path.exists():
+        return pd.read_parquet(path)
+    return pd.DataFrame(columns=["year_month", "topic_id", "keywords", "count", "proportion"])
+
+
+@functools.lru_cache(maxsize=1)
+def get_clusters_monthly() -> pd.DataFrame:
+    """Load pre-computed monthly cluster counts."""
+    path = CLUSTERS_DIR / "clusters_monthly.parquet"
+    if path.exists():
+        return pd.read_parquet(path)
+    return pd.DataFrame(columns=["year_month", "cluster_id", "count", "proportion", "keywords"])
 
 
 def get_overview_stats() -> dict:

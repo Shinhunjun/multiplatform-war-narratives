@@ -1,52 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   AreaChart, Area, Legend,
 } from 'recharts';
-import { fetchTopicInfo, fetchTopicsOverTime } from '../lib/api';
-import type { TopicInfo, TopicOverTime } from '../lib/api';
+import {
+  fetchTopicsMonthlyFitted,
+  fetchTopicsOverTime, fetchTopicInfo,
+} from '../lib/api';
+import type { TopicMonthlyFitted, TopicOverTime, TopicInfo } from '../lib/api';
 import { useTimeRange } from '../lib/TimeRangeContext';
 import { DarkTooltip, PlatformLabel, COLORS, chartGrid, chartTick, chartAxisLine } from '../components/charts/shared';
 
 function parseTopicLabel(name: string): string {
   const parts = name.split('_').slice(1, 4);
   return parts.join(', ');
-}
-
-function TopicDistributionChart({ topics, color, title }: { topics: TopicInfo[]; color: string; title: string }) {
-  const topicBars = topics
-    .filter(t => t.Topic >= 0)
-    .sort((a, b) => b.Count - a.Count)
-    .slice(0, 15)
-    .map(t => ({
-      topic: `Topic ${t.Topic}`,
-      label: parseTopicLabel(t.Name),
-      count: t.Count,
-    }));
-
-  if (topicBars.length === 0) {
-    return (
-      <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">{title}</h3>
-        <div className="flex items-center justify-center h-[350px] text-[#64748b] text-sm">No data available</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-      <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">{title}</h3>
-      <ResponsiveContainer width="100%" height={350}>
-        <BarChart data={topicBars} layout="vertical">
-          <CartesianGrid stroke={chartGrid} horizontal={false} />
-          <XAxis type="number" tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
-          <YAxis type="category" dataKey="label" width={140} tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
-          <Tooltip content={<DarkTooltip />} />
-          <Bar dataKey="count" fill={color} name="Documents" radius={[0, 3, 3, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
 }
 
 function TopicEvolutionChart({ timeline, topics, selected, title }: { timeline: TopicOverTime[]; topics: TopicInfo[]; selected: [string, string] | null; title: string }) {
@@ -103,116 +70,189 @@ function TopicEvolutionChart({ timeline, topics, selected, title }: { timeline: 
   );
 }
 
+function MonthlyFittedBarChart({ topics, color, title }: { topics: TopicMonthlyFitted[]; color: string; title: string }) {
+  const bars = topics.map(t => ({
+    label: t.keywords || `Topic ${t.topic_id}`,
+    count: t.count,
+    topic_id: t.topic_id,
+  }));
+
+  if (bars.length === 0) {
+    return (
+      <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">{title}</h3>
+        <div className="flex items-center justify-center h-[350px] text-[#64748b] text-sm">No topics for this month</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+      <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">{title}</h3>
+      <ResponsiveContainer width="100%" height={350}>
+        <BarChart data={bars} layout="vertical">
+          <CartesianGrid stroke={chartGrid} horizontal={false} />
+          <XAxis type="number" tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+          <YAxis type="category" dataKey="label" width={160} tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+          <Tooltip content={<DarkTooltip />} />
+          <Bar dataKey="count" fill={color} name="Documents" radius={[0, 3, 3, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export default function TopicsPage() {
-  const { selected } = useTimeRange();
+  const { selectedMonth } = useTimeRange();
+
+  const [loading, setLoading] = useState(false);
+  const [redditFitted, setRedditFitted] = useState<TopicMonthlyFitted[]>([]);
+  const [newsFitted, setNewsFitted] = useState<TopicMonthlyFitted[]>([]);
+
+  // Evolution chart data (global model)
   const [redditTopics, setRedditTopics] = useState<TopicInfo[]>([]);
   const [redditTimeline, setRedditTimeline] = useState<TopicOverTime[]>([]);
   const [newsTopics, setNewsTopics] = useState<TopicInfo[]>([]);
   const [newsTimeline, setNewsTimeline] = useState<TopicOverTime[]>([]);
 
+  // Load evolution chart data (once)
   useEffect(() => {
-    const start = selected?.[0];
-    const end = selected?.[1];
-
-    fetchTopicInfo('reddit', start, end).then(setRedditTopics);
+    fetchTopicInfo('reddit').then(setRedditTopics);
     fetchTopicsOverTime(undefined, 'reddit').then(setRedditTimeline);
-    fetchTopicInfo('news', start, end).then(setNewsTopics).catch(() => setNewsTopics([]));
+    fetchTopicInfo('news').then(setNewsTopics).catch(() => setNewsTopics([]));
     fetchTopicsOverTime(undefined, 'news').then(setNewsTimeline).catch(() => setNewsTimeline([]));
-  }, [selected]);
+  }, []);
 
-  const hasNews = newsTopics.length > 0;
+  // Fetch monthly fitted topics when month changes
+  const fetchMonthData = useCallback((month: string) => {
+    setLoading(true);
+    Promise.all([
+      fetchTopicsMonthlyFitted(month, 15, 'reddit').catch(() => []),
+      fetchTopicsMonthlyFitted(month, 15, 'news').catch(() => []),
+    ]).then(([r, n]) => {
+      setRedditFitted(r);
+      setNewsFitted(n);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (selectedMonth) fetchMonthData(selectedMonth);
+  }, [selectedMonth, fetchMonthData]);
+
+  const monthLabel = selectedMonth
+    ? new Date(selectedMonth + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+    : '';
 
   return (
     <div className="px-6 py-8 space-y-6">
       <div>
         <h2 className="text-xl font-bold text-[#e8eaed] tracking-tight">Topic Modeling (BERTopic)</h2>
+        <p className="text-[13px] text-[#8b8fa3] mt-1">
+          Independent BERTopic model fitted per month — use the slider above to explore
+        </p>
         <div className="h-[2px] w-10 bg-[#6366f1] mt-2 rounded-full" />
       </div>
 
-      {/* Topic distribution side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div>
-          <div className="mb-2"><PlatformLabel platform="Reddit" color="#6366f1" /></div>
-          <TopicDistributionChart topics={redditTopics} color="#6366f1" title="Topic Distribution — Reddit" />
+      {/* Monthly Fitted Topics — Reddit & News side by side */}
+      {loading ? (
+        <div className="flex items-center justify-center h-[200px] text-[#64748b] text-sm">Loading...</div>
+      ) : !selectedMonth ? (
+        <div className="flex items-center justify-center h-[200px] text-[#64748b] text-sm">Loading...</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <div className="mb-2"><PlatformLabel platform="Reddit" color="#6366f1" /></div>
+            <MonthlyFittedBarChart topics={redditFitted} color="#6366f1" title={`Topics — Reddit (${monthLabel})`} />
+          </div>
+          <div>
+            <div className="mb-2"><PlatformLabel platform="GDELT News" color="#f59e0b" /></div>
+            <MonthlyFittedBarChart topics={newsFitted} color="#f59e0b" title={`Topics — News (${monthLabel})`} />
+          </div>
         </div>
-        <div>
-          <div className="mb-2"><PlatformLabel platform="GDELT News" color="#f59e0b" /></div>
-          <TopicDistributionChart topics={newsTopics} color="#f59e0b" title="Topic Distribution — News" />
-        </div>
-      </div>
+      )}
 
-      {/* Topic evolution side by side */}
+      {/* Topic details tables */}
+      {!loading && selectedMonth && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <PlatformLabel platform="Reddit" color="#6366f1" />
+              <h3 className="text-[13px] font-semibold text-[#e8eaed]">Topic Details — {monthLabel}</h3>
+            </div>
+            {redditFitted.length > 0 ? (
+              <div className="max-h-[400px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-[#1a1d27]">
+                    <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
+                      <th className="py-2.5 w-12 font-medium">ID</th>
+                      <th className="py-2.5 font-medium">Keywords</th>
+                      <th className="py-2.5 w-20 font-medium">Docs</th>
+                      <th className="py-2.5 w-20 font-medium">Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {redditFitted.map(t => (
+                      <tr key={t.topic_id} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
+                        <td className="py-2 font-mono text-[#64748b] text-xs">{t.topic_id}</td>
+                        <td className="py-2 text-[#e8eaed] text-[12px]">{t.keywords}</td>
+                        <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{t.count.toLocaleString()}</td>
+                        <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{(t.proportion * 100).toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-32 text-[#64748b] text-sm">No data for this month</div>
+            )}
+          </div>
+
+          <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <PlatformLabel platform="GDELT News" color="#f59e0b" />
+              <h3 className="text-[13px] font-semibold text-[#e8eaed]">Topic Details — {monthLabel}</h3>
+            </div>
+            {newsFitted.length > 0 ? (
+              <div className="max-h-[400px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-[#1a1d27]">
+                    <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
+                      <th className="py-2.5 w-12 font-medium">ID</th>
+                      <th className="py-2.5 font-medium">Keywords</th>
+                      <th className="py-2.5 w-20 font-medium">Docs</th>
+                      <th className="py-2.5 w-20 font-medium">Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {newsFitted.map(t => (
+                      <tr key={t.topic_id} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
+                        <td className="py-2 font-mono text-[#64748b] text-xs">{t.topic_id}</td>
+                        <td className="py-2 text-[#e8eaed] text-[12px]">{t.keywords}</td>
+                        <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{t.count.toLocaleString()}</td>
+                        <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{(t.proportion * 100).toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-32 text-[#64748b] text-sm">No data for this month</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Topic Evolution (global model, stacked area) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TopicEvolutionChart timeline={redditTimeline} topics={redditTopics} selected={selected} title="Topic Evolution (Top 8) — Reddit" />
-        {hasNews ? (
-          <TopicEvolutionChart timeline={newsTimeline} topics={newsTopics} selected={selected} title="Topic Evolution (Top 8) — News" />
+        <TopicEvolutionChart timeline={redditTimeline} topics={redditTopics} selected={null} title="Topic Evolution (Top 8) — Reddit" />
+        {newsTopics.length > 0 ? (
+          <TopicEvolutionChart timeline={newsTimeline} topics={newsTopics} selected={null} title="Topic Evolution (Top 8) — News" />
         ) : (
           <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
             <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Topic Evolution — News</h3>
             <div className="flex items-center justify-center h-[350px] text-[#64748b] text-sm">No news data available</div>
           </div>
         )}
-      </div>
-
-      {/* Topic details tables side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <PlatformLabel platform="Reddit" color="#6366f1" />
-            <h3 className="text-[13px] font-semibold text-[#e8eaed]">Topic Details</h3>
-          </div>
-          <div className="max-h-[500px] overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-[#1a1d27]">
-                <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
-                  <th className="py-2.5 w-12 font-medium">ID</th>
-                  <th className="py-2.5 font-medium">Top Keywords</th>
-                  <th className="py-2.5 w-20 font-medium">Docs</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...redditTopics].sort((a, b) => b.Count - a.Count).map(t => (
-                  <tr key={t.Topic} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
-                    <td className="py-2 font-mono text-[#64748b] text-xs">{t.Topic}</td>
-                    <td className="py-2 text-[#e8eaed] text-[12px]">{parseTopicLabel(t.Name)}</td>
-                    <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{t.Count.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <PlatformLabel platform="GDELT News" color="#f59e0b" />
-            <h3 className="text-[13px] font-semibold text-[#e8eaed]">Topic Details</h3>
-          </div>
-          {newsTopics.length > 0 ? (
-            <div className="max-h-[500px] overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-[#1a1d27]">
-                  <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
-                    <th className="py-2.5 w-12 font-medium">ID</th>
-                    <th className="py-2.5 font-medium">Top Keywords</th>
-                    <th className="py-2.5 w-20 font-medium">Docs</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...newsTopics].sort((a, b) => b.Count - a.Count).map(t => (
-                    <tr key={t.Topic} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
-                      <td className="py-2 font-mono text-[#64748b] text-xs">{t.Topic}</td>
-                      <td className="py-2 text-[#e8eaed] text-[12px]">{parseTopicLabel(t.Name)}</td>
-                      <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{t.Count.toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-32 text-[#64748b] text-sm">No news data available</div>
-          )}
-        </div>
       </div>
     </div>
   );

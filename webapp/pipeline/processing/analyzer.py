@@ -347,6 +347,88 @@ class IncrementalAnalyzer:
 
         logger.info("Updated topic output files")
 
+    def refit_monthly_topics(self, new_df: pd.DataFrame) -> None:
+        """Re-fit BERTopic for affected months using all data for those months.
+
+        When new data arrives, we re-fit independent BERTopic models for
+        each month that has new data, using ALL documents for that month
+        (existing + new).
+        """
+        if "year_month" not in new_df.columns or new_df.empty:
+            return
+
+        topics_dir = self.config.outputs_dir / "topics"
+        fitted_path = topics_dir / "monthly_topics_fitted.parquet"
+        embeddings_path = topics_dir / "document_embeddings.npy"
+        assignments_path = topics_dir / "topic_assignments.parquet"
+
+        affected_months = new_df["year_month"].unique().tolist()
+        logger.info(f"Re-fitting monthly topics for: {affected_months}")
+
+        # Load existing assignments + embeddings for the affected months
+        if not assignments_path.exists() or not embeddings_path.exists():
+            logger.warning("No existing assignments/embeddings for monthly re-fit")
+            return
+
+        existing_assignments = pd.read_parquet(assignments_path)
+        existing_embeddings = np.load(embeddings_path)
+
+        # Embed new documents
+        from sentence_transformers import SentenceTransformer
+
+        model = SentenceTransformer(self.config.embedding_model)
+        new_texts = new_df["text"].fillna("").tolist()
+        new_embeddings = model.encode(new_texts, show_progress_bar=False, batch_size=self.config.batch_size)
+
+        # Load existing fitted results (to preserve other months)
+        if fitted_path.exists():
+            existing_fitted = pd.read_parquet(fitted_path)
+            # Remove affected months (will be re-computed)
+            existing_fitted = existing_fitted[~existing_fitted["year_month"].isin(affected_months)]
+        else:
+            existing_fitted = pd.DataFrame(columns=["year_month", "topic_id", "keywords", "count", "proportion"])
+
+        # Re-fit each affected month
+        from reddit.analysis.fit_monthly_topics import fit_month, _extract_keywords
+
+        new_results = []
+        for month in affected_months:
+            # Combine existing + new data for this month
+            existing_mask = existing_assignments["year_month"] == month
+            new_mask = new_df["year_month"] == month
+
+            month_texts = (
+                existing_assignments.loc[existing_mask, "text"].tolist()
+                if "text" in existing_assignments.columns
+                else []
+            )
+            month_embeddings_parts = []
+            if existing_mask.sum() > 0:
+                month_embeddings_parts.append(existing_embeddings[existing_mask.values])
+
+            month_texts.extend(new_df.loc[new_mask, "text"].fillna("").tolist())
+            if new_mask.sum() > 0:
+                month_embeddings_parts.append(new_embeddings[new_mask.values])
+
+            if not month_texts or not month_embeddings_parts:
+                continue
+
+            combined_embeddings = np.concatenate(month_embeddings_parts, axis=0)
+            result = fit_month(month_texts, combined_embeddings)
+
+            if result:
+                for r in result:
+                    r["year_month"] = month
+                new_results.extend(result)
+                logger.info(f"  {month}: {len(month_texts)} docs → {len(result)} topics")
+
+        if new_results:
+            new_fitted = pd.DataFrame(new_results)
+            combined = pd.concat([existing_fitted, new_fitted], ignore_index=True)
+            combined = combined.sort_values(["year_month", "count"], ascending=[True, False]).reset_index(drop=True)
+            combined.to_parquet(fitted_path, index=False)
+            logger.info(f"Updated monthly_topics_fitted.parquet ({len(combined)} rows)")
+
     def run_and_update(self, reddit_df: pd.DataFrame) -> dict:
         """Run full incremental analysis and update outputs."""
         results = {}
@@ -367,7 +449,7 @@ class IncrementalAnalyzer:
             logger.error(f"Sentiment analysis failed: {e}")
             results["sentiment"] = {"error": str(e)}
 
-        # Topics
+        # Topics (global model assignment)
         try:
             reddit_df = self.run_topics(reddit_df)
             self.update_topic_outputs(reddit_df)
@@ -379,5 +461,13 @@ class IncrementalAnalyzer:
         except Exception as e:
             logger.error(f"Topic analysis failed: {e}")
             results["topics"] = {"error": str(e)}
+
+        # Monthly topics (independent BERTopic per month)
+        try:
+            self.refit_monthly_topics(reddit_df)
+            results["monthly_topics"] = {"months": reddit_df["year_month"].nunique()}
+        except Exception as e:
+            logger.error(f"Monthly topic re-fit failed: {e}")
+            results["monthly_topics"] = {"error": str(e)}
 
         return results

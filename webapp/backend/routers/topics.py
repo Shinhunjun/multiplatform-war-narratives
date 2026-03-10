@@ -9,9 +9,13 @@ from ..services.data_service import (
     get_topic_info,
     get_topics_by_subreddit,
     get_topics_over_time,
+    get_topics_monthly,
+    get_topics_monthly_fitted,
     get_news_topic_info,
     get_news_topics_over_time,
     get_news_topics_by_source,
+    get_news_topics_monthly,
+    get_news_topics_monthly_fitted,
 )
 
 router = APIRouter(prefix="/api/topics", tags=["topics"])
@@ -69,6 +73,72 @@ def topics_by_subreddit(
         if subreddit:
             df = df[df["subreddit"] == subreddit]
     return df.to_dict(orient="records")
+
+
+@router.get("/monthly")
+def topics_monthly(
+    month: str = Query(..., description="Month YYYY-MM"),
+    top_n: int = Query(15, ge=1, le=50),
+    platform: Optional[str] = Query(None),
+):
+    """Get top N topics for a specific month."""
+    if platform == "news":
+        df = get_news_topics_monthly()
+    else:
+        df = get_topics_monthly()
+
+    if df.empty:
+        return []
+
+    filtered = df[df["year_month"] == month].nlargest(top_n, "count")
+    return filtered.to_dict(orient="records")
+
+
+@router.get("/monthly/months")
+def topics_monthly_months(platform: Optional[str] = Query(None)):
+    """Get list of all available months."""
+    if platform == "news":
+        df = get_news_topics_monthly()
+    else:
+        df = get_topics_monthly()
+
+    if df.empty:
+        return []
+
+    return sorted(df["year_month"].unique().tolist())
+
+
+@router.get("/monthly-fitted")
+def topics_monthly_fitted(
+    month: str = Query(..., description="Month YYYY-MM"),
+    top_n: int = Query(15, ge=1, le=50),
+    platform: Optional[str] = Query(None),
+):
+    """Get top N independently-fitted topics for a specific month."""
+    if platform == "news":
+        df = get_news_topics_monthly_fitted()
+    else:
+        df = get_topics_monthly_fitted()
+
+    if df.empty:
+        return []
+
+    filtered = df[df["year_month"] == month].nlargest(top_n, "count")
+    return filtered.to_dict(orient="records")
+
+
+@router.get("/monthly-fitted/months")
+def topics_monthly_fitted_months(platform: Optional[str] = Query(None)):
+    """Get list of available months for independently-fitted topics."""
+    if platform == "news":
+        df = get_news_topics_monthly_fitted()
+    else:
+        df = get_topics_monthly_fitted()
+
+    if df.empty:
+        return []
+
+    return sorted(df["year_month"].unique().tolist())
 
 
 @router.get("/over-time")
