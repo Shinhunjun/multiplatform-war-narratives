@@ -12,7 +12,14 @@ from .config import AnalysisConfig, EVENT_CATEGORY_MAP
 
 
 def _extract_domain(url: object) -> Optional[str]:
-    """Extract normalized domain from URL."""
+    """Extract normalized domain from URL.
+    
+    Args:
+        url (object): Source URL value.
+    
+    Returns:
+        Optional[str]: Result when available; otherwise None.
+    """
     if url is None or pd.isna(url):
         return None
 
@@ -34,8 +41,13 @@ def _extract_domain(url: object) -> Optional[str]:
 
 
 def load_url_lookup(config: AnalysisConfig) -> pd.DataFrame:
-    """
-    Load preprocessing URL lookup table used for relevance and duplicate flags.
+    """Load preprocessing URL lookup table used for relevance and duplicate flags.
+    
+    Args:
+        config (AnalysisConfig): Analysis configuration object containing paths and runtime options.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     path = config.url_lookup_path
     if not path.exists():
@@ -65,8 +77,14 @@ def load_url_lookup(config: AnalysisConfig) -> pd.DataFrame:
 
 
 def load_relevant_terms(config: AnalysisConfig, top_k: int = 200) -> pd.DataFrame:
-    """
-    Load relevant terms table for optional downstream interpretation.
+    """Load relevant terms table for optional downstream interpretation.
+    
+    Args:
+        config (AnalysisConfig): Analysis configuration object containing paths and runtime options.
+        top_k (int): Value for `top_k`. Defaults to 200.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     path = config.relevant_terms_path
     if not path.exists():
@@ -79,8 +97,14 @@ def load_relevant_terms(config: AnalysisConfig, top_k: int = 200) -> pd.DataFram
 
 
 def load_relevance_tokens(config: AnalysisConfig, top_k: int = 2000) -> pd.DataFrame:
-    """
-    Load token relevance scores from preprocessing output.
+    """Load token relevance scores from preprocessing output.
+    
+    Args:
+        config (AnalysisConfig): Analysis configuration object containing paths and runtime options.
+        top_k (int): Value for `top_k`. Defaults to 2000.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     path = config.relevance_tokens_path
     if not path.exists():
@@ -96,16 +120,14 @@ def load_gdelt_events(
     config: AnalysisConfig,
     merge_lookup: bool = True,
 ) -> pd.DataFrame:
-    """
-    Load and normalize scraped GDELT events.
-
-    Returns a unified DataFrame with:
-    - id, type, text
-    - temporal fields: created_datetime, year, month, year_month, date
-    - event metadata: event_code, event_category, goldstein_scale, avg_tone
-    - actor metadata: actor1/actor2 names and country codes, actor_pair
-    - source metadata: source_url, source_domain
-    - optional preprocessing metadata from url_lookup
+    """Load and normalize scraped GDELT events.
+    
+    Args:
+        config (AnalysisConfig): Analysis configuration object containing paths and runtime options.
+        merge_lookup (bool): Whether to merge URL lookup metadata into loaded event rows. Defaults to True.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     data_path = config.gdelt_csv_path
     if not data_path.exists():
@@ -216,14 +238,28 @@ def load_gdelt_events(
 
 
 def load_all_data(config: AnalysisConfig, merge_lookup: bool = True) -> pd.DataFrame:
-    """
-    Primary entrypoint for loading GDELT analysis data.
+    """Primary entrypoint for loading GDELT analysis data.
+    
+    Args:
+        config (AnalysisConfig): Analysis configuration object containing paths and runtime options.
+        merge_lookup (bool): Whether to merge URL lookup metadata into loaded event rows. Defaults to True.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     return load_gdelt_events(config, merge_lookup=merge_lookup)
 
 
 def get_time_periods(df: pd.DataFrame, granularity: str = "month") -> List[str]:
-    """Get sorted list of time periods in data."""
+    """Get sorted list of time periods in data.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        granularity (str): Value for `granularity`. Defaults to 'month'.
+    
+    Returns:
+        List[str]: List result produced by this function.
+    """
     if granularity == "month":
         return sorted(df["year_month"].dropna().unique())
     if granularity == "quarter":
@@ -240,7 +276,16 @@ def filter_by_period(
     start_date: str,
     end_date: str,
 ) -> pd.DataFrame:
-    """Filter DataFrame to a specific date range."""
+    """Filter DataFrame to a specific date range.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        start_date (str): Inclusive start date bound for filtering.
+        end_date (str): Inclusive end date bound for filtering.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
+    """
     start = pd.to_datetime(start_date)
     end = pd.to_datetime(end_date)
     mask = (df["created_datetime"] >= start) & (df["created_datetime"] <= end)
@@ -253,7 +298,17 @@ def sample_from_ids(
     n: int = 20,
     random_state: int = 42,
 ) -> pd.DataFrame:
-    """Sample n rows from a list of IDs."""
+    """Sample n rows from a list of IDs.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        ids (List[str]): Collection of document IDs.
+        n (int): Value for `n`. Defaults to 20.
+        random_state (int): Random seed for deterministic sampling. Defaults to 42.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
+    """
     subset = df[df["id"].isin(ids)]
     if len(subset) <= n:
         return subset

@@ -22,7 +22,14 @@ from .data_loader import load_all_data
 
 
 def _load_saved_cluster_assignments(config: AnalysisConfig) -> Optional[pd.DataFrame]:
-    """Execute _load_saved_cluster_assignments."""
+    """Load previously saved cluster assignments from disk when available.
+    
+    Args:
+        config (AnalysisConfig): Analysis configuration object containing paths and runtime options.
+    
+    Returns:
+        Optional[pd.DataFrame]: Processed pandas DataFrame.
+    """
     path = config.output_dir / "clusters" / "cluster_assignments.parquet"
     if path.exists():
         return pd.read_parquet(path)
@@ -34,7 +41,16 @@ def run_sentiment_analysis(
     config: AnalysisConfig,
     save: bool = True,
 ) -> pd.DataFrame:
-    """Run sentiment analysis on all loaded rows."""
+    """Run sentiment analysis on all loaded rows.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        config (AnalysisConfig): Analysis configuration object containing paths and runtime options.
+        save (bool): Whether to persist generated outputs to disk. Defaults to True.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
+    """
     from .sentiment import analyze_dataframe, aggregate_sentiment, get_sentiment_summary
 
     print("\n" + "=" * 60)
@@ -85,7 +101,16 @@ def run_topic_modeling(
     config: AnalysisConfig,
     save: bool = True,
 ) -> Tuple[pd.DataFrame, object, np.ndarray]:
-    """Run BERTopic topic modeling."""
+    """Run BERTopic topic modeling.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        config (AnalysisConfig): Analysis configuration object containing paths and runtime options.
+        save (bool): Whether to persist generated outputs to disk. Defaults to True.
+    
+    Returns:
+        Tuple[pd.DataFrame, object, np.ndarray]: Processed pandas DataFrame.
+    """
     from .topic import fit_topics, get_topic_info, topics_over_time, aggregate_topics_by_group
 
     print("\n" + "=" * 60)
@@ -153,7 +178,17 @@ def run_clustering(
     config: AnalysisConfig,
     save: bool = True,
 ) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
-    """Run clustering analysis."""
+    """Run clustering analysis.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        embeddings (Optional[np.ndarray]): High-dimensional embedding matrix.
+        config (AnalysisConfig): Analysis configuration object containing paths and runtime options.
+        save (bool): Whether to persist generated outputs to disk. Defaults to True.
+    
+    Returns:
+        Tuple[pd.DataFrame, np.ndarray, np.ndarray]: Processed pandas DataFrame.
+    """
     from .clustering import TextEmbedder, reduce_dimensions, TemporalClusterer
 
     print("\n" + "=" * 60)
@@ -229,7 +264,16 @@ def run_visualizations(
     embeddings_2d: Optional[np.ndarray],
     config: AnalysisConfig,
 ) -> None:
-    """Generate all visualizations."""
+    """Generate all visualizations.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        embeddings_2d (Optional[np.ndarray]): Two-dimensional embedding coordinates.
+        config (AnalysisConfig): Analysis configuration object containing paths and runtime options.
+    
+    Returns:
+        None: No return value.
+    """
     from .clustering import (
         create_umap_scatter,
         create_animated_umap,
@@ -313,7 +357,16 @@ def run_cluster_summarization(
     config: AnalysisConfig,
     llm_provider: str = "anthropic",
 ) -> pd.DataFrame:
-    """Generate keyword and LLM summaries for clusters."""
+    """Generate keyword and LLM summaries for clusters.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        config (AnalysisConfig): Analysis configuration object containing paths and runtime options.
+        llm_provider (str): LLM provider name used for summarization. Defaults to 'anthropic'.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
+    """
     from .clustering import summarize_all_clusters, generate_keyword_summary
 
     print("\n" + "=" * 60)
@@ -359,7 +412,11 @@ def run_cluster_summarization(
 
 
 def main() -> None:
-    """Main entry point."""
+    """Main entry point.
+    
+    Returns:
+        None: No return value.
+    """
     parser = argparse.ArgumentParser(description="Venezuela-US GDELT Discourse Analysis Pipeline")
 
     parser.add_argument("--all", action="store_true", help="Run full pipeline")

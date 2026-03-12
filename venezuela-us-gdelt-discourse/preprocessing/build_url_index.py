@@ -25,7 +25,11 @@ TRACKING_QUERY_KEYS = {
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
+    """Parse command-line arguments for URL indexing and lookup generation.
+    
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
     base_dir = Path(__file__).resolve().parents[1]
     default_input = base_dir / "data" / "gdelt_scraped.csv"
     default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
@@ -55,7 +59,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def _is_blank(value: object) -> bool:
-    """Execute _is_blank."""
+    """Return whether a value should be treated as blank for CSV normalization purposes.
+    
+    Args:
+        value (object): Input value to check.
+    
+    Returns:
+        bool: True when the value is null/NaN/empty; otherwise False.
+    """
     if value is None:
         return True
     if pd.isna(value):
@@ -64,7 +75,14 @@ def _is_blank(value: object) -> bool:
 
 
 def canonicalize_url(url: object) -> str:
-    """Execute canonicalize_url."""
+    """Canonicalize a URL by normalizing scheme/host/path and stripping tracking query parameters.
+    
+    Args:
+        url (object): Raw SourceURL value.
+    
+    Returns:
+        str: Canonical URL string used for deduplicated URL identity.
+    """
     if _is_blank(url):
         return ""
 
@@ -109,7 +127,14 @@ def canonicalize_url(url: object) -> str:
 
 
 def choose_representative_rows(df: pd.DataFrame) -> pd.DataFrame:
-    """Execute choose_representative_rows."""
+    """Select one representative row per canonical URL using content-richness and status heuristics.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame containing canonical URLs and scrape fields.
+    
+    Returns:
+        pd.DataFrame: Representative-row DataFrame with row_count metadata.
+    """
     work = df.copy()
     work["Text_len"] = work["Text"].fillna("").astype(str).str.len()
     work["Title_len"] = work["Title"].fillna("").astype(str).str.len()
@@ -128,7 +153,14 @@ def choose_representative_rows(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_existing_lookup(lookup_path: Path) -> pd.DataFrame:
-    """Execute load_existing_lookup."""
+    """Load and normalize an existing url_lookup.csv table, adding expected columns when missing.
+    
+    Args:
+        lookup_path (Path): Path to an existing lookup CSV file.
+    
+    Returns:
+        pd.DataFrame: Existing lookup DataFrame, or an empty schema-compatible DataFrame if absent.
+    """
     if not lookup_path.exists():
         return pd.DataFrame(
             columns=[
@@ -165,7 +197,15 @@ def load_existing_lookup(lookup_path: Path) -> pd.DataFrame:
 
 
 def upsert_lookup(existing_lookup: pd.DataFrame, incoming_lookup: pd.DataFrame) -> pd.DataFrame:
-    """Execute upsert_lookup."""
+    """Upsert incoming representative rows into an existing lookup table by url_id.
+    
+    Args:
+        existing_lookup (pd.DataFrame): Current lookup DataFrame from disk.
+        incoming_lookup (pd.DataFrame): New lookup rows computed in this run.
+    
+    Returns:
+        pd.DataFrame: Merged lookup DataFrame sorted by url_id.
+    """
     if existing_lookup.empty:
         out = incoming_lookup.sort_values("url_id").reset_index(drop=True)
         out["url_id"] = out["url_id"].astype("Int64")
@@ -214,7 +254,11 @@ def upsert_lookup(existing_lookup: pd.DataFrame, incoming_lookup: pd.DataFrame) 
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Assign stable url_id values and write/update url_lookup and optional input outputs.
+    
+    Returns:
+        None: No return value.
+    """
     args = parse_args()
     write_dataset = args.output is not None or args.write_input
     output_path = args.output if args.output is not None else args.input

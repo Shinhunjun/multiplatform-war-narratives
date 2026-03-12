@@ -19,7 +19,11 @@ VIZ_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def load_data() -> dict[str, pd.DataFrame]:
-    """Load all analysis results."""
+    """Load all analysis results.
+    
+    Returns:
+        dict[str, pd.DataFrame]: Processed pandas DataFrame.
+    """
     topic_info = pd.read_csv(OUTPUT_DIR / "topics" / "topic_info.csv")
     topics_over_time = pd.read_csv(OUTPUT_DIR / "topics" / "topics_over_time.csv")
     topic_assignments = pd.read_parquet(OUTPUT_DIR / "topics" / "topic_assignments.parquet")
@@ -39,7 +43,15 @@ def load_data() -> dict[str, pd.DataFrame]:
 
 
 def plot_top_topics_over_time(data: dict[str, pd.DataFrame], top_n: int = 15) -> None:
-    """Plot top N topics over time as a stacked area chart."""
+    """Plot top N topics over time as a stacked area chart.
+    
+    Args:
+        data (dict[str, pd.DataFrame]): Dictionary containing loaded analysis artifacts.
+        top_n (int): Number of top items to include. Defaults to 15.
+    
+    Returns:
+        None: No return value.
+    """
     topic_info = data["topic_info"]
     topic_assignments = data["topic_assignments"].copy()
 
@@ -80,7 +92,15 @@ def plot_top_topics_over_time(data: dict[str, pd.DataFrame], top_n: int = 15) ->
 
 
 def plot_topics_heatmap(data: dict[str, pd.DataFrame], top_n: int = 20) -> None:
-    """Plot topics as a heatmap over time."""
+    """Plot topics as a heatmap over time.
+    
+    Args:
+        data (dict[str, pd.DataFrame]): Dictionary containing loaded analysis artifacts.
+        top_n (int): Number of top items to include. Defaults to 20.
+    
+    Returns:
+        None: No return value.
+    """
     topic_info = data["topic_info"]
     topic_assignments = data["topic_assignments"].copy()
 
@@ -129,7 +149,15 @@ def plot_topics_heatmap(data: dict[str, pd.DataFrame], top_n: int = 20) -> None:
 
 
 def plot_top_clusters_over_time(data: dict[str, pd.DataFrame], top_n: int = 20) -> None:
-    """Plot top N clusters over time."""
+    """Plot top N clusters over time.
+    
+    Args:
+        data (dict[str, pd.DataFrame]): Dictionary containing loaded analysis artifacts.
+        top_n (int): Number of top items to include. Defaults to 20.
+    
+    Returns:
+        None: No return value.
+    """
     cluster_summary = data["cluster_summary"]
     cluster_assignments = data["cluster_assignments"].copy()
 
@@ -167,7 +195,15 @@ def plot_top_clusters_over_time(data: dict[str, pd.DataFrame], top_n: int = 20) 
 
 
 def plot_clusters_heatmap(data: dict[str, pd.DataFrame], top_n: int = 30) -> None:
-    """Plot clusters as a heatmap over time."""
+    """Plot clusters as a heatmap over time.
+    
+    Args:
+        data (dict[str, pd.DataFrame]): Dictionary containing loaded analysis artifacts.
+        top_n (int): Number of top items to include. Defaults to 30.
+    
+    Returns:
+        None: No return value.
+    """
     cluster_summary = data["cluster_summary"]
     cluster_assignments = data["cluster_assignments"].copy()
 
@@ -214,7 +250,15 @@ def plot_clusters_heatmap(data: dict[str, pd.DataFrame], top_n: int = 30) -> Non
 
 
 def plot_topic_trends(data: dict[str, pd.DataFrame], top_n: int = 10) -> None:
-    """Plot individual topic trends as line charts."""
+    """Plot individual topic trends as line charts.
+    
+    Args:
+        data (dict[str, pd.DataFrame]): Dictionary containing loaded analysis artifacts.
+        top_n (int): Number of top items to include. Defaults to 10.
+    
+    Returns:
+        None: No return value.
+    """
     topic_info = data["topic_info"]
     topic_assignments = data["topic_assignments"].copy()
 
@@ -261,7 +305,15 @@ def plot_topic_trends(data: dict[str, pd.DataFrame], top_n: int = 10) -> None:
 
 
 def plot_cluster_by_source_domain(data: dict[str, pd.DataFrame], top_n: int = 15) -> None:
-    """Plot cluster distribution by source domain."""
+    """Plot cluster distribution by source domain.
+    
+    Args:
+        data (dict[str, pd.DataFrame]): Dictionary containing loaded analysis artifacts.
+        top_n (int): Number of top items to include. Defaults to 15.
+    
+    Returns:
+        None: No return value.
+    """
     cluster_assignments = data["cluster_assignments"]
     cluster_summary = data["cluster_summary"]
 
@@ -294,7 +346,14 @@ def plot_cluster_by_source_domain(data: dict[str, pd.DataFrame], top_n: int = 15
 
 
 def create_topic_summary_table(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Create a summary table of top topics with keywords."""
+    """Create a summary table of top topics with keywords.
+    
+    Args:
+        data (dict[str, pd.DataFrame]): Dictionary containing loaded analysis artifacts.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
+    """
     topic_info = data["topic_info"]
     top_topics = topic_info[topic_info["Topic"] != -1].nlargest(30, "Count")
 
@@ -315,7 +374,14 @@ def create_topic_summary_table(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 
 def create_cluster_summary_table(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Create a summary table of top clusters."""
+    """Create a summary table of top clusters.
+    
+    Args:
+        data (dict[str, pd.DataFrame]): Dictionary containing loaded analysis artifacts.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
+    """
     cluster_summary = data["cluster_summary"]
     top_clusters = cluster_summary[cluster_summary["cluster_id"] != -1].nlargest(30, "count")
 
@@ -344,7 +410,11 @@ def create_cluster_summary_table(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Run the script entry point.
+    
+    Returns:
+        None: No return value.
+    """
     print("Loading data...")
     data = load_data()
 

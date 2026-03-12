@@ -15,10 +15,17 @@ def sample_cluster_texts(
     text_column: str = "text",
     random_state: int = 42,
 ) -> List[str]:
-    """
-    Sample representative texts from a cluster.
-
-    Prioritizes high-probability members and supplements with random rows.
+    """Sample representative texts from a cluster.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        cluster_id (int): Cluster identifier.
+        n_samples (int): Number of samples to draw per cluster. Defaults to 20.
+        text_column (str): Column name containing article text. Defaults to 'text'.
+        random_state (int): Random seed for deterministic sampling. Defaults to 42.
+    
+    Returns:
+        List[str]: List result produced by this function.
     """
     cluster_df = df[df["cluster_id"] == cluster_id].copy()
     if len(cluster_df) == 0:
@@ -45,7 +52,16 @@ def format_samples_for_prompt(
     max_chars_per_text: int = 500,
     max_total_chars: int = 8000,
 ) -> str:
-    """Format text samples for LLM prompt."""
+    """Format text samples for LLM prompt.
+    
+    Args:
+        texts (List[str]): Input text strings.
+        max_chars_per_text (int): Maximum characters per sampled text snippet. Defaults to 500.
+        max_total_chars (int): Maximum total characters across all sampled snippets. Defaults to 8000.
+    
+    Returns:
+        str: Processed string value.
+    """
     formatted = []
     total_chars = 0
 
@@ -65,7 +81,16 @@ def create_summary_prompt(
     cluster_id: int,
     metadata: Optional[Dict] = None,
 ) -> str:
-    """Create prompt for cluster summarization."""
+    """Create prompt for cluster summarization.
+    
+    Args:
+        texts (List[str]): Input text strings.
+        cluster_id (int): Cluster identifier.
+        metadata (Optional[Dict]): Optional metadata dictionary used in prompt generation. Defaults to None.
+    
+    Returns:
+        str: Processed string value.
+    """
     samples_text = format_samples_for_prompt(texts)
 
     metadata_text = ""
@@ -119,8 +144,17 @@ def summarize_cluster_with_openai(
     model: str = "gpt-4o-mini",
     api_key: Optional[str] = None,
 ) -> Dict:
-    """
-    Summarize cluster using OpenAI API.
+    """Summarize cluster using OpenAI API.
+    
+    Args:
+        texts (List[str]): Input text strings.
+        cluster_id (int): Cluster identifier.
+        metadata (Optional[Dict]): Optional metadata dictionary used in prompt generation. Defaults to None.
+        model (str): LLM model identifier for API calls. Defaults to 'gpt-4o-mini'.
+        api_key (Optional[str]): API key for external provider requests. Defaults to None.
+    
+    Returns:
+        Dict: Computed result for this function.
     """
     import os
     from openai import OpenAI
@@ -170,8 +204,17 @@ def summarize_cluster_with_anthropic(
     model: str = "claude-3-haiku-20240307",
     api_key: Optional[str] = None,
 ) -> Dict:
-    """
-    Summarize cluster using Anthropic API.
+    """Summarize cluster using Anthropic API.
+    
+    Args:
+        texts (List[str]): Input text strings.
+        cluster_id (int): Cluster identifier.
+        metadata (Optional[Dict]): Optional metadata dictionary used in prompt generation. Defaults to None.
+        model (str): LLM model identifier for API calls. Defaults to 'claude-3-haiku-20240307'.
+        api_key (Optional[str]): API key for external provider requests. Defaults to None.
+    
+    Returns:
+        Dict: Computed result for this function.
     """
     import os
     import anthropic
@@ -218,8 +261,18 @@ def summarize_all_clusters(
     model: Optional[str] = None,
     api_key: Optional[str] = None,
 ) -> pd.DataFrame:
-    """
-    Generate summaries for all non-noise clusters.
+    """Generate summaries for all non-noise clusters.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        n_samples (int): Number of samples to draw per cluster. Defaults to 20.
+        text_column (str): Column name containing article text. Defaults to 'text'.
+        llm_provider (str): LLM provider name used for summarization. Defaults to 'anthropic'.
+        model (Optional[str]): LLM model identifier for API calls. Defaults to None.
+        api_key (Optional[str]): API key for external provider requests. Defaults to None.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     from tqdm import tqdm
 
@@ -283,8 +336,16 @@ def generate_keyword_summary(
     text_column: str = "text",
     n_keywords: int = 10,
 ) -> List[str]:
-    """
-    Generate keyword-based summary without LLM using TF-IDF.
+    """Generate keyword-based summary without LLM using TF-IDF.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        cluster_id (int): Cluster identifier.
+        text_column (str): Column name containing article text. Defaults to 'text'.
+        n_keywords (int): Number of keywords to return. Defaults to 10.
+    
+    Returns:
+        List[str]: List result produced by this function.
     """
     from sklearn.feature_extraction.text import TfidfVectorizer
 

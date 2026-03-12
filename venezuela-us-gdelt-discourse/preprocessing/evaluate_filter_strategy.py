@@ -16,7 +16,11 @@ WS_RE = re.compile(r"\s+")
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
+    """Parse command-line arguments for full filtering-strategy evaluation.
+    
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
     base = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
         description=(
@@ -60,7 +64,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def parse_token_set(value: object) -> set[str]:
-    """Execute parse_token_set."""
+    """Parse a serialized token field into a lowercase token set.
+    
+    Args:
+        value (object): Serialized token value from CSV.
+    
+    Returns:
+        set[str]: Parsed token set.
+    """
     if value is None or pd.isna(value):
         return set()
     s = str(value).strip()
@@ -78,14 +89,28 @@ def parse_token_set(value: object) -> set[str]:
 
 
 def count_words(text: object) -> int:
-    """Execute count_words."""
+    """Count lexical tokens in text using the configured word regex.
+    
+    Args:
+        text (object): Raw text value.
+    
+    Returns:
+        int: Word-count estimate used by the length filter.
+    """
     if text is None or pd.isna(text):
         return 0
     return len(WORD_RE.findall(str(text)))
 
 
 def normalize_text_for_hash(text: object) -> str:
-    """Execute normalize_text_for_hash."""
+    """Normalize text for stable duplicate hashing in filter evaluation.
+    
+    Args:
+        text (object): Raw text value.
+    
+    Returns:
+        str: Whitespace-normalized lowercase text.
+    """
     if text is None or pd.isna(text):
         return ""
     value = str(text).replace("\r", " ").replace("\n", " ")
@@ -93,21 +118,42 @@ def normalize_text_for_hash(text: object) -> str:
 
 
 def text_hash(text: str) -> str:
-    """Execute text_hash."""
+    """Compute SHA-256 hash for normalized text.
+    
+    Args:
+        text (str): Normalized text string.
+    
+    Returns:
+        str: Hex digest for duplicate clustering.
+    """
     if not text:
         return ""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def decision_duplicate(cluster_size: int) -> str:
-    """Execute decision_duplicate."""
+    """Assign duplicate-stage decision from duplicate cluster size.
+    
+    Args:
+        cluster_size (int): Size of the duplicate text cluster for a row.
+    
+    Returns:
+        str: Duplicate-stage decision label (drop/review/keep).
+    """
     if cluster_size > 1:
         return "drop"
     return "keep"
 
 
 def decision_length(word_count: int) -> str:
-    """Execute decision_length."""
+    """Assign length-stage decision from tokenized word count.
+    
+    Args:
+        word_count (int): Word count for the article text.
+    
+    Returns:
+        str: Length-stage decision label (drop/review/keep).
+    """
     if word_count < 40:
         return "drop"
     if word_count < 80:
@@ -116,7 +162,14 @@ def decision_length(word_count: int) -> str:
 
 
 def decision_score(score: float) -> str:
-    """Execute decision_score."""
+    """Assign score-stage decision from document relevance score.
+    
+    Args:
+        score (float): Document relevance score.
+    
+    Returns:
+        str: Score-stage decision label (drop/review/keep).
+    """
     if score < 25:
         return "drop"
     if score < 40:
@@ -125,7 +178,16 @@ def decision_score(score: float) -> str:
 
 
 def decision_anchor(has_ven: bool, has_us_primary: bool, has_relation_secondary: bool) -> str:
-    """Execute decision_anchor."""
+    """Assign anchor-stage decision from Venezuela/US/relation anchor signals.
+    
+    Args:
+        has_ven (bool): Whether Venezuela-anchor terms are present.
+        has_us_primary (bool): Whether US-primary anchor signal is present.
+        has_relation_secondary (bool): Whether relation-context anchors are present.
+    
+    Returns:
+        str: Anchor-stage decision label (drop/review/keep).
+    """
     if not has_ven:
         return "drop"
     if has_us_primary:
@@ -136,7 +198,17 @@ def decision_anchor(has_ven: bool, has_us_primary: bool, has_relation_secondary:
 
 
 def final_decision(dup_dec: str, length_dec: str, score_dec: str, anchor_dec: str) -> str:
-    """Execute final_decision."""
+    """Combine stage decisions into a single final filter decision.
+    
+    Args:
+        dup_dec (str): Duplicate-stage decision.
+        length_dec (str): Length-stage decision.
+        score_dec (str): Score-stage decision.
+        anchor_dec (str): Anchor-stage decision.
+    
+    Returns:
+        str: Final decision label for the row.
+    """
     decisions = [dup_dec, length_dec, score_dec, anchor_dec]
     if "drop" in decisions:
         return "drop"
@@ -146,7 +218,18 @@ def final_decision(dup_dec: str, length_dec: str, score_dec: str, anchor_dec: st
 
 
 def reasons_for_row(dup_dec: str, length_dec: str, score_dec: str, anchor_dec: str, in_scope: bool) -> str:
-    """Execute reasons_for_row."""
+    """Build a pipe-delimited reason label describing why a row was dropped/reviewed/kept.
+    
+    Args:
+        dup_dec (str): Duplicate-stage decision.
+        length_dec (str): Length-stage decision.
+        score_dec (str): Score-stage decision.
+        anchor_dec (str): Anchor-stage decision.
+        in_scope (bool): Whether the row is in filtering scope.
+    
+    Returns:
+        str: Human-readable reason code string.
+    """
     if not in_scope:
         return "out_of_scope"
     reasons: list[str] = []
@@ -162,7 +245,17 @@ def reasons_for_row(dup_dec: str, length_dec: str, score_dec: str, anchor_dec: s
 
 
 def stratified_sample(df: pd.DataFrame, decision_col: str, sample_size: int, seed: int) -> pd.DataFrame:
-    """Execute stratified_sample."""
+    """Draw a stratified sample by decision label for manual QA outputs.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to sample from.
+        decision_col (str): Column containing decision labels for stratification.
+        sample_size (int): Maximum rows per decision bucket.
+        seed (int): Random seed for reproducible sampling.
+    
+    Returns:
+        pd.DataFrame: Sampled DataFrame preserving label balance up to the requested cap.
+    """
     parts = []
     for idx, decision in enumerate(sorted(df[decision_col].dropna().unique().tolist())):
         group = df[df[decision_col] == decision]
@@ -176,7 +269,15 @@ def stratified_sample(df: pd.DataFrame, decision_col: str, sample_size: int, see
 
 
 def upsert_eval(existing: pd.DataFrame, incoming: pd.DataFrame) -> pd.DataFrame:
-    """Execute upsert_eval."""
+    """Upsert newly evaluated rows into an existing url_filter_eval table by url_id.
+    
+    Args:
+        existing (pd.DataFrame): Existing evaluation DataFrame on disk.
+        incoming (pd.DataFrame): Newly computed evaluation rows.
+    
+    Returns:
+        pd.DataFrame: Merged evaluation DataFrame sorted by url_id.
+    """
     if existing.empty:
         out = incoming.copy()
         out["url_id"] = pd.to_numeric(out["url_id"], errors="coerce").astype("Int64")
@@ -210,7 +311,11 @@ def upsert_eval(existing: pd.DataFrame, incoming: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Run end-to-end filter evaluation, write row-level outputs, summary counts, and QA samples.
+    
+    Returns:
+        None: No return value.
+    """
     args = parse_args()
 
     if not args.lookup.exists():
@@ -408,7 +513,15 @@ def main() -> None:
     sf = stratified_sample(scope_df, "filter_final_decision", args.sample_size, args.seed)
 
     def save_sample(sample_df: pd.DataFrame, out_name: str) -> None:
-        """Execute save_sample."""
+        """Write a sample DataFrame with review columns to the configured sample directory.
+        
+        Args:
+            sample_df (pd.DataFrame): Sample rows to write.
+            out_name (str): Output filename within the sample directory.
+        
+        Returns:
+            None: No return value.
+        """
         out = sample_df[sample_cols].rename(
             columns={"SourceURL": "url", "doc_relevance_score_num": "doc_relevance_score"}
         )

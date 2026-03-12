@@ -21,7 +21,17 @@ class TemporalClusterer:
         cluster_selection_method: str = "eom",
         group_column: str = "source_domain",
     ) -> None:
-        """Initialize the class instance."""
+        """Initialize the class instance.
+        
+        Args:
+            min_cluster_size (int): Minimum cluster size hyperparameter. Defaults to 50.
+            min_samples (int): HDBSCAN min_samples hyperparameter. Defaults to 10.
+            cluster_selection_method (str): HDBSCAN cluster selection method. Defaults to 'eom'.
+            group_column (str): Column used for grouping and summaries. Defaults to 'source_domain'.
+        
+        Returns:
+            None: No return value.
+        """
         self.min_cluster_size = min_cluster_size
         self.min_samples = min_samples
         self.cluster_selection_method = cluster_selection_method
@@ -37,11 +47,15 @@ class TemporalClusterer:
         reduce_first: bool = True,
         n_components: int = 50,
     ) -> np.ndarray:
-        """
-        Fit HDBSCAN clustering on embeddings.
-
+        """Fit HDBSCAN clustering on embeddings.
+        
+        Args:
+            embeddings (np.ndarray): High-dimensional embedding matrix.
+            reduce_first (bool): Whether to reduce dimensionality before clustering. Defaults to True.
+            n_components (int): Target number of components/dimensions. Defaults to 50.
+        
         Returns:
-            Cluster labels (-1 for noise)
+            np.ndarray: NumPy array result for downstream computation.
         """
         from hdbscan import HDBSCAN
 
@@ -85,7 +99,15 @@ class TemporalClusterer:
         df: pd.DataFrame,
         labels: Optional[np.ndarray] = None,
     ) -> pd.DataFrame:
-        """Add cluster assignments to DataFrame."""
+        """Add cluster assignments to DataFrame.
+        
+        Args:
+            df (pd.DataFrame): Input DataFrame to process.
+            labels (Optional[np.ndarray]): Cluster label array. Defaults to None.
+        
+        Returns:
+            pd.DataFrame: Processed pandas DataFrame.
+        """
         df = df.copy()
         labels = labels if labels is not None else self.labels
 
@@ -98,21 +120,26 @@ class TemporalClusterer:
         return df
 
     def get_cluster_ids(self, cluster_id: int) -> List[int]:
-        """Get indices of documents in a cluster."""
+        """Get indices of documents in a cluster.
+        
+        Args:
+            cluster_id (int): Cluster identifier.
+        
+        Returns:
+            List[int]: List result produced by this function.
+        """
         if self.labels is None:
             return []
         return np.where(self.labels == cluster_id)[0].tolist()
 
     def get_cluster_summary(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Get summary statistics for each cluster.
-
-        Returns DataFrame with:
-        - cluster_id
-        - count
-        - top_group (dominant source group)
-        - time range
-        - sentiment_mean (if available)
+        """Get summary statistics for each cluster.
+        
+        Args:
+            df (pd.DataFrame): Input DataFrame to process.
+        
+        Returns:
+            pd.DataFrame: Processed pandas DataFrame.
         """
         if "cluster_id" not in df.columns:
             raise ValueError("DataFrame must have cluster_id column")
@@ -172,8 +199,14 @@ class TemporalClusterer:
         df: pd.DataFrame,
         time_column: str = "year_month",
     ) -> pd.DataFrame:
-        """
-        Get cluster distributions over time.
+        """Get cluster distributions over time.
+        
+        Args:
+            df (pd.DataFrame): Input DataFrame to process.
+            time_column (str): Column name representing time periods. Defaults to 'year_month'.
+        
+        Returns:
+            pd.DataFrame: Processed pandas DataFrame.
         """
         if "cluster_id" not in df.columns:
             raise ValueError("DataFrame must have cluster_id column")
@@ -196,8 +229,16 @@ class TemporalClusterer:
         periods: List[str],
         time_column: str = "year_month",
     ) -> Dict[str, pd.DataFrame]:
-        """
-        Cluster separately for each time period.
+        """Cluster separately for each time period.
+        
+        Args:
+            df (pd.DataFrame): Input DataFrame to process.
+            embeddings (np.ndarray): High-dimensional embedding matrix.
+            periods (List[str]): Ordered period labels to evaluate.
+            time_column (str): Column name representing time periods. Defaults to 'year_month'.
+        
+        Returns:
+            Dict[str, pd.DataFrame]: Processed pandas DataFrame.
         """
         results = {}
 
@@ -234,8 +275,16 @@ def track_cluster_evolution(
     df: pd.DataFrame,
     similarity_threshold: float = 0.7,
 ) -> pd.DataFrame:
-    """
-    Track how clusters evolve across time periods using centroid similarity.
+    """Track how clusters evolve across time periods using centroid similarity.
+    
+    Args:
+        period_clusters (Dict[str, pd.DataFrame]): Mapping of period label to cluster-assignment DataFrame.
+        embeddings (np.ndarray): High-dimensional embedding matrix.
+        df (pd.DataFrame): Input DataFrame to process.
+        similarity_threshold (float): Minimum centroid similarity required to link clusters across periods. Defaults to 0.7.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     periods = sorted(period_clusters.keys())
     evolution = []

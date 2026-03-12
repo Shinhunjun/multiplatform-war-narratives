@@ -17,7 +17,19 @@ def create_umap_scatter(
     title: str = "Document Clusters",
     figsize: Tuple[int, int] = (12, 8),
 ) -> None:
-    """Create static UMAP scatter plot."""
+    """Create static UMAP scatter plot.
+    
+    Args:
+        embeddings_2d (np.ndarray): Two-dimensional embedding coordinates.
+        df (pd.DataFrame): Input DataFrame to process.
+        color_column (str): Column used to drive visualization colors. Defaults to 'cluster_id'.
+        output_path (Optional[Path]): Destination path for generated output. Defaults to None.
+        title (str): Chart or report title string. Defaults to 'Document Clusters'.
+        figsize (Tuple[int, int]): Figure size tuple in inches. Defaults to (12, 8).
+    
+    Returns:
+        None: No return value.
+    """
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=figsize)
@@ -65,8 +77,19 @@ def create_animated_umap(
     fps: int = 2,
     figsize: Tuple[int, int] = (12, 8),
 ) -> None:
-    """
-    Create animated UMAP showing cluster evolution over time.
+    """Create animated UMAP showing cluster evolution over time.
+    
+    Args:
+        embeddings_2d (np.ndarray): Two-dimensional embedding coordinates.
+        df (pd.DataFrame): Input DataFrame to process.
+        time_column (str): Column name representing time periods. Defaults to 'year_month'.
+        color_column (str): Column used to drive visualization colors. Defaults to 'cluster_id'.
+        output_path (Optional[Path]): Destination path for generated output. Defaults to None.
+        fps (int): Animation frames per second. Defaults to 2.
+        figsize (Tuple[int, int]): Figure size tuple in inches. Defaults to (12, 8).
+    
+    Returns:
+        None: No return value.
     """
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation, PillowWriter
@@ -82,7 +105,14 @@ def create_animated_umap(
     color_map = dict(zip(unique_clusters, colors))
 
     def update(frame: int) -> None:
-        """Execute update."""
+        """Render one animation frame for the selected time period.
+        
+        Args:
+            frame (int): Input DataFrame to process.
+        
+        Returns:
+            None: No return value.
+        """
         ax.clear()
         period = periods[frame]
 
@@ -152,8 +182,15 @@ def create_sankey_diagram(
     output_path: Optional[Path] = None,
     title: str = "Cluster Flow Over Time",
 ) -> Any:
-    """
-    Create Sankey diagram showing cluster flow between periods.
+    """Create Sankey diagram showing cluster flow between periods.
+    
+    Args:
+        evolution_df (pd.DataFrame): Value for `evolution_df`.
+        output_path (Optional[Path]): Destination path for generated output. Defaults to None.
+        title (str): Chart or report title string. Defaults to 'Cluster Flow Over Time'.
+    
+    Returns:
+        Any: Object returned by the underlying library or runtime path.
     """
     import plotly.graph_objects as go
 
@@ -212,8 +249,17 @@ def create_cluster_river_plot(
     top_n_clusters: int = 10,
     title: str = "Cluster Sizes Over Time",
 ) -> None:
-    """
-    Create river/stream plot showing cluster sizes over time.
+    """Create river/stream plot showing cluster sizes over time.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        time_column (str): Column name representing time periods. Defaults to 'year_month'.
+        output_path (Optional[Path]): Destination path for generated output. Defaults to None.
+        top_n_clusters (int): Number of top clusters to include. Defaults to 10.
+        title (str): Chart or report title string. Defaults to 'Cluster Sizes Over Time'.
+    
+    Returns:
+        None: No return value.
     """
     import matplotlib.pyplot as plt
 
@@ -259,8 +305,16 @@ def create_cluster_heatmap(
     output_path: Optional[Path] = None,
     title: str = "Cluster Distribution by Source Domain",
 ) -> None:
-    """
-    Create heatmap showing cluster distribution by a group column.
+    """Create heatmap showing cluster distribution by a group column.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        group_column (str): Column used for grouping and summaries. Defaults to 'source_domain'.
+        output_path (Optional[Path]): Destination path for generated output. Defaults to None.
+        title (str): Chart or report title string. Defaults to 'Cluster Distribution by Source Domain'.
+    
+    Returns:
+        None: No return value.
     """
     import matplotlib.pyplot as plt
     import seaborn as sns
@@ -304,8 +358,18 @@ def create_interactive_scatter(
     output_path: Optional[Path] = None,
     title: str = "Interactive Cluster Visualization",
 ) -> Any:
-    """
-    Create interactive Plotly scatter plot with hover information.
+    """Create interactive Plotly scatter plot with hover information.
+    
+    Args:
+        embeddings_2d (np.ndarray): Two-dimensional embedding coordinates.
+        df (pd.DataFrame): Input DataFrame to process.
+        color_column (str): Column used to drive visualization colors. Defaults to 'cluster_id'.
+        hover_columns (List[str]): Columns to show in interactive hover labels. Defaults to ['text', 'source_domain', 'year_month', 'event_category'].
+        output_path (Optional[Path]): Destination path for generated output. Defaults to None.
+        title (str): Chart or report title string. Defaults to 'Interactive Cluster Visualization'.
+    
+    Returns:
+        Any: Object returned by the underlying library or runtime path.
     """
     import plotly.express as px
 

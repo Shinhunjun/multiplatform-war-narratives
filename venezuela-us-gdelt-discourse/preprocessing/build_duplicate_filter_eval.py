@@ -15,7 +15,11 @@ WS_RE = re.compile(r"\s+")
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
+    """Parse command-line arguments for the duplicate-filter evaluation builder.
+    
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
     base = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
         description=(
@@ -40,7 +44,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def normalize_text_for_hash(text: object) -> str:
-    """Execute normalize_text_for_hash."""
+    """Normalize text so duplicate detection is robust to case and whitespace differences.
+    
+    Args:
+        text (object): Raw text value from the lookup table.
+    
+    Returns:
+        str: Normalized text used as hash input.
+    """
     if text is None or pd.isna(text):
         return ""
     value = str(text).replace("\r", " ").replace("\n", " ")
@@ -48,14 +59,29 @@ def normalize_text_for_hash(text: object) -> str:
 
 
 def text_hash(text: str) -> str:
-    """Execute text_hash."""
+    """Compute a stable SHA-256 hash for normalized text.
+    
+    Args:
+        text (str): Normalized text to hash.
+    
+    Returns:
+        str: Hex-encoded hash string, or an empty string for blank input.
+    """
     if not text:
         return ""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def upsert_eval(existing: pd.DataFrame, incoming: pd.DataFrame) -> pd.DataFrame:
-    """Execute upsert_eval."""
+    """Merge new duplicate-evaluation rows into an existing evaluation table by url_id.
+    
+    Args:
+        existing (pd.DataFrame): Existing evaluation DataFrame already on disk.
+        incoming (pd.DataFrame): Newly computed evaluation rows for the current run.
+    
+    Returns:
+        pd.DataFrame: Upserted evaluation DataFrame sorted by url_id.
+    """
     if existing.empty:
         out = incoming.copy()
         out["url_id"] = pd.to_numeric(out["url_id"], errors="coerce").astype("Int64")
@@ -89,7 +115,11 @@ def upsert_eval(existing: pd.DataFrame, incoming: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Build duplicate-filter flags and token-training eligibility from url_lookup.csv.
+    
+    Returns:
+        None: No return value.
+    """
     args = parse_args()
     if not args.lookup.exists():
         raise FileNotFoundError(f"Lookup file not found: {args.lookup}")

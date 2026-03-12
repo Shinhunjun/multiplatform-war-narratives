@@ -93,7 +93,11 @@ EDGE_CLEAN_RE = re.compile(r"^[^a-z0-9'.]+|[^a-z0-9'.]+$")
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
+    """Parse command-line arguments for token relevance scoring.
+    
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
     default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
     default_out = Path(__file__).resolve().parent / "text_relevance_tokens.csv"
 
@@ -145,7 +149,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def ensure_nltk_resources() -> None:
-    """Execute ensure_nltk_resources."""
+    """Ensure required NLTK tokenization, tagging, and lexical resources are available locally.
+    
+    Returns:
+        None: No return value.
+    """
     resources = [
         ("tokenizers/punkt", "punkt"),
         ("corpora/stopwords", "stopwords"),
@@ -177,13 +185,24 @@ def ensure_nltk_resources() -> None:
 
 
 def build_stopword_set() -> set[str]:
-    """Execute build_stopword_set."""
+    """Build the stopword vocabulary by combining NLTK English stopwords and domain stopwords.
+    
+    Returns:
+        set[str]: Combined stopword set.
+    """
     ensure_nltk_resources()
     return set(stopwords.words("english")) | DOMAIN_STOPWORDS
 
 
 def penn_to_wordnet(tag: str) -> str:
-    """Execute penn_to_wordnet."""
+    """Map a Penn Treebank POS tag to the closest WordNet POS category.
+    
+    Args:
+        tag (str): Penn Treebank tag from NLTK POS tagging.
+    
+    Returns:
+        str: WordNet POS constant used by the lemmatizer.
+    """
     if tag.startswith("J"):
         return wordnet.ADJ
     if tag.startswith("V"):
@@ -196,7 +215,14 @@ def penn_to_wordnet(tag: str) -> str:
 
 
 def normalize_raw_token(token: str) -> str:
-    """Execute normalize_raw_token."""
+    """Normalize a raw token by lowercasing and cleaning punctuation/contractions.
+    
+    Args:
+        token (str): Raw token produced by tokenization.
+    
+    Returns:
+        str: Normalized token string, or an empty string if nothing usable remains.
+    """
     token = token.lower().replace("’", "'").replace("`", "'")
     token = EDGE_CLEAN_RE.sub("", token)
     if not token:
@@ -215,7 +241,14 @@ def normalize_raw_token(token: str) -> str:
 
 
 def parse_text_tokens(text: str) -> list[str]:
-    """Execute parse_text_tokens."""
+    """Tokenize free text and apply project-specific token normalization rules.
+    
+    Args:
+        text (str): Raw document text.
+    
+    Returns:
+        list[str]: Ordered list of normalized tokens.
+    """
     raw_tokens = word_tokenize(text)
     parsed: list[str] = []
     for raw in raw_tokens:
@@ -234,7 +267,16 @@ def parse_text_tokens(text: str) -> list[str]:
 
 
 def tokenize(text: str, lemmatizer: WordNetLemmatizer, stopword_set: set[str]) -> set[str]:
-    """Execute tokenize."""
+    """Convert document text into a cleaned, lemmatized set of lexical tokens.
+    
+    Args:
+        text (str): Raw document text.
+        lemmatizer (WordNetLemmatizer): Initialized WordNet lemmatizer.
+        stopword_set (set[str]): Stopword set used to remove low-information tokens.
+    
+    Returns:
+        set[str]: Unique normalized token set for the document.
+    """
     if text is None:
         return set()
 
@@ -268,7 +310,15 @@ def tokenize(text: str, lemmatizer: WordNetLemmatizer, stopword_set: set[str]) -
 
 
 def normalize_seed_terms(seed_terms: list[str], lemmatizer: WordNetLemmatizer) -> set[str]:
-    """Execute normalize_seed_terms."""
+    """Normalize seed terms using the same tokenization and lemmatization logic as documents.
+    
+    Args:
+        seed_terms (list[str]): Seed term list that defines likely in-scope documents.
+        lemmatizer (WordNetLemmatizer): Initialized WordNet lemmatizer.
+    
+    Returns:
+        set[str]: Normalized seed-term token set.
+    """
     normalized: set[str] = set()
     for term in seed_terms:
         parsed = parse_text_tokens(str(term))
@@ -285,7 +335,14 @@ def normalize_seed_terms(seed_terms: list[str], lemmatizer: WordNetLemmatizer) -
 
 
 def parse_token_array(value: object) -> set[str]:
-    """Execute parse_token_array."""
+    """Parse token arrays stored as JSON/list-like strings in CSV fields.
+    
+    Args:
+        value (object): Serialized token field value from the lookup table.
+    
+    Returns:
+        set[str]: Normalized token set parsed from the input value.
+    """
     if value is None or pd.isna(value):
         return set()
 
@@ -319,7 +376,11 @@ def parse_token_array(value: object) -> set[str]:
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Compute per-token relevance scores from tokenized lookup rows and write ranked output.
+    
+    Returns:
+        None: No return value.
+    """
     args = parse_args()
     ensure_nltk_resources()
 

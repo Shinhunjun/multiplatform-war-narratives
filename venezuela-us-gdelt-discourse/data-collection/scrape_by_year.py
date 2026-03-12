@@ -35,9 +35,10 @@ config.browser_user_agent = user_agent
 config.request_timeout = 10
 
 def prepare_dataframe() -> pd.DataFrame:
-    """
-    Handles logic to either resume from an existing file OR 
-    load raw data and apply the 'Interleave Sort' strategy.
+    """Load or initialize the yearly scrape DataFrame in resumable processing order.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     # 1. Check if we can resume work
     if os.path.exists(OUTPUT_FILE):
@@ -90,7 +91,14 @@ def prepare_dataframe() -> pd.DataFrame:
     return df
 
 def scrape_article(url: object) -> dict[str, Any]:
-    """Execute scrape_article."""
+    """Scrape one source URL and return structured scrape status fields.
+    
+    Args:
+        url (object): Source URL value.
+    
+    Returns:
+        dict[str, Any]: Dictionary containing computed values.
+    """
     result = {'Title': None, 'Text': None, 'Scrape_Status': 'Failed', 'Error_Details': ''}
     if not url: return result
 
@@ -113,7 +121,11 @@ def scrape_article(url: object) -> dict[str, Any]:
 
 def main() -> None:
     # Load Data (either fresh or resumed)
-    """Run the script entry point."""
+    """Run the script entry point.
+    
+    Returns:
+        None: No return value.
+    """
     df_year = prepare_dataframe()
     
     total_rows = len(df_year)

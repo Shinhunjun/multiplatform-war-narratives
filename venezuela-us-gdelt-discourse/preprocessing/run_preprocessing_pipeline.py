@@ -10,13 +10,24 @@ from pathlib import Path
 
 
 def sanitize_tag(value: str) -> str:
-    """Execute sanitize_tag."""
+    """Convert an input filename into a safe suffix tag for derived output files.
+    
+    Args:
+        value (str): Raw file stem or tag candidate.
+    
+    Returns:
+        str: Filesystem-safe lowercase tag string.
+    """
     tag = re.sub(r"[^A-Za-z0-9]+", "_", value).strip("_").lower()
     return tag or "input"
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
+    """Parse command-line arguments for the preprocessing orchestrator.
+    
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
     base = Path(__file__).resolve().parent
     default_input = base.parent / "data" / "gdelt_scraped.csv"
 
@@ -72,7 +83,15 @@ def parse_args() -> argparse.Namespace:
 
 
 def derive_default_paths(input_path: Path, base: Path) -> dict[str, Path]:
-    """Execute derive_default_paths."""
+    """Derive standard output paths for all preprocessing artifacts from an input file.
+    
+    Args:
+        input_path (Path): Input scraped CSV path.
+        base (Path): Preprocessing directory used to store generated outputs.
+    
+    Returns:
+        dict[str, Path]: Dictionary of output artifact paths keyed by artifact name.
+    """
     default_input = (base.parent / "data" / "gdelt_scraped.csv").resolve()
     resolved_input = input_path.resolve()
 
@@ -98,7 +117,15 @@ def derive_default_paths(input_path: Path, base: Path) -> dict[str, Path]:
 
 
 def run_step(label: str, command: list[str]) -> None:
-    """Execute run_step."""
+    """Run one pipeline subprocess step and fail fast on non-zero exit status.
+    
+    Args:
+        label (str): Human-readable step label for terminal logs.
+        command (list[str]): Subprocess command list to execute.
+    
+    Returns:
+        None: No return value.
+    """
     print("", flush=True)
     print("=" * 72, flush=True)
     print(label, flush=True)
@@ -113,7 +140,11 @@ def run_step(label: str, command: list[str]) -> None:
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Execute the full weekly preprocessing pipeline in deterministic step order.
+    
+    Returns:
+        None: No return value.
+    """
     args = parse_args()
     base = Path(__file__).resolve().parent
 

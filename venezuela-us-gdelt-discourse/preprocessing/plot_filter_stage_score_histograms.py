@@ -17,7 +17,11 @@ DECISION_COLORS = {
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
+    """Parse command-line arguments for filter-stage histogram plotting.
+    
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
     base = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
         description=(
@@ -48,7 +52,16 @@ def parse_args() -> argparse.Namespace:
 
 
 def annotate_counts(ax: plt.Axes, counts: dict[str, int], total: int) -> None:
-    """Execute annotate_counts."""
+    """Annotate an axis with drop/review/keep counts and total rows.
+    
+    Args:
+        ax (plt.Axes): Matplotlib axis to annotate.
+        counts (dict[str, int]): Decision-count mapping for the plotted stage.
+        total (int): Total number of rows represented in the stage.
+    
+    Returns:
+        None: No return value.
+    """
     if total <= 0:
         text = "n=0"
     else:
@@ -80,7 +93,21 @@ def plot_stage(
     x_max: float,
     mode: str,
 ) -> dict[str, int]:
-    """Execute plot_stage."""
+    """Plot one filter-stage relevance-score distribution split by decision label.
+    
+    Args:
+        ax (plt.Axes): Matplotlib axis for this stage.
+        frame (pd.DataFrame): Input DataFrame containing evaluation rows.
+        decision_col (str): Decision column for the stage (drop/review/keep).
+        title (str): Subplot title.
+        bins (int): Histogram bin count.
+        x_min (float): Minimum x-axis score limit.
+        x_max (float): Maximum x-axis score limit.
+        mode (str): Histogram rendering mode (stacked or overlap).
+    
+    Returns:
+        dict[str, int]: Decision counts used in this plot.
+    """
     counts: dict[str, int] = {}
     series_by_decision: list[pd.Series] = []
     labels: list[str] = []
@@ -131,7 +158,11 @@ def plot_stage(
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Render and save multi-stage relevance-score histograms from url_filter_eval.csv.
+    
+    Returns:
+        None: No return value.
+    """
     args = parse_args()
 
     if not args.eval_csv.exists():

@@ -14,17 +14,16 @@ def create_bertopic_model(
     min_topic_size: int = 50,
     n_gram_range: Tuple[int, int] = (1, 2),
 ) -> Any:
-    """
-    Create a BERTopic model with specified configuration.
-
+    """Create a BERTopic model with specified configuration.
+    
     Args:
-        embedding_model: Sentence transformer model name
-        n_topics: Number of topics (None for auto)
-        min_topic_size: Minimum documents per topic
-        n_gram_range: N-gram range for topic representation
-
+        embedding_model (str): Embedding model identifier. Defaults to 'sentence-transformers/all-MiniLM-L6-v2'.
+        n_topics (Optional[int]): Requested number of topics. Defaults to None.
+        min_topic_size (int): Minimum topic size used by BERTopic/HDBSCAN. Defaults to 50.
+        n_gram_range (Tuple[int, int]): N-gram range for vectorization. Defaults to (1, 2).
+    
     Returns:
-        Configured BERTopic model
+        Any: Object returned by the underlying library or runtime path.
     """
     from bertopic import BERTopic
     from bertopic.representation import KeyBERTInspired
@@ -86,13 +85,17 @@ def fit_topics(
     n_topics: Optional[int] = None,
     min_topic_size: int = 50,
 ) -> Tuple[pd.DataFrame, "BERTopic", np.ndarray]:
-    """
-    Fit BERTopic model on DataFrame.
-
+    """Fit BERTopic model on DataFrame.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        text_column (str): Column name containing article text. Defaults to 'text'.
+        embedding_model (str): Embedding model identifier. Defaults to 'sentence-transformers/all-MiniLM-L6-v2'.
+        n_topics (Optional[int]): Requested number of topics. Defaults to None.
+        min_topic_size (int): Minimum topic size used by BERTopic/HDBSCAN. Defaults to 50.
+    
     Returns:
-    - DataFrame with topic assignments
-    - Fitted BERTopic model
-    - Document embeddings
+        Tuple[pd.DataFrame, 'BERTopic', np.ndarray]: Processed pandas DataFrame.
     """
     df = df.copy()
     texts = df[text_column].fillna("").tolist()
@@ -136,13 +139,29 @@ def fit_topics(
 
 
 def get_topic_info(topic_model: Any) -> pd.DataFrame:
-    """Get topic information including keywords."""
+    """Get topic information including keywords.
+    
+    Args:
+        topic_model (Any): Fitted BERTopic model instance.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
+    """
     topic_info = topic_model.get_topic_info()
     return topic_info
 
 
 def get_topic_keywords(topic_model: Any, topic_id: int, n_words: int = 10) -> List[Tuple[str, float]]:
-    """Get keywords for a specific topic."""
+    """Get keywords for a specific topic.
+    
+    Args:
+        topic_model (Any): Fitted BERTopic model instance.
+        topic_id (int): Topic identifier.
+        n_words (int): Number of words to return. Defaults to 10.
+    
+    Returns:
+        List[Tuple[str, float]]: List result produced by this function.
+    """
     return topic_model.get_topic(topic_id)[:n_words]
 
 
@@ -152,10 +171,16 @@ def topics_over_time(
     timestamps: List[Any],
     nr_bins: int = 20,
 ) -> pd.DataFrame:
-    """
-    Analyze how topics change over time.
-
-    Returns DataFrame with topic distributions per time bin.
+    """Analyze how topics change over time.
+    
+    Args:
+        topic_model (Any): Fitted BERTopic model instance.
+        docs (List[str]): Document list used for temporal topic analysis.
+        timestamps (List[Any]): Timestamp sequence aligned to documents.
+        nr_bins (int): Number of bins for temporal aggregation. Defaults to 20.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     topics_over_time = topic_model.topics_over_time(
         docs,
@@ -171,7 +196,17 @@ def get_representative_docs(
     df: pd.DataFrame,
     n_docs: int = 10,
 ) -> pd.DataFrame:
-    """Get representative documents for a topic."""
+    """Get representative documents for a topic.
+    
+    Args:
+        topic_model (Any): Fitted BERTopic model instance.
+        topic_id (int): Topic identifier.
+        df (pd.DataFrame): Input DataFrame to process.
+        n_docs (int): Number of representative documents to return. Defaults to 10.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
+    """
     topic_docs = df[df["topic_id"] == topic_id]
     if len(topic_docs) == 0:
         return pd.DataFrame()
@@ -185,10 +220,14 @@ def aggregate_topics_by_group(
     df: pd.DataFrame,
     group_by: List[str] = ["subreddit", "year_month"],
 ) -> pd.DataFrame:
-    """
-    Aggregate topic distributions by groups.
-
-    Returns DataFrame with topic counts per group.
+    """Aggregate topic distributions by groups.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        group_by (List[str]): Grouping columns used for aggregation. Defaults to ['subreddit', 'year_month'].
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     # Count topics per group
     topic_counts = df.groupby(group_by + ["topic_id"]).size().reset_index(name="count")
@@ -201,11 +240,26 @@ def aggregate_topics_by_group(
 
 
 def save_topic_model(topic_model: Any, path: str) -> None:
-    """Save BERTopic model to disk."""
+    """Save BERTopic model to disk.
+    
+    Args:
+        topic_model (Any): Fitted BERTopic model instance.
+        path (str): Filesystem path value.
+    
+    Returns:
+        None: No return value.
+    """
     topic_model.save(path)
 
 
 def load_topic_model(path: str) -> Any:
-    """Load BERTopic model from disk."""
+    """Load BERTopic model from disk.
+    
+    Args:
+        path (str): Filesystem path value.
+    
+    Returns:
+        Any: Object returned by the underlying library or runtime path.
+    """
     from bertopic import BERTopic
     return BERTopic.load(path)

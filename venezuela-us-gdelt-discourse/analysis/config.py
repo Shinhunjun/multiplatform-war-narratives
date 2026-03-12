@@ -16,47 +16,83 @@ class AnalysisConfig:
 
     @property
     def data_dir(self) -> Path:
-        """Execute data_dir."""
+        """Return the configured project data directory path.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
         return self.base_dir / "data"
 
     @property
     def preprocessing_dir(self) -> Path:
-        """Execute preprocessing_dir."""
+        """Return the preprocessing artifact directory path.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
         return self.base_dir / "preprocessing"
 
     @property
     def output_dir(self) -> Path:
-        """Execute output_dir."""
+        """Return the analysis output directory path.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
         return self.base_dir / "analysis" / "outputs"
 
     @property
     def gdelt_csv_path(self) -> Path:
-        """Execute gdelt_csv_path."""
+        """Return the path to the primary scraped GDELT CSV file.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
         return self.data_dir / self.gdelt_file
 
     @property
     def url_lookup_path(self) -> Path:
-        """Execute url_lookup_path."""
+        """Return the path to the URL lookup table produced in preprocessing.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
         return self.preprocessing_dir / self.url_lookup_file
 
     @property
     def relevance_tokens_path(self) -> Path:
-        """Execute relevance_tokens_path."""
+        """Return the path to token relevance scores used by analysis modules.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
         return self.preprocessing_dir / self.relevance_tokens_file
 
     @property
     def relevant_terms_path(self) -> Path:
-        """Execute relevant_terms_path."""
+        """Return the path to curated relevant terms used for interpretation.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
         return self.preprocessing_dir / self.relevant_terms_file
 
     @property
     def redirect_scores_path(self) -> Path:
-        """Execute redirect_scores_path."""
+        """Return the path to redirect-duplicate cluster score output.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
         return self.preprocessing_dir / self.redirect_scores_file
 
     @property
     def redirect_clusters_path(self) -> Path:
-        """Execute redirect_clusters_path."""
+        """Return the path to redirect-duplicate cluster detail output.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
         return self.preprocessing_dir / self.redirect_clusters_file
 
     # Input filenames
@@ -97,7 +133,11 @@ class AnalysisConfig:
     samples_per_cluster: int = 20
 
     def ensure_directories(self) -> None:
-        """Create all output directories."""
+        """Create all output directories.
+        
+        Returns:
+            None: No return value.
+        """
         for subdir in ["sentiment", "topics", "clusters", "visualizations"]:
             (self.output_dir / subdir).mkdir(parents=True, exist_ok=True)
 

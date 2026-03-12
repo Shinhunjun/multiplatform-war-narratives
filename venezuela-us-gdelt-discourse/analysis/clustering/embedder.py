@@ -23,7 +23,16 @@ class TextEmbedder:
         batch_size: int = 64,
         device: Optional[str] = None,  # Auto-detect
     ) -> None:
-        """Initialize the class instance."""
+        """Initialize the class instance.
+        
+        Args:
+            model_name (str): Model identifier used by the NLP component. Defaults to 'sentence-transformers/all-MiniLM-L6-v2'.
+            batch_size (int): Batch size used for model inference. Defaults to 64.
+            device (Optional[str]): Value for `device`. Defaults to None.
+        
+        Returns:
+            None: No return value.
+        """
         self.model_name = model_name
         self.batch_size = batch_size
         self.device = device
@@ -36,7 +45,11 @@ class TextEmbedder:
         self.metadata: Optional[pd.DataFrame] = None
 
     def _load_model(self) -> Any:
-        """Lazy load the embedding model."""
+        """Lazy load the embedding model.
+        
+        Returns:
+            Any: Object returned by the underlying library or runtime path.
+        """
         if self.model is None:
             from sentence_transformers import SentenceTransformer
             import torch
@@ -60,16 +73,15 @@ class TextEmbedder:
         ids: Optional[List[str]] = None,
         show_progress: bool = True,
     ) -> np.ndarray:
-        """
-        Embed a list of texts.
-
+        """Embed a list of texts.
+        
         Args:
-            texts: List of text strings
-            ids: Optional list of IDs (same length as texts)
-            show_progress: Show progress bar
-
+            texts (List[str]): Input text strings.
+            ids (Optional[List[str]]): Collection of document IDs. Defaults to None.
+            show_progress (bool): Whether to display progress bars during inference. Defaults to True.
+        
         Returns:
-            numpy array of embeddings (n_texts, embedding_dim)
+            np.ndarray: NumPy array result for downstream computation.
         """
         model = self._load_model()
 
@@ -97,12 +109,15 @@ class TextEmbedder:
         text_column: str = "text",
         id_column: str = "id",
     ) -> Tuple[np.ndarray, pd.DataFrame]:
-        """
-        Embed texts from DataFrame with full ID tracking.
-
+        """Embed texts from DataFrame with full ID tracking.
+        
+        Args:
+            df (pd.DataFrame): Input DataFrame to process.
+            text_column (str): Column name containing article text. Defaults to 'text'.
+            id_column (str): Column name containing unique document IDs. Defaults to 'id'.
+        
         Returns:
-        - embeddings: numpy array
-        - index_df: DataFrame mapping indices to IDs and metadata
+            Tuple[np.ndarray, pd.DataFrame]: Processed pandas DataFrame.
         """
         df = df.copy().reset_index(drop=True)
 
@@ -126,23 +141,38 @@ class TextEmbedder:
         return embeddings, index_df
 
     def get_embedding_by_id(self, doc_id: str) -> Optional[np.ndarray]:
-        """Get embedding for a specific document ID."""
+        """Get embedding for a specific document ID.
+        
+        Args:
+            doc_id (str): Single document ID.
+        
+        Returns:
+            Optional[np.ndarray]: NumPy array result for downstream computation.
+        """
         if doc_id not in self.id_to_idx:
             return None
         idx = self.id_to_idx[doc_id]
         return self.embeddings[idx]
 
     def get_ids_by_indices(self, indices: List[int]) -> List[str]:
-        """Get document IDs for a list of indices."""
+        """Get document IDs for a list of indices.
+        
+        Args:
+            indices (List[int]): Value for `indices`.
+        
+        Returns:
+            List[str]: List result produced by this function.
+        """
         return [self.idx_to_id.get(idx) for idx in indices]
 
     def save(self, output_dir: Path) -> None:
-        """
-        Save embeddings and mappings to disk.
-
-        Saves:
-        - embeddings.npy: numpy array of embeddings
-        - embedding_index.parquet: ID mappings and metadata
+        """Save embeddings and mappings to disk.
+        
+        Args:
+            output_dir (Path): Directory where outputs will be written.
+        
+        Returns:
+            None: No return value.
         """
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -164,7 +194,14 @@ class TextEmbedder:
         print(f"Saved embeddings to {output_dir}")
 
     def load(self, input_dir: Path) -> None:
-        """Load embeddings and mappings from disk."""
+        """Load embeddings and mappings from disk.
+        
+        Args:
+            input_dir (Path): Directory containing input artifacts.
+        
+        Returns:
+            None: No return value.
+        """
         input_dir = Path(input_dir)
 
         # Load embeddings
@@ -189,18 +226,17 @@ def reduce_dimensions(
     min_dist: float = 0.1,
     metric: str = "cosine",
 ) -> np.ndarray:
-    """
-    Reduce embedding dimensions using UMAP.
-
+    """Reduce embedding dimensions using UMAP.
+    
     Args:
-        embeddings: High-dimensional embeddings
-        n_components: Output dimensions (2 or 3 for visualization)
-        n_neighbors: UMAP parameter
-        min_dist: UMAP parameter
-        metric: Distance metric
-
+        embeddings (np.ndarray): High-dimensional embedding matrix.
+        n_components (int): Target number of components/dimensions. Defaults to 2.
+        n_neighbors (int): UMAP neighborhood size parameter. Defaults to 15.
+        min_dist (float): UMAP minimum-distance parameter. Defaults to 0.1.
+        metric (str): Distance metric name. Defaults to 'cosine'.
+    
     Returns:
-        Reduced embeddings
+        np.ndarray: NumPy array result for downstream computation.
     """
     from umap import UMAP
 

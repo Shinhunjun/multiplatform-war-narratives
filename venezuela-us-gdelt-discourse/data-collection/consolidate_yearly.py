@@ -21,7 +21,14 @@ SUCCESS_STATUS = {"Success", "Success (Archived)"}
 
 
 def parse_years(expr: str) -> list[int]:
-    """Execute parse_years."""
+    """Parse a year expression into an explicit sorted year list.
+    
+    Args:
+        expr (str): Year expression string to parse.
+    
+    Returns:
+        list[int]: List result produced by this function.
+    """
     years: list[int] = []
     for chunk in expr.split(","):
         chunk = chunk.strip()
@@ -39,30 +46,67 @@ def parse_years(expr: str) -> list[int]:
 
 
 def resolve_path(base_dir: Path, value: str) -> Path:
-    """Execute resolve_path."""
+    """Resolve a potentially relative path against the consolidation base directory.
+    
+    Args:
+        base_dir (Path): Base directory used for path resolution.
+        value (str): Input value to process.
+    
+    Returns:
+        Path: Filesystem path value.
+    """
     path = Path(value)
     return path if path.is_absolute() else base_dir / path
 
 
 def ensure_columns(df: pd.DataFrame, columns: list[str]) -> None:
-    """Execute ensure_columns."""
+    """Ensure required columns exist in a DataFrame, creating missing columns when needed.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        columns (list[str]): List of columns that must exist in the DataFrame.
+    
+    Returns:
+        None: No return value.
+    """
     for col in columns:
         if col not in df.columns:
             df[col] = pd.NA
 
 
 def present(series: pd.Series) -> pd.Series:
-    """Execute present."""
+    """Compute a boolean mask for non-empty values in a Series.
+    
+    Args:
+        series (pd.Series): Input pandas Series.
+    
+    Returns:
+        pd.Series: Computed result for this function.
+    """
     return series.notna() & (series.astype(str).str.strip() != "")
 
 
 def normalize(series: pd.Series) -> pd.Series:
-    """Execute normalize."""
+    """Normalize text values for deterministic key generation.
+    
+    Args:
+        series (pd.Series): Input pandas Series.
+    
+    Returns:
+        pd.Series: Computed result for this function.
+    """
     return series.fillna("<NA>").astype(str).str.strip()
 
 
 def key_with_occurrence(df: pd.DataFrame) -> pd.Series:
-    """Execute key_with_occurrence."""
+    """Build a stable record key with occurrence indexing for duplicate handling.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+    
+    Returns:
+        pd.Series: Computed result for this function.
+    """
     key_df = pd.DataFrame({col: normalize(df[col]) for col in KEY_COLS})
     key = key_df.agg("|".join, axis=1)
     occ = key.groupby(key, sort=False).cumcount()
@@ -70,14 +114,30 @@ def key_with_occurrence(df: pd.DataFrame) -> pd.Series:
 
 
 def issue_type(title_ok: bool, text_ok: bool) -> str:
-    """Execute issue_type."""
+    """Classify merge quality based on title/text completeness.
+    
+    Args:
+        title_ok (bool): Whether title content is available.
+        text_ok (bool): Whether body text content is available.
+    
+    Returns:
+        str: Processed string value.
+    """
     if title_ok and not text_ok:
         return "Title_Only"
     return "Text_Only"
 
 
 def consolidate_year(base_dir: Path, year: int) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
-    """Execute consolidate_year."""
+    """Consolidate yearly primary and rescued scrape files and produce QA diagnostics.
+    
+    Args:
+        base_dir (Path): Base directory used for path resolution.
+        year (int): Year value being processed.
+    
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame, dict]: Processed pandas DataFrame.
+    """
     orig_path = base_dir / f"ven_usa_{year}.csv"
     resc_path = base_dir / f"ven_usa_{year}_rescued.csv"
 
@@ -177,7 +237,11 @@ def consolidate_year(base_dir: Path, year: int) -> tuple[pd.DataFrame, pd.DataFr
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Run the script entry point.
+    
+    Returns:
+        None: No return value.
+    """
     parser = argparse.ArgumentParser(
         description="Consolidate yearly scraped and rescued CSV files with original-first data priority."
     )

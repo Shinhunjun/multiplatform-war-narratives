@@ -28,9 +28,14 @@ config.browser_user_agent = user_agent
 config.request_timeout = 20  # Wayback needs more time
 
 def get_wayback_url(original_url: object, date_int: int) -> Optional[str]:
-    """
-    Asks the Internet Archive for the closest snapshot to the article date.
-    date_int is YYYYMMDD (integer).
+    """Asks the Internet Archive for the closest snapshot to the article date.
+    
+    Args:
+        original_url (object): Original URL to query in the Wayback Machine.
+        date_int (int): Publication date encoded as YYYYMMDD integer.
+    
+    Returns:
+        Optional[str]: Result when available; otherwise None.
     """
     if not original_url or pd.isna(original_url):
         return None
@@ -52,7 +57,14 @@ def get_wayback_url(original_url: object, date_int: int) -> Optional[str]:
         return None
 
 def scrape_archived_article(archive_url: Optional[str]) -> dict[str, Any]:
-    """Execute scrape_archived_article."""
+    """Scrape article title and body text from a Wayback snapshot URL.
+    
+    Args:
+        archive_url (Optional[str]): Wayback snapshot URL to scrape.
+    
+    Returns:
+        dict[str, Any]: Dictionary containing computed values.
+    """
     result = {'Title': None, 'Text': None, 'Status': 'Failed'}
     if not archive_url:
         return result
@@ -73,8 +85,10 @@ def scrape_archived_article(archive_url: Optional[str]) -> dict[str, Any]:
     return result
 
 def prepare_dataframe() -> pd.DataFrame:
-    """
-    Resumes from OUTPUT_FILE if it exists; otherwise starts from INPUT_FILE.
+    """Resumes from OUTPUT_FILE if it exists; otherwise starts from INPUT_FILE.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     if os.path.exists(OUTPUT_FILE):
         print(f"Resuming from partial rescue file: {OUTPUT_FILE}")
@@ -94,7 +108,11 @@ def prepare_dataframe() -> pd.DataFrame:
     return df
 
 def main() -> None:
-    """Run the script entry point."""
+    """Run the script entry point.
+    
+    Returns:
+        None: No return value.
+    """
     print(f"--- LAUNCHING RESCUE MISSION FOR YEAR {YEAR} ---")
     
     df = prepare_dataframe()

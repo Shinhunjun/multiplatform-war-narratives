@@ -11,7 +11,11 @@ from tqdm import tqdm
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
+    """Parse command-line arguments for URL-level relevance scoring.
+    
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
     base = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
         description="Score url_lookup rows using token relevance scores."
@@ -50,7 +54,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def parse_token_array(value: object) -> set[str]:
-    """Execute parse_token_array."""
+    """Parse a serialized token array string into a Python token set.
+    
+    Args:
+        value (object): Serialized token list from the lookup CSV.
+    
+    Returns:
+        set[str]: Parsed token set for scoring.
+    """
     if value is None or pd.isna(value):
         return set()
     s = str(value).strip()
@@ -68,7 +79,11 @@ def parse_token_array(value: object) -> set[str]:
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Score each URL document using token relevance weights and update url_lookup.csv.
+    
+    Returns:
+        None: No return value.
+    """
     args = parse_args()
     output_path = args.output if args.output is not None else args.lookup
 

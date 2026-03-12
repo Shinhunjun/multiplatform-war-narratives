@@ -13,7 +13,11 @@ WHITESPACE_RE = re.compile(r"\s+")
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
+    """Parse command-line arguments for duplicate-article removal.
+    
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
     base_dir = Path(__file__).resolve().parents[1]
     default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
     default_gdelt = base_dir / "data" / "gdelt_scraped.csv"
@@ -36,7 +40,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def normalize_text(value: object) -> str:
-    """Execute normalize_text."""
+    """Normalize text for exact duplicate detection across files.
+    
+    Args:
+        value (object): Raw text field value.
+    
+    Returns:
+        str: Lowercased, whitespace-normalized text.
+    """
     if value is None or pd.isna(value):
         return ""
     text = str(value).replace("\r", " ").replace("\n", " ")
@@ -45,12 +56,23 @@ def normalize_text(value: object) -> str:
 
 
 def text_hash(text: str) -> str:
-    """Execute text_hash."""
+    """Compute SHA-256 hash for normalized text.
+    
+    Args:
+        text (str): Normalized article text.
+    
+    Returns:
+        str: Hex digest used to identify duplicate clusters.
+    """
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Remove rows tied to duplicate text clusters from url_lookup and gdelt_scraped outputs.
+    
+    Returns:
+        None: No return value.
+    """
     args = parse_args()
     tqdm.pandas(desc="Normalizing Text")
 

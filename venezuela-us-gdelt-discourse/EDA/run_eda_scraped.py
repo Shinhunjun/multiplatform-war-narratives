@@ -76,7 +76,14 @@ DOMAIN_STOPWORDS = {
 
 
 def load_data(filepath: Path) -> pd.DataFrame | None:
-    """Load and validate scraped GDELT data."""
+    """Load and validate scraped GDELT data.
+    
+    Args:
+        filepath (Path): Path to the input file.
+    
+    Returns:
+        pd.DataFrame | None: Loaded DataFrame when available; otherwise None.
+    """
     print("Loading scraped GDELT data...")
     if not filepath.exists():
         print(f"File not found: {filepath}")
@@ -109,7 +116,14 @@ def load_data(filepath: Path) -> pd.DataFrame | None:
 
 
 def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
-    """Create shared derived columns used across all analyses."""
+    """Create shared derived columns used across all analyses.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
+    """
     t0 = perf_counter()
     date_str = df["Date"].astype(str).str.extract(r"(\d{8})")[0]
     df["DateObject"] = pd.to_datetime(date_str, format="%Y%m%d", errors="coerce")
@@ -132,7 +146,14 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def plot_timeline(df: pd.DataFrame) -> None:
-    """Plot event timeline and monthly Goldstein mean."""
+    """Plot event timeline and monthly Goldstein mean.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+    
+    Returns:
+        None: No return value.
+    """
     monthly_counts = df.groupby("Month").size()
     monthly_goldstein = df.groupby("Month")["GoldsteinScale"].mean()
     dates = [p.to_timestamp() for p in monthly_counts.index]
@@ -191,7 +212,14 @@ def plot_timeline(df: pd.DataFrame) -> None:
 
 
 def plot_yearly_distribution(df: pd.DataFrame) -> None:
-    """Plot yearly event counts and AvgTone distribution by year."""
+    """Plot yearly event counts and AvgTone distribution by year.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+    
+    Returns:
+        None: No return value.
+    """
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
     yearly_counts = df.groupby("Year").size()
@@ -228,7 +256,14 @@ def plot_yearly_distribution(df: pd.DataFrame) -> None:
 
 
 def plot_quadclass_distribution(df: pd.DataFrame) -> None:
-    """Plot overall and initiator-split QuadClass distribution."""
+    """Plot overall and initiator-split QuadClass distribution.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+    
+    Returns:
+        None: No return value.
+    """
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
     qc_counts = df["EventCategory"].value_counts(dropna=False)
@@ -253,7 +288,14 @@ def plot_quadclass_distribution(df: pd.DataFrame) -> None:
 
 
 def plot_intensity_metrics(df: pd.DataFrame) -> None:
-    """Plot GoldsteinScale and AvgTone histograms."""
+    """Plot GoldsteinScale and AvgTone histograms.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+    
+    Returns:
+        None: No return value.
+    """
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
     sns.histplot(df["GoldsteinScale"], bins=30, kde=True, ax=axes[0], color="purple")
@@ -273,7 +315,15 @@ def plot_intensity_metrics(df: pd.DataFrame) -> None:
 
 
 def plot_tone_trend(df: pd.DataFrame, rolling_window: int = 12) -> None:
-    """Plot monthly AvgTone with rolling mean and +/-1 SD band."""
+    """Plot monthly AvgTone with rolling mean and +/-1 SD band.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        rolling_window (int): Window size used for rolling trend smoothing. Defaults to 12.
+    
+    Returns:
+        None: No return value.
+    """
     monthly_tone = (
         df.dropna(subset=["DateObject", "AvgTone"]).set_index("DateObject")["AvgTone"].resample("ME").mean()
     )
@@ -303,7 +353,14 @@ def plot_tone_trend(df: pd.DataFrame, rolling_window: int = 12) -> None:
 
 
 def plot_scrape_status(df: pd.DataFrame) -> dict[str, float]:
-    """Plot scrape status counts and return scrape success metrics."""
+    """Plot scrape status counts and return scrape success metrics.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+    
+    Returns:
+        dict[str, float]: Dictionary containing computed values.
+    """
     status_counts = df["Scrape_Status"].fillna("Missing").value_counts()
     total = len(df)
     success_mask = df["Scrape_Status"].fillna("").str.contains("success", case=False)
@@ -352,7 +409,14 @@ def plot_scrape_status(df: pd.DataFrame) -> dict[str, float]:
 
 
 def plot_url_uniqueness(df: pd.DataFrame) -> dict[str, int]:
-    """Plot unique vs duplicate URL rows and return URL metrics."""
+    """Plot unique vs duplicate URL rows and return URL metrics.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+    
+    Returns:
+        dict[str, int]: Dictionary containing computed values.
+    """
     url_series = df["SourceURL"].fillna("").astype(str).str.strip()
     valid_urls = url_series[url_series != ""]
 
@@ -393,7 +457,14 @@ def plot_url_uniqueness(df: pd.DataFrame) -> dict[str, int]:
 
 
 def _token_counter(series: pd.Series) -> Counter:
-    """Build token counts using the shared NLTK normalization pipeline."""
+    """Build token counts using the shared NLTK normalization pipeline.
+    
+    Args:
+        series (pd.Series): Input pandas Series.
+    
+    Returns:
+        Counter: Token frequency counter.
+    """
     ensure_nltk_resources()
     stopwords = build_stopword_set() | DOMAIN_STOPWORDS
     counts: Counter = Counter()
@@ -433,7 +504,17 @@ def _token_counter(series: pd.Series) -> Counter:
 def make_wordcloud_from_counts(
     counts: Counter, chart_title: str, out_name: str, max_words: int = 300
 ) -> None:
-    """Generate and save a word cloud image."""
+    """Generate and save a word cloud image.
+    
+    Args:
+        counts (Counter): Token frequency counter.
+        chart_title (str): Display title for the generated chart.
+        out_name (str): Output filename for the generated chart.
+        max_words (int): Maximum number of words in the word cloud. Defaults to 300.
+    
+    Returns:
+        None: No return value.
+    """
     if not counts:
         return
 
@@ -456,7 +537,15 @@ def make_wordcloud_from_counts(
 
 
 def top_words_with_share(counts: Counter, top_n: int = 10) -> list[tuple[str, int, float]]:
-    """Execute top_words_with_share."""
+    """Compute top token counts and relative share percentages from a token-frequency counter.
+    
+    Args:
+        counts (Counter): Token frequency counter.
+        top_n (int): Number of top items to include. Defaults to 10.
+    
+    Returns:
+        list[tuple[str, int, float]]: List result produced by this function.
+    """
     total_tokens = sum(counts.values())
     return [
         (word, freq, (freq / total_tokens * 100.0) if total_tokens else 0.0)
@@ -471,7 +560,18 @@ def generate_report(
     top_title_words: list[tuple[str, int, float]],
     top_text_words: list[tuple[str, int, float]],
 ) -> None:
-    """Generate comprehensive markdown report."""
+    """Generate comprehensive markdown report.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        scrape_metrics (dict[str, float]): Scrape-quality metrics dictionary.
+        url_metrics (dict[str, int]): URL-uniqueness metrics dictionary.
+        top_title_words (list[tuple[str, int, float]]): Top title token statistics used in reporting.
+        top_text_words (list[tuple[str, int, float]]): Top body-text token statistics used in reporting.
+    
+    Returns:
+        None: No return value.
+    """
     total_events = len(df)
     avg_goldstein = df["GoldsteinScale"].mean()
     avg_tone = df["AvgTone"].mean()
@@ -666,7 +766,11 @@ def generate_report(
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Run the script entry point.
+    
+    Returns:
+        None: No return value.
+    """
     print("=" * 60)
     print("Comprehensive EDA for scraped GDELT Venezuela-US data")
     print("=" * 60)

@@ -14,7 +14,14 @@ _tokenizer = None
 
 
 def _load_model(model_name: str = "cardiffnlp/twitter-roberta-base-sentiment-latest") -> Any:
-    """Lazy load the sentiment model."""
+    """Lazy load the sentiment model.
+    
+    Args:
+        model_name (str): Model identifier used by the NLP component. Defaults to 'cardiffnlp/twitter-roberta-base-sentiment-latest'.
+    
+    Returns:
+        Any: Object returned by the underlying library or runtime path.
+    """
     global _pipeline, _tokenizer
     if _pipeline is None:
         from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
@@ -47,13 +54,15 @@ def analyze_sentiment_batch(
     model_name: str = "cardiffnlp/twitter-roberta-base-sentiment-latest",
     batch_size: int = 32,
 ) -> List[Dict]:
-    """
-    Analyze sentiment for a batch of texts.
-
-    Returns list of dicts with:
-    - label: 'positive', 'negative', 'neutral'
-    - score: confidence score
-    - sentiment_score: -1 to 1 scale
+    """Analyze sentiment for a batch of texts.
+    
+    Args:
+        texts (List[str]): Input text strings.
+        model_name (str): Model identifier used by the NLP component. Defaults to 'cardiffnlp/twitter-roberta-base-sentiment-latest'.
+        batch_size (int): Batch size used for model inference. Defaults to 32.
+    
+    Returns:
+        List[Dict]: List result produced by this function.
     """
     pipe = _load_model(model_name)
 
@@ -101,13 +110,16 @@ def analyze_dataframe(
     model_name: str = "cardiffnlp/twitter-roberta-base-sentiment-latest",
     batch_size: int = 32,
 ) -> pd.DataFrame:
-    """
-    Add sentiment columns to DataFrame.
-
-    Adds columns:
-    - sentiment_label: positive/negative/neutral
-    - sentiment_confidence: model confidence
-    - sentiment_score: -1 to 1 scale
+    """Add sentiment columns to DataFrame.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        text_column (str): Column name containing article text. Defaults to 'text'.
+        model_name (str): Model identifier used by the NLP component. Defaults to 'cardiffnlp/twitter-roberta-base-sentiment-latest'.
+        batch_size (int): Batch size used for model inference. Defaults to 32.
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     df = df.copy()
     texts = df[text_column].fillna("").tolist()
@@ -126,14 +138,14 @@ def aggregate_sentiment(
     df: pd.DataFrame,
     group_by: List[str] = ["subreddit", "year_month"],
 ) -> pd.DataFrame:
-    """
-    Aggregate sentiment by groups (e.g., subreddit, time period).
-
-    Returns DataFrame with:
-    - mean_sentiment: average sentiment score
-    - positive_ratio: fraction of positive posts
-    - negative_ratio: fraction of negative posts
-    - count: number of posts
+    """Aggregate sentiment by groups (e.g., subreddit, time period).
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+        group_by (List[str]): Grouping columns used for aggregation. Defaults to ['subreddit', 'year_month'].
+    
+    Returns:
+        pd.DataFrame: Processed pandas DataFrame.
     """
     agg = df.groupby(group_by).agg(
         mean_sentiment=("sentiment_score", "mean"),
@@ -152,7 +164,14 @@ def aggregate_sentiment(
 
 
 def get_sentiment_summary(df: pd.DataFrame) -> Dict:
-    """Get overall sentiment summary statistics."""
+    """Get overall sentiment summary statistics.
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame to process.
+    
+    Returns:
+        Dict: Computed result for this function.
+    """
     return {
         "total_records": len(df),
         "mean_sentiment": df["sentiment_score"].mean(),

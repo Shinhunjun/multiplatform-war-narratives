@@ -13,7 +13,11 @@ from build_text_relevance_tokens import build_stopword_set, tokenize
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
+    """Parse command-line arguments for url_lookup tokenization.
+    
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
     default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
     parser = argparse.ArgumentParser(
         description="Tokenize url_lookup Text column and store token arrays in Tokens."
@@ -32,7 +36,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def is_blank(value: object) -> bool:
-    """Execute is_blank."""
+    """Return whether a value should be treated as blank text.
+    
+    Args:
+        value (object): Input value to test.
+    
+    Returns:
+        bool: True when the value is null/NaN/empty; otherwise False.
+    """
     if value is None:
         return True
     if pd.isna(value):
@@ -41,7 +52,11 @@ def is_blank(value: object) -> bool:
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Tokenize url_lookup text rows and persist incremental token arrays for downstream steps.
+    
+    Returns:
+        None: No return value.
+    """
     args = parse_args()
     output_path = args.output if args.output is not None else args.lookup
 

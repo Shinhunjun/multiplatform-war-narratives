@@ -13,7 +13,11 @@ WHITESPACE_RE = re.compile(r"\s+")
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
+    """Parse command-line arguments for redirect-duplicate cluster analysis.
+    
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
     base = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
         description="Flag likely redirect/fallback content via duplicate normalized Text hashes."
@@ -47,7 +51,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def normalize_text(value: object) -> str:
-    """Execute normalize_text."""
+    """Normalize article text for robust exact-duplicate detection.
+    
+    Args:
+        value (object): Raw text field value.
+    
+    Returns:
+        str: Normalized lowercase text with collapsed whitespace.
+    """
     if value is None or pd.isna(value):
         return ""
     text = str(value)
@@ -57,12 +68,26 @@ def normalize_text(value: object) -> str:
 
 
 def stable_text_hash(text: str) -> str:
-    """Execute stable_text_hash."""
+    """Compute a stable SHA-256 hash for normalized text.
+    
+    Args:
+        text (str): Normalized text to hash.
+    
+    Returns:
+        str: Hex digest string for duplicate grouping.
+    """
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def extract_domain(url: object) -> str:
-    """Execute extract_domain."""
+    """Extract and normalize the domain from a URL string.
+    
+    Args:
+        url (object): Source URL string.
+    
+    Returns:
+        str: Lowercase domain, or an empty string if parsing fails.
+    """
     if url is None or pd.isna(url):
         return ""
     raw = str(url).strip()
@@ -79,7 +104,11 @@ def extract_domain(url: object) -> str:
 
 
 def main() -> None:
-    """Run the script entry point."""
+    """Identify large duplicate-text clusters and export review-ready cluster summaries.
+    
+    Returns:
+        None: No return value.
+    """
     args = parse_args()
     output_path = args.output if args.output is not None else args.lookup
 
