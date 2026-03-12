@@ -6,16 +6,33 @@ with scrape-quality and content analysis (status, URL uniqueness, word clouds).
 
 from __future__ import annotations
 
-import re
+import sys
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+from time import perf_counter
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+from nltk import pos_tag
+from nltk.stem import WordNetLemmatizer
 import pandas as pd
 import seaborn as sns
 from wordcloud import STOPWORDS, WordCloud
+
+PREPROCESSING_DIR = Path(__file__).resolve().parent.parent / "preprocessing"
+if str(PREPROCESSING_DIR) not in sys.path:
+    sys.path.insert(0, str(PREPROCESSING_DIR))
+
+from build_text_relevance_tokens import (
+    CONTRACTION_FRAGMENTS,
+    LETTER_TOKEN_RE,
+    SPECIAL_KEEP_TOKENS,
+    build_stopword_set,
+    ensure_nltk_resources,
+    parse_text_tokens,
+    penn_to_wordnet,
+)
 
 
 DATA_PATH = Path(__file__).parent / "../data" / "gdelt_scraped.csv"
@@ -65,6 +82,8 @@ def load_data(filepath: Path) -> pd.DataFrame | None:
         print(f"File not found: {filepath}")
         return None
 
+    print("  Reading CSV into memory (this may take a while for large files)...")
+    t0 = perf_counter()
     df = pd.read_csv(filepath, low_memory=False)
     required_cols = [
         "Date",
@@ -91,6 +110,7 @@ def load_data(filepath: Path) -> pd.DataFrame | None:
 
 def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     """Create shared derived columns used across all analyses."""
+    t0 = perf_counter()
     date_str = df["Date"].astype(str).str.extract(r"(\d{8})")[0]
     df["DateObject"] = pd.to_datetime(date_str, format="%Y%m%d", errors="coerce")
     df["Year"] = df["DateObject"].dt.year
@@ -113,7 +133,6 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
 
 def plot_timeline(df: pd.DataFrame) -> None:
     """Plot event timeline and monthly Goldstein mean."""
-    print("Creating timeline plot...")
     monthly_counts = df.groupby("Month").size()
     monthly_goldstein = df.groupby("Month")["GoldsteinScale"].mean()
     dates = [p.to_timestamp() for p in monthly_counts.index]
@@ -169,12 +188,10 @@ def plot_timeline(df: pd.DataFrame) -> None:
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "01_gdelt_timeline.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("  Saved 01_gdelt_timeline.png")
 
 
 def plot_yearly_distribution(df: pd.DataFrame) -> None:
     """Plot yearly event counts and AvgTone distribution by year."""
-    print("Creating yearly distribution plot...")
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
     yearly_counts = df.groupby("Year").size()
@@ -208,12 +225,10 @@ def plot_yearly_distribution(df: pd.DataFrame) -> None:
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "02_gdelt_yearly_stats.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("  Saved 02_gdelt_yearly_stats.png")
 
 
 def plot_quadclass_distribution(df: pd.DataFrame) -> None:
     """Plot overall and initiator-split QuadClass distribution."""
-    print("Creating QuadClass distribution plot...")
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
     qc_counts = df["EventCategory"].value_counts(dropna=False)
@@ -235,12 +250,10 @@ def plot_quadclass_distribution(df: pd.DataFrame) -> None:
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "03_gdelt_categories.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("  Saved 03_gdelt_categories.png")
 
 
 def plot_intensity_metrics(df: pd.DataFrame) -> None:
     """Plot GoldsteinScale and AvgTone histograms."""
-    print("Creating intensity metrics plot...")
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
     sns.histplot(df["GoldsteinScale"], bins=30, kde=True, ax=axes[0], color="purple")
@@ -257,12 +270,10 @@ def plot_intensity_metrics(df: pd.DataFrame) -> None:
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "04_gdelt_intensity.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("  Saved 04_gdelt_intensity.png")
 
 
 def plot_tone_trend(df: pd.DataFrame, rolling_window: int = 12) -> None:
     """Plot monthly AvgTone with rolling mean and +/-1 SD band."""
-    print("Creating smoothed tone trend plot...")
     monthly_tone = (
         df.dropna(subset=["DateObject", "AvgTone"]).set_index("DateObject")["AvgTone"].resample("ME").mean()
     )
@@ -289,12 +300,10 @@ def plot_tone_trend(df: pd.DataFrame, rolling_window: int = 12) -> None:
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "05_gdelt_tone_trend.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("  Saved 05_gdelt_tone_trend.png")
 
 
 def plot_scrape_status(df: pd.DataFrame) -> dict[str, float]:
     """Plot scrape status counts and return scrape success metrics."""
-    print("Creating scrape status plot...")
     status_counts = df["Scrape_Status"].fillna("Missing").value_counts()
     total = len(df)
     success_mask = df["Scrape_Status"].fillna("").str.contains("success", case=False)
@@ -334,7 +343,6 @@ def plot_scrape_status(df: pd.DataFrame) -> dict[str, float]:
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "06_scraped_status.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("  Saved 06_scraped_status.png")
 
     return {
         "total_rows": total,
@@ -345,7 +353,6 @@ def plot_scrape_status(df: pd.DataFrame) -> dict[str, float]:
 
 def plot_url_uniqueness(df: pd.DataFrame) -> dict[str, int]:
     """Plot unique vs duplicate URL rows and return URL metrics."""
-    print("Creating URL uniqueness plot...")
     url_series = df["SourceURL"].fillna("").astype(str).str.strip()
     valid_urls = url_series[url_series != ""]
 
@@ -377,7 +384,6 @@ def plot_url_uniqueness(df: pd.DataFrame) -> dict[str, int]:
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "07_scraped_url_uniqueness.png", dpi=150, bbox_inches="tight")
     plt.close()
-    print("  Saved 07_scraped_url_uniqueness.png")
 
     return {
         "valid_url_rows": total_valid,
@@ -387,14 +393,40 @@ def plot_url_uniqueness(df: pd.DataFrame) -> dict[str, int]:
 
 
 def _token_counter(series: pd.Series) -> Counter:
-    """Build token counts without creating one massive concatenated string."""
-    stopwords = set(STOPWORDS) | DOMAIN_STOPWORDS
+    """Build token counts using the shared NLTK normalization pipeline."""
+    ensure_nltk_resources()
+    stopwords = build_stopword_set() | DOMAIN_STOPWORDS
     counts: Counter = Counter()
-    pattern = re.compile(r"[A-Za-z][A-Za-z']{2,}")
+    lemmatizer = WordNetLemmatizer()
 
     for value in series.dropna().astype(str):
-        tokens = pattern.findall(value.lower())
-        counts.update(t for t in tokens if t not in stopwords)
+        parsed_tokens = parse_text_tokens(value)
+        if not parsed_tokens:
+            continue
+
+        special_tokens = [tok for tok in parsed_tokens if tok in SPECIAL_KEEP_TOKENS]
+        lexical_tokens = [
+            tok
+            for tok in parsed_tokens
+            if tok not in SPECIAL_KEEP_TOKENS and LETTER_TOKEN_RE.fullmatch(tok)
+        ]
+
+        if lexical_tokens:
+            for token, pos in pos_tag(lexical_tokens):
+                lemma = lemmatizer.lemmatize(token, pos=penn_to_wordnet(pos)).strip("'")
+                if not lemma:
+                    continue
+                if lemma in CONTRACTION_FRAGMENTS:
+                    continue
+                if lemma.isdigit():
+                    continue
+                if lemma in stopwords and lemma not in SPECIAL_KEEP_TOKENS:
+                    continue
+                counts[lemma] += 1
+
+        for token in special_tokens:
+            if token not in stopwords or token in SPECIAL_KEEP_TOKENS:
+                counts[token] += 1
     return counts
 
 
@@ -402,9 +434,7 @@ def make_wordcloud_from_counts(
     counts: Counter, chart_title: str, out_name: str, max_words: int = 300
 ) -> None:
     """Generate and save a word cloud image."""
-    print(f"Creating word cloud: {out_name}")
     if not counts:
-        print(f"  Skipped {out_name}: empty text")
         return
 
     wc = WordCloud(
@@ -423,10 +453,10 @@ def make_wordcloud_from_counts(
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / out_name, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"  Saved {out_name}")
 
 
 def top_words_with_share(counts: Counter, top_n: int = 10) -> list[tuple[str, int, float]]:
+    """Execute top_words_with_share."""
     total_tokens = sum(counts.values())
     return [
         (word, freq, (freq / total_tokens * 100.0) if total_tokens else 0.0)
@@ -442,7 +472,6 @@ def generate_report(
     top_text_words: list[tuple[str, int, float]],
 ) -> None:
     """Generate comprehensive markdown report."""
-    print("Generating markdown report...")
     total_events = len(df)
     avg_goldstein = df["GoldsteinScale"].mean()
     avg_tone = df["AvgTone"].mean()
@@ -453,8 +482,12 @@ def generate_report(
     status_counts = df["Scrape_Status"].fillna("Missing").value_counts()
     peak_months = df.groupby("Month").size().sort_values(ascending=False).head(10)
 
-    top_conflict = df.sort_values("GoldsteinScale", ascending=True).head(5)
-    top_coop = df.sort_values("GoldsteinScale", ascending=False).head(5)
+    title_series = df["Title"].fillna("").astype(str).str.strip()
+    has_title_mask = title_series != ""
+    df_with_titles = df[has_title_mask].copy()
+
+    top_conflict = df_with_titles.sort_values("GoldsteinScale", ascending=True).head(5)
+    top_coop = df_with_titles.sort_values("GoldsteinScale", ascending=False).head(5)
 
     report = f"""# Venezuela-US GDELT Comprehensive Scraped Analysis Report
 
@@ -630,14 +663,15 @@ def generate_report(
     report_path = OUTPUT_DIR / "GDELT_Scraped_EDA_Report.md"
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report)
-    print("  Saved GDELT_Scraped_EDA_Report.md")
 
 
 def main() -> None:
+    """Run the script entry point."""
     print("=" * 60)
     print("Comprehensive EDA for scraped GDELT Venezuela-US data")
     print("=" * 60)
 
+    t_all = perf_counter()
     df = load_data(DATA_PATH)
     if df is None:
         return
@@ -654,8 +688,9 @@ def main() -> None:
     scrape_metrics = plot_scrape_status(df)
     url_metrics = plot_url_uniqueness(df)
 
-    print("Tokenizing Title/Text fields...")
+    print("Counting tokens for Title/Text fields...")
     title_counts = _token_counter(df["Title"])
+    t_text = perf_counter()
     text_counts = _token_counter(df["Text"])
 
     make_wordcloud_from_counts(title_counts, "Title Word Cloud", "08_title_wordcloud.png")
@@ -667,6 +702,7 @@ def main() -> None:
 
     print("=" * 60)
     print("Comprehensive EDA complete")
+    print(f"Total runtime: {perf_counter() - t_all:.1f}s")
     print("=" * 60)
 
 

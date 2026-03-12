@@ -16,38 +16,47 @@ class AnalysisConfig:
 
     @property
     def data_dir(self) -> Path:
+        """Execute data_dir."""
         return self.base_dir / "data"
 
     @property
     def preprocessing_dir(self) -> Path:
+        """Execute preprocessing_dir."""
         return self.base_dir / "preprocessing"
 
     @property
     def output_dir(self) -> Path:
+        """Execute output_dir."""
         return self.base_dir / "analysis" / "outputs"
 
     @property
     def gdelt_csv_path(self) -> Path:
+        """Execute gdelt_csv_path."""
         return self.data_dir / self.gdelt_file
 
     @property
     def url_lookup_path(self) -> Path:
+        """Execute url_lookup_path."""
         return self.preprocessing_dir / self.url_lookup_file
 
     @property
     def relevance_tokens_path(self) -> Path:
+        """Execute relevance_tokens_path."""
         return self.preprocessing_dir / self.relevance_tokens_file
 
     @property
     def relevant_terms_path(self) -> Path:
+        """Execute relevant_terms_path."""
         return self.preprocessing_dir / self.relevant_terms_file
 
     @property
     def redirect_scores_path(self) -> Path:
+        """Execute redirect_scores_path."""
         return self.preprocessing_dir / self.redirect_scores_file
 
     @property
     def redirect_clusters_path(self) -> Path:
+        """Execute redirect_clusters_path."""
         return self.preprocessing_dir / self.redirect_clusters_file
 
     # Input filenames

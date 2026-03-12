@@ -3,6 +3,7 @@ import sys
 import os
 import time
 from datetime import datetime
+from typing import Any, Optional
 from tqdm import tqdm
 import waybackpy
 from newspaper import Article, Config
@@ -26,7 +27,7 @@ config = Config()
 config.browser_user_agent = user_agent
 config.request_timeout = 20  # Wayback needs more time
 
-def get_wayback_url(original_url, date_int):
+def get_wayback_url(original_url: object, date_int: int) -> Optional[str]:
     """
     Asks the Internet Archive for the closest snapshot to the article date.
     date_int is YYYYMMDD (integer).
@@ -50,7 +51,8 @@ def get_wayback_url(original_url, date_int):
     except Exception:
         return None
 
-def scrape_archived_article(archive_url):
+def scrape_archived_article(archive_url: Optional[str]) -> dict[str, Any]:
+    """Execute scrape_archived_article."""
     result = {'Title': None, 'Text': None, 'Status': 'Failed'}
     if not archive_url:
         return result
@@ -70,7 +72,7 @@ def scrape_archived_article(archive_url):
         
     return result
 
-def prepare_dataframe():
+def prepare_dataframe() -> pd.DataFrame:
     """
     Resumes from OUTPUT_FILE if it exists; otherwise starts from INPUT_FILE.
     """
@@ -91,7 +93,8 @@ def prepare_dataframe():
         
     return df
 
-def main():
+def main() -> None:
+    """Run the script entry point."""
     print(f"--- LAUNCHING RESCUE MISSION FOR YEAR {YEAR} ---")
     
     df = prepare_dataframe()

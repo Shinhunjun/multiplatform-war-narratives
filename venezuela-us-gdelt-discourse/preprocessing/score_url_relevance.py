@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -10,6 +11,7 @@ from tqdm import tqdm
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
     base = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
         description="Score url_lookup rows using token relevance scores."
@@ -48,6 +50,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def parse_token_array(value: object) -> set[str]:
+    """Execute parse_token_array."""
     if value is None or pd.isna(value):
         return set()
     s = str(value).strip()
@@ -65,6 +68,7 @@ def parse_token_array(value: object) -> set[str]:
 
 
 def main() -> None:
+    """Run the script entry point."""
     args = parse_args()
     output_path = args.output if args.output is not None else args.lookup
 
@@ -88,7 +92,13 @@ def main() -> None:
     matches: list[int] = []
     token_counts: list[int] = []
 
-    for value in tqdm(lookup_df[args.tokens_col], total=len(lookup_df), desc="Scoring url_lookup", unit="row"):
+    for value in tqdm(
+        lookup_df[args.tokens_col],
+        total=len(lookup_df),
+        desc="Scoring url_lookup",
+        unit="row",
+        file=sys.stdout,
+    ):
         tokens = parse_token_array(value)
         n_tokens = len(tokens)
         token_counts.append(n_tokens)

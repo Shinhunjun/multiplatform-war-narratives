@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import pandas as pd
+from tqdm import tqdm
 
 
 TRACKING_QUERY_PREFIXES = (
@@ -23,6 +25,7 @@ TRACKING_QUERY_KEYS = {
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
     base_dir = Path(__file__).resolve().parents[1]
     default_input = base_dir / "data" / "gdelt_scraped.csv"
     default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
@@ -36,7 +39,12 @@ def parse_args() -> argparse.Namespace:
         "--output",
         type=Path,
         default=None,
-        help="Path to write updated gdelt_scraped with url_id (default: overwrite --input)",
+        help="Path to write updated gdelt_scraped with url_id (optional).",
+    )
+    parser.add_argument(
+        "--write-input",
+        action="store_true",
+        help="Overwrite --input with url_id (ignored when --output is provided).",
     )
     parser.add_argument(
         "--canonical-col",
@@ -47,6 +55,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def _is_blank(value: object) -> bool:
+    """Execute _is_blank."""
     if value is None:
         return True
     if pd.isna(value):
@@ -55,6 +64,7 @@ def _is_blank(value: object) -> bool:
 
 
 def canonicalize_url(url: object) -> str:
+    """Execute canonicalize_url."""
     if _is_blank(url):
         return ""
 
@@ -99,6 +109,7 @@ def canonicalize_url(url: object) -> str:
 
 
 def choose_representative_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Execute choose_representative_rows."""
     work = df.copy()
     work["Text_len"] = work["Text"].fillna("").astype(str).str.len()
     work["Title_len"] = work["Title"].fillna("").astype(str).str.len()
@@ -117,6 +128,7 @@ def choose_representative_rows(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_existing_lookup(lookup_path: Path) -> pd.DataFrame:
+    """Execute load_existing_lookup."""
     if not lookup_path.exists():
         return pd.DataFrame(
             columns=[
@@ -152,23 +164,84 @@ def load_existing_lookup(lookup_path: Path) -> pd.DataFrame:
     return existing
 
 
+def upsert_lookup(existing_lookup: pd.DataFrame, incoming_lookup: pd.DataFrame) -> pd.DataFrame:
+    """Execute upsert_lookup."""
+    if existing_lookup.empty:
+        out = incoming_lookup.sort_values("url_id").reset_index(drop=True)
+        out["url_id"] = out["url_id"].astype("Int64")
+        return out
+
+    out = existing_lookup.copy()
+    incoming = incoming_lookup.copy()
+
+    out["url_id"] = pd.to_numeric(out["url_id"], errors="coerce").astype("Int64")
+    incoming["url_id"] = pd.to_numeric(incoming["url_id"], errors="coerce").astype("Int64")
+
+    for col in incoming.columns:
+        if col not in out.columns:
+            out[col] = pd.NA
+
+    out = out.set_index("url_id", drop=False)
+    incoming = incoming.set_index("url_id", drop=False)
+
+    overlap_ids = out.index.intersection(incoming.index)
+    update_cols = [
+        "SourceURL",
+        "SourceURL_Canonical",
+        "Title",
+        "Text",
+        "Scrape_Status",
+        "row_count",
+    ]
+    for col in update_cols:
+        if col in out.columns and col in incoming.columns and len(overlap_ids) > 0:
+            out.loc[overlap_ids, col] = incoming.loc[overlap_ids, col].values
+
+    if "Tokens" in out.columns and "Tokens" in incoming.columns and len(overlap_ids) > 0:
+        for uid in overlap_ids:
+            if _is_blank(out.at[uid, "Tokens"]) and not _is_blank(incoming.at[uid, "Tokens"]):
+                out.at[uid, "Tokens"] = incoming.at[uid, "Tokens"]
+
+    new_ids = incoming.index.difference(out.index)
+    if len(new_ids) > 0:
+        new_rows = incoming.loc[new_ids].copy()
+        new_rows = new_rows.reindex(columns=out.columns)
+        out = pd.concat([out, new_rows], axis=0)
+
+    out = out.sort_index().reset_index(drop=True)
+    out["url_id"] = pd.to_numeric(out["url_id"], errors="coerce").astype("Int64")
+    return out
+
+
 def main() -> None:
+    """Run the script entry point."""
     args = parse_args()
+    write_dataset = args.output is not None or args.write_input
     output_path = args.output if args.output is not None else args.input
 
     if not args.input.exists():
         raise FileNotFoundError(f"Input file not found: {args.input}")
 
+    print("Loading input CSV...", flush=True)
     df = pd.read_csv(args.input, low_memory=False)
+    print(f"  Rows loaded: {len(df):,}", flush=True)
     required_cols = {"SourceURL", "Title", "Text", "Scrape_Status"}
     missing = required_cols - set(df.columns)
     if missing:
         raise ValueError(f"Input missing required columns: {sorted(missing)}")
 
+    print("Canonicalizing SourceURL values...", flush=True)
     df["SourceURL"] = df["SourceURL"].fillna("").astype(str)
-    df["SourceURL_Canonical"] = df["SourceURL"].map(canonicalize_url)
+    tqdm.pandas(desc="Canonicalizing URLs", file=sys.stdout)
+    df["SourceURL_Canonical"] = df["SourceURL"].progress_map(canonicalize_url)
 
+    print("Selecting representative row per canonical URL...", flush=True)
     reps = choose_representative_rows(df)
+    # If the input already has url_id, remove it here and rebuild from lookup mapping.
+    # This avoids merge suffixes (url_id_x/url_id_y) and keeps IDs stable from lookup.
+    reps = reps.drop(columns=["url_id"], errors="ignore")
+
+    print("Loading existing url_lookup mapping...", flush=True)
     existing_lookup = load_existing_lookup(args.lookup)
     existing_lookup["SourceURL_Canonical"] = existing_lookup["SourceURL_Canonical"].fillna("").astype(str)
 
@@ -179,6 +252,7 @@ def main() -> None:
     )
     existing_ids["url_id"] = pd.to_numeric(existing_ids["url_id"], errors="coerce").astype("Int64")
 
+    print("Assigning/rehydrating url_id values...", flush=True)
     reps = reps.merge(existing_ids, on="SourceURL_Canonical", how="left")
     max_existing_id = int(existing_ids["url_id"].max()) if not existing_ids["url_id"].dropna().empty else 0
 
@@ -203,48 +277,34 @@ def main() -> None:
         reps["Tokens"] = ""
         lookup_cols.insert(5, "Tokens")
 
-    new_lookup = reps[lookup_cols].copy()
-
-    if not existing_lookup.empty:
-        existing_keep = existing_lookup[
-            [
-                "url_id",
-                "SourceURL_Canonical",
-                "Tokens",
-            ]
-        ].copy()
-        new_lookup = new_lookup.merge(
-            existing_keep.rename(columns={"Tokens": "Tokens_existing"}),
-            on=["url_id", "SourceURL_Canonical"],
-            how="left",
-        )
-        # Preserve existing non-empty token values (e.g., manual edits or precomputed tokens).
-        new_lookup["Tokens"] = new_lookup.apply(
-            lambda r: r["Tokens_existing"] if not _is_blank(r["Tokens_existing"]) else r["Tokens"], axis=1
-        )
-        new_lookup = new_lookup.drop(columns=["Tokens_existing"])
-
-    new_lookup = new_lookup.sort_values("url_id").reset_index(drop=True)
-    new_lookup["url_id"] = new_lookup["url_id"].astype("Int64")
+    incoming_lookup = reps[lookup_cols].copy()
+    new_lookup = upsert_lookup(existing_lookup, incoming_lookup)
 
     url_to_id = new_lookup[["SourceURL_Canonical", "url_id"]].drop_duplicates(subset=["SourceURL_Canonical"])
+    df = df.drop(columns=["url_id"], errors="ignore")
     df = df.merge(url_to_id, on="SourceURL_Canonical", how="left")
     df["url_id"] = df["url_id"].astype("Int64")
 
-    if not args.canonical_col:
+    if not args.canonical_col and write_dataset:
         df = df.drop(columns=["SourceURL_Canonical"])
 
     args.lookup.parent.mkdir(parents=True, exist_ok=True)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if write_dataset:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    print("Writing output files...", flush=True)
     new_lookup.to_csv(args.lookup, index=False)
-    df.to_csv(output_path, index=False)
+    if write_dataset:
+        df.to_csv(output_path, index=False)
 
     print(f"Input rows: {len(df):,}")
     print(f"Unique canonical URLs: {new_lookup['SourceURL_Canonical'].nunique():,}")
     print(f"New url_id assigned this run: {new_count:,}")
     print(f"Lookup written: {args.lookup}")
-    print(f"Updated dataset written: {output_path}")
+    if write_dataset:
+        print(f"Updated dataset written: {output_path}")
+    else:
+        print("Input dataset not written (use --write-input or --output to write gdelt_scraped with url_id).")
 
 
 if __name__ == "__main__":

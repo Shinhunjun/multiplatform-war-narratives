@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -12,6 +13,7 @@ from build_text_relevance_tokens import build_stopword_set, tokenize
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
     default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
     parser = argparse.ArgumentParser(
         description="Tokenize url_lookup Text column and store token arrays in Tokens."
@@ -30,6 +32,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def is_blank(value: object) -> bool:
+    """Execute is_blank."""
     if value is None:
         return True
     if pd.isna(value):
@@ -38,6 +41,7 @@ def is_blank(value: object) -> bool:
 
 
 def main() -> None:
+    """Run the script entry point."""
     args = parse_args()
     output_path = args.output if args.output is not None else args.lookup
 
@@ -66,7 +70,13 @@ def main() -> None:
     lemmatizer = WordNetLemmatizer()
     stopword_set = build_stopword_set()
 
-    for idx in tqdm(target_indices, total=len(target_indices), desc="Tokenizing url_lookup rows", unit="row"):
+    for idx in tqdm(
+        target_indices,
+        total=len(target_indices),
+        desc="Tokenizing url_lookup rows",
+        unit="row",
+        file=sys.stdout,
+    ):
         text = text_series.at[idx]
         tokens = sorted(tokenize(text, lemmatizer, stopword_set))
         df.at[idx, args.tokens_col] = json.dumps(tokens, ensure_ascii=True)

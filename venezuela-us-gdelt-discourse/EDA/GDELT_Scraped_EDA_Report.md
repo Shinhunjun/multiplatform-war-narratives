@@ -93,21 +93,21 @@
 ### Top Conflict Events (Lowest Goldstein)
 | Date | Actor 1 | Actor 2 | Code | Goldstein | Title |
 |------|---------|---------|------|-----------|-------|
-| 2025-09-03 | VENEZUELA | THE WHITE HOUSE | 193 | -10.0 | U.S. military strike kills 11 people on alleged Venezuelan drug boat |
-| 2013-12-24 | VENEZUELA | A US | 190 | -10.0 | Not found |
-| 2013-12-24 | VENEZUELA | UNITED STATES | 193 | -10.0 | 13 stories unforgettable personal essays in parenting, relationships |
-| 2023-05-16 | UNITED STATES | VENEZUELAN | 190 | -10.0 | Tragedy in Texas as Pandemic Border Policy Ends — and a Rush to Judgment |
-| 2026-01-05 | NEW YORK | VENEZUELA | 190 | -10.0 | Cuba: 32 citizens killed in US operation in Venezuela |
+| 2026-01-11 | PORTLAND | VENEZUELAN | 193 | -10.0 | Anti-ICE protest comes to Nebraska after shootings in Minnesota, Oregon |
+| 2026-01-25 | VENEZUELAN | AMERICAN | 195 | -10.0 | Exclusive-Mexico weighs stopping oil shipments to Cuba amid concerns of Trump retaliation, sources s... |
+| 2013-12-29 | SAN ANTONIO | VENEZUELA | 195 | -10.0 | The NSA Uses Powerful Toolbox in Effort to Spy on Global Networks |
+| 2013-12-29 | SAN ANTONIO | VENEZUELA | 195 | -10.0 | The NSA Uses Powerful Toolbox in Effort to Spy on Global Networks |
+| 2025-09-15 | AMERICAN | VENEZUELA | 193 | -10.0 | Trump wont rule out striking Venezuela |
 
 
 ### Top Cooperation Events (Highest Goldstein)
 | Date | Actor 1 | Actor 2 | Code | Goldstein | Title |
 |------|---------|---------|------|-----------|-------|
-| 2025-11-07 | UNITED STATES | VENEZUELA | 874 | 10.0 | Senate GOP Blocks War Powers Resolution on U.S. Venezuela Strikes |
-| 2023-06-01 | ANGEL FALLS | UNITED STATES | 874 | 10.0 | Have You Done the Maine Waterfall Loop That Takes You to 8 Waterfalls? |
-| 2019-02-12 | VENEZUELA | UNITED STATES | 874 | 10.0 | Not found |
-| 2014-02-01 | VENEZUELAN | AMERICAN | 874 | 10.0 | Latest Human Rights Watch Report: 30 Lies About Venezuela |
-| 2023-10-19 | VENEZUELA | CHICAGO | 874 | 10.0 | Your Illinois News Radar » *** UPDATED x2 *** Mayor Johnson condemns ‘physical attack’ on alderperso... |
+| 2018-12-11 | SAN ANTONIO | VENEZUELA | 874 | 10.0 | ‘Amazing Race’ star details dramatic escape from Venezuela |
+| 2013-07-24 | VENEZUELAN | MIAMI | 874 | 10.0 | Venezuela Consulate Empty But Paying |
+| 2025-03-18 | UNITED STATES | VENEZUELA | 874 | 10.0 | Factbox-Flight data shows timeline of the Venezuelan deportation operation |
+| 2019-05-28 | VENEZUELA | UNITED STATES | 874 | 10.0 | EU names special adviser to help resolve Venezuela crisis |
+| 2017-04-28 | VENEZUELA | UNITED STATES | 874 | 10.0 | Client Challenge |
 
 
 ---
@@ -140,16 +140,16 @@
 
 | Word | Frequency | Share |
 |------|-----------|-------|
-| venezuela | 78,050 | 5.14% |
-| trump | 31,501 | 2.08% |
-| maduro | 26,472 | 1.74% |
-| venezuelan | 25,498 | 1.68% |
-| oil | 11,349 | 0.75% |
-| president | 8,814 | 0.58% |
-| sanctions | 8,470 | 0.56% |
-| american | 7,466 | 0.49% |
-| venezuela's | 7,161 | 0.47% |
-| opposition | 6,500 | 0.43% |
+| venezuela | 83,616 | 5.49% |
+| us | 38,693 | 2.54% |
+| trump | 33,880 | 2.22% |
+| u.s. | 30,796 | 2.02% |
+| venezuelan | 30,729 | 2.02% |
+| maduro | 27,473 | 1.80% |
+| oil | 11,136 | 0.73% |
+| american | 9,993 | 0.66% |
+| president | 9,055 | 0.59% |
+| sanction | 8,863 | 0.58% |
 
 
 ## Content Analysis: Text
@@ -160,18 +160,18 @@
 
 | Word | Frequency | Share |
 |------|-----------|-------|
-| venezuela | 1,008,259 | 1.23% |
-| maduro | 686,337 | 0.84% |
-| president | 619,814 | 0.76% |
-| trump | 587,429 | 0.72% |
-| venezuelan | 530,122 | 0.65% |
-| government | 408,765 | 0.50% |
-| states | 364,656 | 0.44% |
-| united | 353,985 | 0.43% |
-| country | 328,816 | 0.40% |
-| people | 327,782 | 0.40% |
+| venezuela | 1,081,668 | 1.40% |
+| maduro | 722,962 | 0.93% |
+| venezuelan | 637,143 | 0.82% |
+| state | 627,928 | 0.81% |
+| president | 622,426 | 0.80% |
+| trump | 615,028 | 0.79% |
+| us | 594,045 | 0.77% |
+| u.s. | 589,801 | 0.76% |
+| country | 505,015 | 0.65% |
+| government | 426,847 | 0.55% |
 
 
 ---
 
-*Generated: 2026-02-18*
+*Generated: 2026-03-11*

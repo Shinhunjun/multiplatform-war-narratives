@@ -1,9 +1,10 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 import json
 import math
 import re
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -12,6 +13,7 @@ import pandas as pd
 from nltk import pos_tag
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
 from tqdm import tqdm
 
 
@@ -26,6 +28,7 @@ DEFAULT_SEED_TERMS = [
     "united",
     "state",
     "us",
+    "u.s.",
     "usa",
     "washington",
     "white",
@@ -82,11 +85,15 @@ DOMAIN_STOPWORDS = {
     "million",
 }
 
-TOKEN_RE = re.compile(r"[a-z][a-z']{2,}")
+SPECIAL_KEEP_TOKENS = {"us", "u.s.", "usa"}
+CONTRACTION_FRAGMENTS = {"n't", "'re", "'ve", "'ll", "'d", "'m", "'s"}
+US_DOTTED_RE = re.compile(r"(?<!\w)u\.s\.(?!\w)", re.IGNORECASE)
+LETTER_TOKEN_RE = re.compile(r"^[a-z]+(?:'[a-z]+)?$")
+EDGE_CLEAN_RE = re.compile(r"^[^a-z0-9'.]+|[^a-z0-9'.]+$")
 
 
 def parse_args() -> argparse.Namespace:
-    base_dir = Path(__file__).resolve().parents[1]
+    """Parse command-line arguments."""
     default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
     default_out = Path(__file__).resolve().parent / "text_relevance_tokens.csv"
 
@@ -95,6 +102,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--lookup", type=Path, default=default_lookup, help="Path to url_lookup.csv")
     parser.add_argument("--output", type=Path, default=default_out, help="Path to output token score CSV")
+    parser.add_argument(
+        "--eval",
+        type=Path,
+        default=None,
+        help="Optional path to url_filter_eval.csv for filtering training rows",
+    )
     parser.add_argument("--tokens-col", default="Tokens", help="Name of token-array column")
     parser.add_argument("--status-col", default="Scrape_Status", help="Name of scrape status column")
     parser.add_argument(
@@ -123,11 +136,18 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Only use rows where Scrape_Status contains 'success'",
     )
+    parser.add_argument(
+        "--exclude-duplicate-drops",
+        action="store_true",
+        help="Exclude rows marked duplicate-drop in --eval (or rows where used_for_token_training is false)",
+    )
     return parser.parse_args()
 
 
 def ensure_nltk_resources() -> None:
+    """Execute ensure_nltk_resources."""
     resources = [
+        ("tokenizers/punkt", "punkt"),
         ("corpora/stopwords", "stopwords"),
         ("corpora/wordnet", "wordnet"),
         ("corpora/omw-1.4", "omw-1.4"),
@@ -137,6 +157,15 @@ def ensure_nltk_resources() -> None:
             nltk.data.find(resource_path)
         except LookupError:
             nltk.download(download_name, quiet=True)
+
+    # Newer NLTK builds may require punkt_tab separately.
+    try:
+        nltk.data.find("tokenizers/punkt_tab")
+    except LookupError:
+        try:
+            nltk.download("punkt_tab", quiet=True)
+        except Exception:
+            pass
 
     try:
         nltk.data.find("taggers/averaged_perceptron_tagger_eng")
@@ -148,11 +177,13 @@ def ensure_nltk_resources() -> None:
 
 
 def build_stopword_set() -> set[str]:
+    """Execute build_stopword_set."""
     ensure_nltk_resources()
     return set(stopwords.words("english")) | DOMAIN_STOPWORDS
 
 
 def penn_to_wordnet(tag: str) -> str:
+    """Execute penn_to_wordnet."""
     if tag.startswith("J"):
         return wordnet.ADJ
     if tag.startswith("V"):
@@ -164,32 +195,89 @@ def penn_to_wordnet(tag: str) -> str:
     return wordnet.NOUN
 
 
+def normalize_raw_token(token: str) -> str:
+    """Execute normalize_raw_token."""
+    token = token.lower().replace("’", "'").replace("`", "'")
+    token = EDGE_CLEAN_RE.sub("", token)
+    if not token:
+        return ""
+
+    if token in {"u.s.", "u.s"}:
+        return "u.s."
+
+    if token.endswith("'s"):
+        token = token[:-2]
+    elif token.endswith("s'"):
+        token = token[:-1]
+
+    token = token.strip("'")
+    return token
+
+
+def parse_text_tokens(text: str) -> list[str]:
+    """Execute parse_text_tokens."""
+    raw_tokens = word_tokenize(text)
+    parsed: list[str] = []
+    for raw in raw_tokens:
+        token = normalize_raw_token(raw)
+        if not token:
+            continue
+        if token in CONTRACTION_FRAGMENTS:
+            continue
+        parsed.append(token)
+
+    # Explicit project rule: if "U.S." appears in text, force-add "u.s." token.
+    if US_DOTTED_RE.search(text):
+        parsed.append("u.s.")
+
+    return parsed
+
+
 def tokenize(text: str, lemmatizer: WordNetLemmatizer, stopword_set: set[str]) -> set[str]:
-    raw_tokens = TOKEN_RE.findall(text.lower())
-    if not raw_tokens:
+    """Execute tokenize."""
+    if text is None:
         return set()
 
-    tagged_tokens = pos_tag(raw_tokens)
-    return {
-        lemma
-        for token, pos in tagged_tokens
-        for lemma in [lemmatizer.lemmatize(token, pos=penn_to_wordnet(pos)).strip("'")]
-        if lemma and lemma not in stopword_set and not lemma.isdigit()
-    }
+    parsed_tokens = parse_text_tokens(str(text))
+    if not parsed_tokens:
+        return set()
+
+    special = {tok for tok in parsed_tokens if tok in SPECIAL_KEEP_TOKENS}
+    lexical = [tok for tok in parsed_tokens if tok not in special and LETTER_TOKEN_RE.fullmatch(tok)]
+
+    lemmas: set[str] = set()
+    if lexical:
+        tagged_tokens = pos_tag(lexical)
+        for token, pos in tagged_tokens:
+            lemma = lemmatizer.lemmatize(token, pos=penn_to_wordnet(pos)).strip("'")
+            if not lemma:
+                continue
+            if lemma in CONTRACTION_FRAGMENTS:
+                continue
+            if lemma.isdigit():
+                continue
+            if lemma in stopword_set and lemma not in SPECIAL_KEEP_TOKENS:
+                continue
+            lemmas.add(lemma)
+
+    for token in special:
+        if token not in stopword_set or token in SPECIAL_KEEP_TOKENS:
+            lemmas.add(token)
+
+    return lemmas
 
 
 def normalize_seed_terms(seed_terms: list[str], lemmatizer: WordNetLemmatizer) -> set[str]:
+    """Execute normalize_seed_terms."""
     normalized: set[str] = set()
     for term in seed_terms:
-        text = (
-            str(term)
-            .lower()
-            .replace("u.s.", " us ")
-            .replace("u.s", " us ")
-            .replace("united states", " united state ")
-        )
-        tokens = re.findall(r"[a-z][a-z']*", text)
-        for token in tokens:
+        parsed = parse_text_tokens(str(term))
+        for token in parsed:
+            if token in SPECIAL_KEEP_TOKENS:
+                normalized.add(token)
+                continue
+            if not LETTER_TOKEN_RE.fullmatch(token):
+                continue
             lemma = lemmatizer.lemmatize(token, pos=wordnet.NOUN).strip("'")
             if lemma:
                 normalized.add(lemma)
@@ -197,6 +285,7 @@ def normalize_seed_terms(seed_terms: list[str], lemmatizer: WordNetLemmatizer) -
 
 
 def parse_token_array(value: object) -> set[str]:
+    """Execute parse_token_array."""
     if value is None or pd.isna(value):
         return set()
 
@@ -210,16 +299,29 @@ def parse_token_array(value: object) -> set[str]:
         parsed = None
 
     if isinstance(parsed, list):
-        return {str(x).strip() for x in parsed if str(x).strip()}
+        candidates = [str(x).strip() for x in parsed if str(x).strip()]
+    elif "," in s:
+        candidates = [p.strip() for p in s.split(",") if p.strip()]
+    else:
+        candidates = [s]
 
-    if "," in s:
-        return {p.strip() for p in s.split(",") if p.strip()}
-
-    return {s}
+    normalized: set[str] = set()
+    for token in candidates:
+        t = normalize_raw_token(token)
+        if not t or t in CONTRACTION_FRAGMENTS:
+            continue
+        if t in SPECIAL_KEEP_TOKENS:
+            normalized.add(t)
+            continue
+        if LETTER_TOKEN_RE.fullmatch(t):
+            normalized.add(t)
+    return normalized
 
 
 def main() -> None:
+    """Run the script entry point."""
     args = parse_args()
+    ensure_nltk_resources()
 
     if not args.lookup.exists():
         raise FileNotFoundError(f"Lookup file not found: {args.lookup}")
@@ -236,8 +338,69 @@ def main() -> None:
         success_mask = df[args.status_col].fillna("").str.contains("success", case=False)
         df = df[success_mask].copy()
 
+    if args.exclude_duplicate_drops:
+        if args.eval is None:
+            raise ValueError("--exclude-duplicate-drops requires --eval <url_filter_eval.csv>")
+        if not args.eval.exists():
+            raise FileNotFoundError(f"Eval file not found: {args.eval}")
+        if "url_id" not in df.columns:
+            raise ValueError("--exclude-duplicate-drops requires 'url_id' in lookup CSV")
+
+        eval_df = pd.read_csv(args.eval, low_memory=False)
+        if "url_id" not in eval_df.columns:
+            raise ValueError(f"Eval file missing required column: url_id ({args.eval})")
+
+        keep_col = None
+        if "used_for_token_training" in eval_df.columns:
+            keep_col = "used_for_token_training"
+            eval_keep = eval_df[["url_id", keep_col]].copy()
+            eval_keep[keep_col] = (
+                eval_keep[keep_col]
+                .fillna(False)
+                .astype(str)
+                .str.strip()
+                .str.lower()
+                .isin({"true", "1", "yes", "y"})
+            )
+        elif "filter_duplicate_decision" in eval_df.columns:
+            keep_col = "filter_duplicate_decision"
+            eval_keep = eval_df[["url_id", keep_col]].copy()
+            eval_keep[keep_col] = eval_keep[keep_col].fillna("out_of_scope").astype(str)
+        else:
+            raise ValueError(
+                "Eval file must contain either 'used_for_token_training' or 'filter_duplicate_decision' "
+                "to support --exclude-duplicate-drops"
+            )
+
+        eval_keep["url_id"] = pd.to_numeric(eval_keep["url_id"], errors="coerce").astype("Int64")
+        df["url_id"] = pd.to_numeric(df["url_id"], errors="coerce").astype("Int64")
+        merged = df.merge(eval_keep, on="url_id", how="left")
+
+        if keep_col == "used_for_token_training":
+            keep_mask = merged[keep_col] == True
+        else:
+            keep_mask = merged[keep_col] != "drop"
+            keep_mask = keep_mask & merged[keep_col].notna()
+
+        missing_eval = int(merged[keep_col].isna().sum())
+        before_dedup = len(merged)
+        df = merged[keep_mask].copy()
+        df = df.drop(columns=[keep_col], errors="ignore")
+        after_dedup = len(df)
+        print(
+            f"Duplicate-filter training gate: kept {after_dedup:,}/{before_dedup:,} rows "
+            f"(excluded {before_dedup - after_dedup:,}; missing eval rows={missing_eval:,})",
+            flush=True,
+        )
+
     token_sets: list[set[str]] = []
-    for token_value in tqdm(df[args.tokens_col], total=len(df), desc="Loading token arrays", unit="row"):
+    for token_value in tqdm(
+        df[args.tokens_col],
+        total=len(df),
+        desc="Loading token arrays",
+        unit="row",
+        file=sys.stdout,
+    ):
         token_set = parse_token_array(token_value)
         if token_set:
             token_sets.append(token_set)
@@ -256,7 +419,13 @@ def main() -> None:
     lemmatizer = WordNetLemmatizer()
     seed_term_set = normalize_seed_terms(args.seed_terms, lemmatizer)
 
-    for token_set in tqdm(token_sets, total=total_docs, desc="Building document frequencies", unit="doc"):
+    for token_set in tqdm(
+        token_sets,
+        total=total_docs,
+        desc="Building document frequencies",
+        unit="doc",
+        file=sys.stdout,
+    ):
         is_seed_doc = bool(token_set & seed_term_set)
         if is_seed_doc:
             seed_docs += 1
@@ -277,7 +446,13 @@ def main() -> None:
     rows: list[dict[str, float | int | str | bool]] = []
     alpha = args.alpha
 
-    for token, doc_freq in tqdm(df_counter.items(), total=len(df_counter), desc="Scoring tokens", unit="token"):
+    for token, doc_freq in tqdm(
+        df_counter.items(),
+        total=len(df_counter),
+        desc="Scoring tokens",
+        unit="token",
+        file=sys.stdout,
+    ):
         is_protected_seed_token = token in seed_term_set
         doc_frac = doc_freq / usable_docs
         if (doc_frac < args.min_doc_frac or doc_frac > args.max_doc_frac) and not is_protected_seed_token:
@@ -294,7 +469,6 @@ def main() -> None:
         p_nonseed = (nonseed_freq + alpha) / (nonseed_docs + 2 * alpha)
         lift = p_seed / p_nonseed
         log2_lift = math.log2(lift)
-
         idf = math.log((1 + usable_docs) / (1 + doc_freq)) + 1
         relevance_score = log2_lift * idf
 

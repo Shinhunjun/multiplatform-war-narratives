@@ -1,4 +1,4 @@
-﻿import argparse
+import argparse
 from pathlib import Path
 import pandas as pd
 
@@ -21,6 +21,7 @@ SUCCESS_STATUS = {"Success", "Success (Archived)"}
 
 
 def parse_years(expr: str) -> list[int]:
+    """Execute parse_years."""
     years: list[int] = []
     for chunk in expr.split(","):
         chunk = chunk.strip()
@@ -38,25 +39,30 @@ def parse_years(expr: str) -> list[int]:
 
 
 def resolve_path(base_dir: Path, value: str) -> Path:
+    """Execute resolve_path."""
     path = Path(value)
     return path if path.is_absolute() else base_dir / path
 
 
 def ensure_columns(df: pd.DataFrame, columns: list[str]) -> None:
+    """Execute ensure_columns."""
     for col in columns:
         if col not in df.columns:
             df[col] = pd.NA
 
 
 def present(series: pd.Series) -> pd.Series:
+    """Execute present."""
     return series.notna() & (series.astype(str).str.strip() != "")
 
 
 def normalize(series: pd.Series) -> pd.Series:
+    """Execute normalize."""
     return series.fillna("<NA>").astype(str).str.strip()
 
 
 def key_with_occurrence(df: pd.DataFrame) -> pd.Series:
+    """Execute key_with_occurrence."""
     key_df = pd.DataFrame({col: normalize(df[col]) for col in KEY_COLS})
     key = key_df.agg("|".join, axis=1)
     occ = key.groupby(key, sort=False).cumcount()
@@ -64,12 +70,14 @@ def key_with_occurrence(df: pd.DataFrame) -> pd.Series:
 
 
 def issue_type(title_ok: bool, text_ok: bool) -> str:
+    """Execute issue_type."""
     if title_ok and not text_ok:
         return "Title_Only"
     return "Text_Only"
 
 
 def consolidate_year(base_dir: Path, year: int) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    """Execute consolidate_year."""
     orig_path = base_dir / f"ven_usa_{year}.csv"
     resc_path = base_dir / f"ven_usa_{year}_rescued.csv"
 
@@ -169,6 +177,7 @@ def consolidate_year(base_dir: Path, year: int) -> tuple[pd.DataFrame, pd.DataFr
 
 
 def main() -> None:
+    """Run the script entry point."""
     parser = argparse.ArgumentParser(
         description="Consolidate yearly scraped and rescued CSV files with original-first data priority."
     )

@@ -20,7 +20,8 @@ class TemporalClusterer:
         min_samples: int = 10,
         cluster_selection_method: str = "eom",
         group_column: str = "source_domain",
-    ):
+    ) -> None:
+        """Initialize the class instance."""
         self.min_cluster_size = min_cluster_size
         self.min_samples = min_samples
         self.cluster_selection_method = cluster_selection_method

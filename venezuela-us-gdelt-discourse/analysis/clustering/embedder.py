@@ -3,7 +3,7 @@ Sentence-BERT embedder with ID mapping.
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -21,8 +21,9 @@ class TextEmbedder:
         self,
         model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
         batch_size: int = 64,
-        device: str = None,  # Auto-detect
-    ):
+        device: Optional[str] = None,  # Auto-detect
+    ) -> None:
+        """Initialize the class instance."""
         self.model_name = model_name
         self.batch_size = batch_size
         self.device = device
@@ -34,7 +35,7 @@ class TextEmbedder:
         self.embeddings: Optional[np.ndarray] = None
         self.metadata: Optional[pd.DataFrame] = None
 
-    def _load_model(self):
+    def _load_model(self) -> Any:
         """Lazy load the embedding model."""
         if self.model is None:
             from sentence_transformers import SentenceTransformer

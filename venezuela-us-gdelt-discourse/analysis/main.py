@@ -22,6 +22,7 @@ from .data_loader import load_all_data
 
 
 def _load_saved_cluster_assignments(config: AnalysisConfig) -> Optional[pd.DataFrame]:
+    """Execute _load_saved_cluster_assignments."""
     path = config.output_dir / "clusters" / "cluster_assignments.parquet"
     if path.exists():
         return pd.read_parquet(path)
@@ -357,7 +358,7 @@ def run_cluster_summarization(
         return keywords_df
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Venezuela-US GDELT Discourse Analysis Pipeline")
 

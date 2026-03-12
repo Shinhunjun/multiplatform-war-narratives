@@ -2,7 +2,7 @@
 BERTopic-based topic modeling with temporal analysis.
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -13,7 +13,7 @@ def create_bertopic_model(
     n_topics: Optional[int] = None,
     min_topic_size: int = 50,
     n_gram_range: Tuple[int, int] = (1, 2),
-):
+) -> Any:
     """
     Create a BERTopic model with specified configuration.
 
@@ -135,21 +135,21 @@ def fit_topics(
     return df, topic_model, embeddings
 
 
-def get_topic_info(topic_model) -> pd.DataFrame:
+def get_topic_info(topic_model: Any) -> pd.DataFrame:
     """Get topic information including keywords."""
     topic_info = topic_model.get_topic_info()
     return topic_info
 
 
-def get_topic_keywords(topic_model, topic_id: int, n_words: int = 10) -> List[Tuple[str, float]]:
+def get_topic_keywords(topic_model: Any, topic_id: int, n_words: int = 10) -> List[Tuple[str, float]]:
     """Get keywords for a specific topic."""
     return topic_model.get_topic(topic_id)[:n_words]
 
 
 def topics_over_time(
-    topic_model,
+    topic_model: Any,
     docs: List[str],
-    timestamps: List,
+    timestamps: List[Any],
     nr_bins: int = 20,
 ) -> pd.DataFrame:
     """
@@ -166,7 +166,7 @@ def topics_over_time(
 
 
 def get_representative_docs(
-    topic_model,
+    topic_model: Any,
     topic_id: int,
     df: pd.DataFrame,
     n_docs: int = 10,
@@ -200,12 +200,12 @@ def aggregate_topics_by_group(
     return topic_counts
 
 
-def save_topic_model(topic_model, path: str) -> None:
+def save_topic_model(topic_model: Any, path: str) -> None:
     """Save BERTopic model to disk."""
     topic_model.save(path)
 
 
-def load_topic_model(path: str):
+def load_topic_model(path: str) -> Any:
     """Load BERTopic model from disk."""
     from bertopic import BERTopic
     return BERTopic.load(path)

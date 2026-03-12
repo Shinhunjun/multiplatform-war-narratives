@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import time
 import os
+from typing import Any
 
 from newspaper import Article, Config
 from tqdm import tqdm
@@ -33,7 +34,7 @@ config = Config()
 config.browser_user_agent = user_agent
 config.request_timeout = 10
 
-def prepare_dataframe():
+def prepare_dataframe() -> pd.DataFrame:
     """
     Handles logic to either resume from an existing file OR 
     load raw data and apply the 'Interleave Sort' strategy.
@@ -88,7 +89,8 @@ def prepare_dataframe():
     df.to_csv(OUTPUT_FILE, index=False)
     return df
 
-def scrape_article(url):
+def scrape_article(url: object) -> dict[str, Any]:
+    """Execute scrape_article."""
     result = {'Title': None, 'Text': None, 'Scrape_Status': 'Failed', 'Error_Details': ''}
     if not url: return result
 
@@ -109,8 +111,9 @@ def scrape_article(url):
         result['Error_Details'] = str(e)
     return result
 
-def main():
+def main() -> None:
     # Load Data (either fresh or resumed)
+    """Run the script entry point."""
     df_year = prepare_dataframe()
     
     total_rows = len(df_year)

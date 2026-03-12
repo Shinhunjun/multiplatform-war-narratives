@@ -13,6 +13,7 @@ WHITESPACE_RE = re.compile(r"\s+")
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
     base = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
         description="Flag likely redirect/fallback content via duplicate normalized Text hashes."
@@ -46,6 +47,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def normalize_text(value: object) -> str:
+    """Execute normalize_text."""
     if value is None or pd.isna(value):
         return ""
     text = str(value)
@@ -55,10 +57,12 @@ def normalize_text(value: object) -> str:
 
 
 def stable_text_hash(text: str) -> str:
+    """Execute stable_text_hash."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def extract_domain(url: object) -> str:
+    """Execute extract_domain."""
     if url is None or pd.isna(url):
         return ""
     raw = str(url).strip()
@@ -75,6 +79,7 @@ def extract_domain(url: object) -> str:
 
 
 def main() -> None:
+    """Run the script entry point."""
     args = parse_args()
     output_path = args.output if args.output is not None else args.lookup
 

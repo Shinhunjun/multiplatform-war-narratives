@@ -3,7 +3,7 @@ Temporal cluster visualization - animated and static views.
 """
 
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -81,7 +81,8 @@ def create_animated_umap(
     colors = plt.cm.tab20(np.linspace(0, 1, max(1, len(unique_clusters))))
     color_map = dict(zip(unique_clusters, colors))
 
-    def update(frame):
+    def update(frame: int) -> None:
+        """Execute update."""
         ax.clear()
         period = periods[frame]
 
@@ -124,7 +125,7 @@ def create_animated_umap(
             fontsize=10,
             verticalalignment="top",
         )
-        return ax
+        return None
 
     anim = FuncAnimation(
         fig,
@@ -150,7 +151,7 @@ def create_sankey_diagram(
     evolution_df: pd.DataFrame,
     output_path: Optional[Path] = None,
     title: str = "Cluster Flow Over Time",
-):
+) -> Any:
     """
     Create Sankey diagram showing cluster flow between periods.
     """
@@ -302,7 +303,7 @@ def create_interactive_scatter(
     hover_columns: List[str] = ["text", "source_domain", "year_month", "event_category"],
     output_path: Optional[Path] = None,
     title: str = "Interactive Cluster Visualization",
-) -> None:
+) -> Any:
     """
     Create interactive Plotly scatter plot with hover information.
     """

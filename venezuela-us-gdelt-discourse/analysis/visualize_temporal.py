@@ -18,7 +18,7 @@ VIZ_DIR = OUTPUT_DIR / "visualizations"
 VIZ_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def load_data():
+def load_data() -> dict[str, pd.DataFrame]:
     """Load all analysis results."""
     topic_info = pd.read_csv(OUTPUT_DIR / "topics" / "topic_info.csv")
     topics_over_time = pd.read_csv(OUTPUT_DIR / "topics" / "topics_over_time.csv")
@@ -38,7 +38,7 @@ def load_data():
     }
 
 
-def plot_top_topics_over_time(data, top_n: int = 15):
+def plot_top_topics_over_time(data: dict[str, pd.DataFrame], top_n: int = 15) -> None:
     """Plot top N topics over time as a stacked area chart."""
     topic_info = data["topic_info"]
     topic_assignments = data["topic_assignments"].copy()
@@ -79,7 +79,7 @@ def plot_top_topics_over_time(data, top_n: int = 15):
     print("Saved: topics_over_time_stacked.png")
 
 
-def plot_topics_heatmap(data, top_n: int = 20):
+def plot_topics_heatmap(data: dict[str, pd.DataFrame], top_n: int = 20) -> None:
     """Plot topics as a heatmap over time."""
     topic_info = data["topic_info"]
     topic_assignments = data["topic_assignments"].copy()
@@ -128,7 +128,7 @@ def plot_topics_heatmap(data, top_n: int = 20):
     print("Saved: topics_heatmap.png")
 
 
-def plot_top_clusters_over_time(data, top_n: int = 20):
+def plot_top_clusters_over_time(data: dict[str, pd.DataFrame], top_n: int = 20) -> None:
     """Plot top N clusters over time."""
     cluster_summary = data["cluster_summary"]
     cluster_assignments = data["cluster_assignments"].copy()
@@ -166,7 +166,7 @@ def plot_top_clusters_over_time(data, top_n: int = 20):
     print("Saved: clusters_over_time_stacked.png")
 
 
-def plot_clusters_heatmap(data, top_n: int = 30):
+def plot_clusters_heatmap(data: dict[str, pd.DataFrame], top_n: int = 30) -> None:
     """Plot clusters as a heatmap over time."""
     cluster_summary = data["cluster_summary"]
     cluster_assignments = data["cluster_assignments"].copy()
@@ -213,7 +213,7 @@ def plot_clusters_heatmap(data, top_n: int = 30):
     print("Saved: clusters_heatmap.png")
 
 
-def plot_topic_trends(data, top_n: int = 10):
+def plot_topic_trends(data: dict[str, pd.DataFrame], top_n: int = 10) -> None:
     """Plot individual topic trends as line charts."""
     topic_info = data["topic_info"]
     topic_assignments = data["topic_assignments"].copy()
@@ -260,7 +260,7 @@ def plot_topic_trends(data, top_n: int = 10):
     print("Saved: topic_individual_trends.png")
 
 
-def plot_cluster_by_source_domain(data, top_n: int = 15):
+def plot_cluster_by_source_domain(data: dict[str, pd.DataFrame], top_n: int = 15) -> None:
     """Plot cluster distribution by source domain."""
     cluster_assignments = data["cluster_assignments"]
     cluster_summary = data["cluster_summary"]
@@ -293,7 +293,7 @@ def plot_cluster_by_source_domain(data, top_n: int = 15):
     print("Saved: clusters_by_source_domain.png")
 
 
-def create_topic_summary_table(data):
+def create_topic_summary_table(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Create a summary table of top topics with keywords."""
     topic_info = data["topic_info"]
     top_topics = topic_info[topic_info["Topic"] != -1].nlargest(30, "Count")
@@ -314,7 +314,7 @@ def create_topic_summary_table(data):
     return summary_df
 
 
-def create_cluster_summary_table(data):
+def create_cluster_summary_table(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Create a summary table of top clusters."""
     cluster_summary = data["cluster_summary"]
     top_clusters = cluster_summary[cluster_summary["cluster_id"] != -1].nlargest(30, "count")
@@ -343,7 +343,8 @@ def create_cluster_summary_table(data):
     return summary_df
 
 
-def main():
+def main() -> None:
+    """Run the script entry point."""
     print("Loading data...")
     data = load_data()
 

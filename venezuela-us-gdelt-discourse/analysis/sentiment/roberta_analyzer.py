@@ -2,7 +2,7 @@
 RoBERTa-based sentiment analyzer with ID tracking.
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -13,7 +13,7 @@ _pipeline = None
 _tokenizer = None
 
 
-def _load_model(model_name: str = "cardiffnlp/twitter-roberta-base-sentiment-latest"):
+def _load_model(model_name: str = "cardiffnlp/twitter-roberta-base-sentiment-latest") -> Any:
     """Lazy load the sentiment model."""
     global _pipeline, _tokenizer
     if _pipeline is None:
