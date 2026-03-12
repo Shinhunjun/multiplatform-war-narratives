@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import sys
 import pandas as pd
 
 KEY_COLS = [
@@ -18,6 +19,38 @@ KEY_COLS = [
 
 CORE_COLS = KEY_COLS + ["Title", "Text", "Scrape_Status", "Error_Details"]
 SUCCESS_STATUS = {"Success", "Success (Archived)"}
+
+
+def print_progress(current: int, total: int, year: int | None = None, width: int = 36) -> None:
+    """Render a simple in-place progress bar for yearly processing."""
+    if total <= 0:
+        return
+
+    ratio = max(0.0, min(1.0, current / total))
+    filled = int(round(width * ratio))
+    bar = "#" * filled + "-" * (width - filled)
+    pct = ratio * 100
+    year_label = f" | year {year}" if year is not None else ""
+
+    sys.stdout.write(f"\rProgress{year_label}: [{bar}] {current}/{total} ({pct:5.1f}%)")
+    sys.stdout.flush()
+
+    if current >= total:
+        sys.stdout.write("\n")
+
+
+def print_rotated_audit(audit_df: pd.DataFrame) -> None:
+    """Print audit diagnostics in a readable year-by-year vertical layout."""
+    if audit_df.empty:
+        return
+
+    metric_cols = [col for col in audit_df.columns if col != "Year"]
+    label_width = max(len(col) for col in metric_cols)
+
+    for _, row in audit_df.iterrows():
+        print(f"\nYear {int(row['Year'])}")
+        for col in metric_cols:
+            print(f"  {col:<{label_width}} : {row[col]}")
 
 
 def parse_years(expr: str) -> list[int]:
@@ -259,6 +292,7 @@ def main() -> None:
         help="CSV filename or absolute path for year-level audit stats.",
     )
     parser.add_argument("--dry-run", action="store_true", help="Run audit and counts without writing output files.")
+    parser.add_argument("--no-progress", action="store_true", help="Disable progress bar output.")
     args = parser.parse_args()
 
     base_dir = Path(args.base_dir)
@@ -286,10 +320,17 @@ def main() -> None:
     total_rows = 0
     total_problematic = 0
 
-    for year in years:
+    if not args.no_progress:
+        print_progress(0, len(years))
+
+    for i, year in enumerate(years, start=1):
+        if not args.no_progress:
+            sys.stdout.write("\n")
         orig_file = base_dir / f"ven_usa_{year}.csv"
         if not orig_file.exists():
             print(f"Skipping {year}: missing {orig_file.name}")
+            if not args.no_progress:
+                print_progress(i, len(years), year)
             continue
 
         print(f"Processing year {year}...")
@@ -312,6 +353,9 @@ def main() -> None:
                 )
                 wrote_problematic = True
 
+        if not args.no_progress:
+            print_progress(i, len(years), year)
+
     audit_df = pd.DataFrame(audit_rows)
 
     if audit_df.empty:
@@ -326,8 +370,8 @@ def main() -> None:
             )
         audit_df.to_csv(audit_path, index=False)
 
-    print("\nAudit summary by year:")
-    print(audit_df.to_string(index=False))
+    print("\nAudit summary by year (rotated):")
+    print_rotated_audit(audit_df)
     print("\nTotals")
     print(f"Consolidated rows: {total_rows}")
     print(f"Problematic rows:  {total_problematic}")

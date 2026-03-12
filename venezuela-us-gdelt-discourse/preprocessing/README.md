@@ -2,39 +2,129 @@
 
 This folder contains the full preprocessing workflow for `data/gdelt_scraped.csv`.
 
-The orchestrator script is:
+The orchestrator is:
 
 `run_preprocessing_pipeline.py`
 
-## What The Pipeline Produces
+It runs **7 scripts in fixed order**. The goal is to transform scraped URL text into:
 
-- `url_lookup*.csv`: one row per canonical URL (with scraped text, tokens, and relevance score).
-- `text_relevance_tokens*.csv`: ranked token relevance table.
-- `url_filter_eval*.csv`: row-level filtering decisions and reasons.
-- `url_filter_summary_counts*.csv`: aggregated decision counts by stage.
-- `filter_samples*/`: QA samples from each filtering stage.
-- `filter_stage_score_histograms*.png`: score distributions by filter stage decisions.
+- URL-level lookup features (`url_lookup*.csv`)
+- token relevance weights (`text_relevance_tokens*.csv`)
+- row-level filtering decisions (`url_filter_eval*.csv`)
+- QA summaries/samples/plots for filter decisions
 
 ## Run
 
-From this folder:
+From `venezuela-us-gdelt-discourse/preprocessing`:
 
 ```powershell
 python .\run_preprocessing_pipeline.py ..\data\gdelt_scraped.csv --force-retokenize --require-success-status
 ```
 
+## Exactly What The Orchestrator Does (7 Steps)
 
+When you run the orchestrator, you should see these headings in the console:
+
+### Step 1/7: Build URL Index
+
+Script: `build_url_index.py`
+
+What it does:
+- Canonicalizes `SourceURL`.
+- Assigns stable `url_id` values.
+- Reuses existing IDs from `url_lookup.csv` when URL canonical forms already exist.
+- Assigns new IDs only for unseen canonical URLs.
+- Upserts `url_lookup.csv` (one row per canonical URL, with representative `Title`/`Text`/status).
+
+### Step 2/7: Tokenize URL Lookup
+
+Script: `tokenize_url_lookup.py`
+
+What it does:
+- Tokenizes `Text` in `url_lookup.csv` and writes JSON token arrays into `Tokens`.
+- Default behavior is incremental (tokenize rows missing tokens only).
+- `--force-retokenize` retokenizes all non-empty text rows.
+
+### Step 3/7: Build Duplicate Filter Eval (Early)
+
+Script: `build_duplicate_filter_eval.py`
+
+What it does:
+- Builds early duplicate-text diagnostics from in-scope rows.
+- Writes/updates `url_filter_eval*.csv` with duplicate hash, cluster size, and duplicate decision.
+- Writes duplicate-oriented summary counts to `url_filter_summary_counts*.csv`.
+
+### Step 4/7: Build Token Relevance Scores
+
+Script: `build_text_relevance_tokens.py`
+
+What it does:
+- Uses tokenized documents to compute relevance scores per token.
+- Uses duplicate-filter information from Step 3 (`--exclude-duplicate-drops` in orchestrator).
+- `--require-success-status` restricts scoring input to success-status rows.
+- Writes `text_relevance_tokens*.csv`.
+
+### Step 5/7: Score URL Relevance
+
+Script: `score_url_relevance.py`
+
+What it does:
+- Applies token relevance scores to each URL row in `url_lookup.csv`.
+- Adds document-level scoring columns such as:
+  - `doc_relevance_score`
+  - `doc_relevance_sum`
+  - `doc_relevance_matches`
+  - `doc_token_count`
+
+### Step 6/7: Evaluate Filter Strategy (Full)
+
+Script: `evaluate_filter_strategy.py`
+
+What it does:
+- Recomputes the full filter strategy across in-scope rows:
+  - duplicate decision
+  - length decision
+  - score decision
+  - anchor decision
+  - final decision + reasons
+- Writes/updates `url_filter_eval*.csv` by `url_id` (existing IDs are updated with newly computed values).
+- Rewrites `url_filter_summary_counts*.csv`.
+- Writes stratified QA samples into `filter_samples*/`.
+
+### Step 7/7: Plot Filter Stage Histograms
+
+Script: `plot_filter_stage_score_histograms.py`
+
+What it does:
+- Reads `url_filter_eval*.csv`.
+- Generates score histograms split by stage decisions.
+- Writes `filter_stage_score_histograms*.png`.
+
+## Output Files
+
+- `url_lookup*.csv`: one row per canonical URL with scrape and scoring fields.
+- `text_relevance_tokens*.csv`: token relevance table.
+- `url_filter_eval*.csv`: row-level filter decisions and reason labels.
+- `url_filter_summary_counts*.csv`: aggregate decision counts by stage.
+- `filter_samples*/`: QA sample CSVs by stage/final decision.
+- `filter_stage_score_histograms*.png`: visualization of score distributions by decision.
+
+## Naming Behavior
+
+- If input is the default `..\data\gdelt_scraped.csv`, outputs use base names:
+  - `url_lookup.csv`, `text_relevance_tokens.csv`, `url_filter_eval.csv`, etc.
+- If input is a different file, outputs get a suffix from the input filename stem:
+  - for example `url_lookup_my_input.csv`, `url_filter_eval_my_input.csv`, etc.
 
 ## Notes
 
-- The pipeline is designed to be rerun weekly as `gdelt_scraped.csv` grows.
-- URL indexing and lookup updates are incremental.
-- Tokenization can be forced with `--force-retokenize`.
-- `--require-success-status` limits token-relevance training to successful scrapes.
+- The pipeline is intended to be rerun as `gdelt_scraped.csv` grows.
+- URL-ID assignment is stable and incremental.
+- The input scraped CSV is not overwritten by default; preprocessing artifacts are written in this folder unless explicit output flags are provided.
 
 ## Stage Histogram Example
 
-The default output figure is:
+Default figure:
 
 `filter_stage_score_histograms.png`
 
