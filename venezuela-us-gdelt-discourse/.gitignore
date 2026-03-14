@@ -1,6 +1,17 @@
 # Data files
 data/
 
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+
 
 notes.txt
 *.png

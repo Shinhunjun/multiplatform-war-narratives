@@ -1,0 +1,5 @@
+-r preprocessing/requirements.txt
+-r EDA/requirements.txt
+-r data-collection/requirements.txt
+-r analysis/requirements.txt
+pytest>=9.0.0
