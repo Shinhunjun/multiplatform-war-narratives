@@ -35,7 +35,10 @@ from build_text_relevance_tokens import (
 )
 
 
-DATA_PATH = Path(__file__).parent / "../data" / "gdelt_scraped.csv"
+BASE_DIR = Path(__file__).resolve().parent.parent
+ANALYSIS_READY_DIR = BASE_DIR / "data" / "analysis_ready"
+EVENTS_PATH = ANALYSIS_READY_DIR / "analysis_events.parquet"
+URL_CONTENT_PATH = ANALYSIS_READY_DIR / "analysis_url_content.parquet"
 OUTPUT_DIR = Path(__file__).parent
 
 COLORS = {
@@ -74,42 +77,96 @@ DOMAIN_STOPWORDS = {
     "update",
 }
 
+EVENT_REQUIRED_COLUMNS = [
+    "Date",
+    "Actor1Name",
+    "Actor1CountryCode",
+    "Actor2Name",
+    "Actor2CountryCode",
+    "EventCode",
+    "QuadClass",
+    "GoldsteinScale",
+    "AvgTone",
+    "SourceURL",
+    "Scrape_Status",
+    "url_id",
+]
 
-def load_data(filepath: Path) -> pd.DataFrame | None:
-    """Load and validate scraped GDELT data.
+URL_CONTENT_REQUIRED_COLUMNS = [
+    "url_id",
+    "SourceURL",
+    "Title",
+    "Text",
+    "Tokens",
+]
+
+
+def _load_required_parquet(
+    filepath: Path,
+    required_cols: list[str],
+    dataset_label: str,
+) -> pd.DataFrame:
+    """Load a parquet dataset subset and raise a clear error when required columns are unavailable.
     
     Args:
-        filepath (Path): Path to the input file.
+        filepath (Path): Path to the input parquet file.
+        required_cols (list[str]): Required columns for the requested dataset.
+        dataset_label (str): Human-readable dataset label used in error messages.
+    
+    Returns:
+        pd.DataFrame: Loaded pandas DataFrame.
+    """
+    try:
+        return pd.read_parquet(filepath, columns=required_cols)
+    except Exception as exc:
+        raise ValueError(f"{dataset_label} missing required columns: {required_cols}") from exc
+
+
+def load_data(
+    events_path: Path = EVENTS_PATH,
+    url_content_path: Path = URL_CONTENT_PATH,
+) -> pd.DataFrame | None:
+    """Load and validate analysis-ready GDELT event and URL-content parquet data.
+    
+    Args:
+        events_path (Path): Path to the event-level parquet file.
+        url_content_path (Path): Path to the URL-content parquet file.
     
     Returns:
         pd.DataFrame | None: Loaded DataFrame when available; otherwise None.
     """
-    print("Loading scraped GDELT data...")
-    if not filepath.exists():
-        print(f"File not found: {filepath}")
+    print("Loading analysis-ready GDELT parquet data...")
+    missing_paths = [path for path in [events_path, url_content_path] if not path.exists()]
+    if missing_paths:
+        for path in missing_paths:
+            print(f"File not found: {path}")
         return None
 
-    print("  Reading CSV into memory (this may take a while for large files)...")
+    print("  Reading event parquet into memory...")
     t0 = perf_counter()
-    df = pd.read_csv(filepath, low_memory=False)
-    required_cols = [
-        "Date",
-        "Actor1Name",
-        "Actor1CountryCode",
-        "Actor2Name",
-        "Actor2CountryCode",
-        "EventCode",
-        "QuadClass",
-        "GoldsteinScale",
-        "AvgTone",
-        "SourceURL",
-        "Title",
-        "Text",
-        "Scrape_Status",
-    ]
-    missing = [c for c in required_cols if c not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
+    events = _load_required_parquet(events_path, EVENT_REQUIRED_COLUMNS, "analysis_events parquet")
+    url_content = _load_required_parquet(
+        url_content_path,
+        URL_CONTENT_REQUIRED_COLUMNS,
+        "analysis_url_content parquet",
+    ).rename(
+        columns={
+            "SourceURL": "Content_SourceURL",
+            "Title": "Content_Title",
+            "Text": "Content_Text",
+            "Tokens": "Content_Tokens",
+        }
+    )
+
+    df = events.merge(url_content, on="url_id", how="left", validate="many_to_one")
+    source_url = df["SourceURL"].fillna("").astype(str)
+    fallback_url = df["Content_SourceURL"].fillna("").astype(str)
+    blank_mask = source_url.str.strip().eq("")
+    df["SourceURL"] = source_url.where(~blank_mask, fallback_url)
+    df["Title"] = df["Content_Title"]
+    df["Text"] = df["Content_Text"]
+    df["Tokens"] = df["Content_Tokens"]
+    df = df.drop(columns=["Content_SourceURL", "Content_Title", "Content_Text", "Content_Tokens"])
 
     print(f"Loaded {len(df):,} rows")
     return df
@@ -501,6 +558,33 @@ def _token_counter(series: pd.Series) -> Counter:
     return counts
 
 
+def _token_counter_from_precomputed(series: pd.Series) -> Counter:
+    """Build token counts from precomputed token lists stored in parquet.
+    
+    Args:
+        series (pd.Series): Series of token-list values.
+    
+    Returns:
+        Counter: Token frequency counter.
+    """
+    counts: Counter = Counter()
+    for value in series:
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            continue
+        if hasattr(value, "tolist"):
+            tokens = value.tolist()
+        elif isinstance(value, (list, tuple)):
+            tokens = list(value)
+        else:
+            tokens = []
+
+        for token in tokens:
+            token_text = str(token).strip()
+            if token_text:
+                counts[token_text] += 1
+    return counts
+
+
 def make_wordcloud_from_counts(
     counts: Counter, chart_title: str, out_name: str, max_words: int = 300
 ) -> None:
@@ -607,8 +691,8 @@ def generate_report(
 | **Duplicate URL Rows** | {url_metrics["duplicate_url_rows"]:,} |
 
 ### Data Source
-- **Dataset**: Scraped GDELT (Venezuela-US filtered interactions)
-- **Scope**: Event metadata + scraped article title/text content
+- **Dataset**: Analysis-ready GDELT parquet join (Venezuela-US filtered interactions)
+- **Scope**: Event metadata from `analysis_events.parquet` + scraped article title/text content from `analysis_url_content.parquet`
 
 ---
 
@@ -776,7 +860,7 @@ def main() -> None:
     print("=" * 60)
 
     t_all = perf_counter()
-    df = load_data(DATA_PATH)
+    df = load_data()
     if df is None:
         return
     df = preprocess_data(df)
@@ -794,8 +878,7 @@ def main() -> None:
 
     print("Counting tokens for Title/Text fields...")
     title_counts = _token_counter(df["Title"])
-    t_text = perf_counter()
-    text_counts = _token_counter(df["Text"])
+    text_counts = _token_counter_from_precomputed(df["Tokens"])
 
     make_wordcloud_from_counts(title_counts, "Title Word Cloud", "08_title_wordcloud.png")
     make_wordcloud_from_counts(text_counts, "Text Word Cloud", "09_text_wordcloud.png")

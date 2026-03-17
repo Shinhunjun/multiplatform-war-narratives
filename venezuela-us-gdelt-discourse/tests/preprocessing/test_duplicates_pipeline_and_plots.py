@@ -116,6 +116,8 @@ def test_run_preprocessing_pipeline_helpers_and_main(
 
     anchors = tmp_path / "anchors.json"
     anchors.write_text("{}", encoding="utf-8")
+    filter_rules = tmp_path / "filter_rule_config.json"
+    filter_rules.write_text("{}", encoding="utf-8")
 
     calls: list[tuple[str, list[str]]] = []
     monkeypatch.setattr(run_preprocessing_pipeline, "run_step", lambda label, command: calls.append((label, command)))
@@ -127,6 +129,8 @@ def test_run_preprocessing_pipeline_helpers_and_main(
             str(custom_input),
             "--anchors",
             str(anchors),
+            "--filter-rules",
+            str(filter_rules),
             "--sample-size",
             "5",
             "--seed",
@@ -140,6 +144,8 @@ def test_run_preprocessing_pipeline_helpers_and_main(
     assert calls[0][0] == "Step 1/7: Build URL Index"
     assert Path(calls[0][1][1]).name == "build_url_index.py"
     assert "url_lookup_weekly_input.csv" in " ".join(calls[0][1])
+    assert "--filter-rules" in calls[5][1]
+    assert str(filter_rules) in calls[5][1]
     assert Path(calls[-1][1][1]).name == "plot_filter_stage_score_histograms.py"
 
 

@@ -175,3 +175,67 @@ filter_final_decision
 
 filter_reasons
 - Pipe-delimited reason tags explaining non-keep decisions (or pass_all/out_of_scope).
+
+============================================================
+data/analysis_ready/analysis_events.parquet
+============================================================
+
+This table keeps one row per original event row from `gdelt_scraped.csv`.
+
+All original event-level columns are retained except:
+- `Title`
+- `Text`
+
+Those raw content columns are omitted by default in order to avoid duplicating large article text across many event rows. They can be retained by running:
+- `build_analysis_ready_datasets.py --keep-raw-content-cols`
+
+Additional joined columns include:
+- `SourceURL_Canonical`
+- `row_count`
+- `doc_relevance_sum`
+- `doc_relevance_matches`
+- `doc_token_count`
+- `doc_relevance_score`
+- `in_filter_scope`
+- duplicate/filter stage columns from `url_filter_eval.csv`
+
+filter_final_decision_effective
+- Effective final decision used by the analysis export after applying `review_handling` from `filter_rule_config.json`.
+- Current default behavior:
+- `review` becomes `keep`
+
+analysis_include
+- Boolean-like inclusion flag for downstream analysis filtering.
+- `True` when the effective decision is `keep`.
+- `False` when the effective decision is `drop` or `out_of_scope`.
+- `<NA>` when `review_handling` is set to manual adjudication and the row remains unresolved.
+
+analysis_review_flag
+- True when the raw `filter_final_decision` was `review`, even if the effective analysis decision includes the row.
+
+============================================================
+data/analysis_ready/analysis_url_content.parquet
+============================================================
+
+This table keeps one row per `url_id`.
+
+It contains the representative URL-level content and metadata used for downstream text analysis:
+- `url_id`
+- `SourceURL`
+- `SourceURL_Canonical`
+- `Title`
+- `Text`
+- `Tokens`
+- `Scrape_Status`
+- `row_count`
+- `doc_relevance_sum`
+- `doc_relevance_matches`
+- `doc_token_count`
+- `doc_relevance_score`
+- all filter columns from `url_filter_eval.csv`
+- `filter_final_decision_effective`
+- `analysis_include`
+- `analysis_review_flag`
+
+Tokens
+- Stored in parquet as a parsed list of normalized token strings, not as the serialized JSON string used in `url_lookup.csv`.

@@ -1,0 +1,22 @@
+{
+  "version": "2026-03-14",
+  "scope": {
+    "require_success_status": true,
+    "require_nonempty_text": true,
+    "require_nonempty_tokens": true,
+    "require_numeric_score": true
+  },
+  "thresholds": {
+    "duplicate_drop_cluster_size_gt": 1,
+    "length_drop_lt": 40,
+    "length_review_lt": 80,
+    "score_drop_lt": 25,
+    "score_review_lt": 40
+  },
+  "final_decision_priority": [
+    "drop",
+    "review",
+    "keep"
+  ],
+  "review_handling": "include_with_flag"
+}

@@ -14,5 +14,6 @@ venv/
 
 
 notes.txt
+TODO.txt
 *.png
 !preprocessing/filter_stage_score_histograms.png

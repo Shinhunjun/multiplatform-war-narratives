@@ -24,6 +24,15 @@ class AnalysisConfig:
         return self.base_dir / "data"
 
     @property
+    def analysis_ready_dir(self) -> Path:
+        """Return the analysis-ready dataset directory path.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
+        return self.data_dir / self.analysis_ready_subdir
+
+    @property
     def preprocessing_dir(self) -> Path:
         """Return the preprocessing artifact directory path.
         
@@ -49,6 +58,24 @@ class AnalysisConfig:
             Path: Filesystem path value.
         """
         return self.data_dir / self.gdelt_file
+
+    @property
+    def analysis_events_path(self) -> Path:
+        """Return the path to the analysis-ready event parquet file.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
+        return self.analysis_ready_dir / self.analysis_events_file
+
+    @property
+    def analysis_url_content_path(self) -> Path:
+        """Return the path to the analysis-ready URL-content parquet file.
+        
+        Returns:
+            Path: Filesystem path value.
+        """
+        return self.analysis_ready_dir / self.analysis_url_content_file
 
     @property
     def url_lookup_path(self) -> Path:
@@ -96,6 +123,9 @@ class AnalysisConfig:
         return self.preprocessing_dir / self.redirect_clusters_file
 
     # Input filenames
+    analysis_ready_subdir: str = "analysis_ready"
+    analysis_events_file: str = "analysis_events.parquet"
+    analysis_url_content_file: str = "analysis_url_content.parquet"
     gdelt_file: str = "gdelt_scraped.csv"
     url_lookup_file: str = "url_lookup.csv"
     relevance_tokens_file: str = "text_relevance_tokens.csv"
@@ -112,7 +142,9 @@ class AnalysisConfig:
     max_seq_length: int = 512
 
     # Data filters
+    use_analysis_ready_parquet: bool = True
     require_successful_scrape: bool = True
+    require_analysis_include: bool = True
     min_doc_relevance_score: Optional[float] = None
     exclude_suspect_redirect_content: bool = False
 

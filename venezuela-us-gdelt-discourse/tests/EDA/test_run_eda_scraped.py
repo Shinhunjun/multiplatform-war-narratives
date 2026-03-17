@@ -10,7 +10,7 @@ import pytest
 import run_eda_scraped as eda
 
 
-def build_raw_df() -> pd.DataFrame:
+def build_event_df() -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
@@ -24,9 +24,8 @@ def build_raw_df() -> pd.DataFrame:
                 "GoldsteinScale": 2.5,
                 "AvgTone": 0.2,
                 "SourceURL": "http://example.com/a",
-                "Title": "Venezuela and US talks",
-                "Text": "Venezuela and US discuss sanctions policy.",
                 "Scrape_Status": "success",
+                "url_id": 1,
             },
             {
                 "Date": "20190215",
@@ -39,9 +38,8 @@ def build_raw_df() -> pd.DataFrame:
                 "GoldsteinScale": -6.0,
                 "AvgTone": -1.2,
                 "SourceURL": "http://example.com/a",
-                "Title": "US sanctions expanded",
-                "Text": "US expands sanctions on Venezuela officials.",
                 "Scrape_Status": "SUCCESS_RETRY",
+                "url_id": 1,
             },
             {
                 "Date": "20200110",
@@ -54,34 +52,71 @@ def build_raw_df() -> pd.DataFrame:
                 "GoldsteinScale": 4.0,
                 "AvgTone": 1.5,
                 "SourceURL": "http://example.com/b",
-                "Title": "Regional cooperation",
-                "Text": "Regional support for humanitarian efforts.",
                 "Scrape_Status": "timeout",
+                "url_id": 2,
             },
         ]
     )
 
 
+def build_url_content_df() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "url_id": 1,
+                "SourceURL": "http://example.com/a",
+                "Title": "US sanctions expanded",
+                "Text": "US expands sanctions on Venezuela officials.",
+                "Tokens": ["us", "expand", "sanction", "venezuela", "official"],
+            },
+            {
+                "url_id": 2,
+                "SourceURL": "http://example.com/b",
+                "Title": "Regional cooperation",
+                "Text": "Regional support for humanitarian efforts.",
+                "Tokens": ["regional", "support", "humanitarian", "effort"],
+            },
+        ]
+    )
+
+
+def build_loaded_df() -> pd.DataFrame:
+    return build_event_df().merge(build_url_content_df(), on=["url_id", "SourceURL"], how="left", validate="many_to_one")
+
+
+def write_analysis_ready_tables(base_dir: Path, events: pd.DataFrame | None = None, url_content: pd.DataFrame | None = None) -> tuple[Path, Path]:
+    analysis_ready_dir = base_dir / "data" / "analysis_ready"
+    analysis_ready_dir.mkdir(parents=True, exist_ok=True)
+
+    events_path = analysis_ready_dir / "analysis_events.parquet"
+    url_path = analysis_ready_dir / "analysis_url_content.parquet"
+    (events if events is not None else build_event_df()).to_parquet(events_path, index=False)
+    (url_content if url_content is not None else build_url_content_df()).to_parquet(url_path, index=False)
+    return events_path, url_path
+
+
 def test_load_data_missing_file_returns_none(tmp_path: Path) -> None:
-    missing = tmp_path / "missing.csv"
-    assert eda.load_data(missing) is None
+    _, url_path = write_analysis_ready_tables(tmp_path)
+    missing = tmp_path / "missing_events.parquet"
+    assert eda.load_data(missing, url_path) is None
 
 
 def test_load_data_raises_on_missing_required_columns(tmp_path: Path) -> None:
-    path = tmp_path / "bad.csv"
-    pd.DataFrame([{"Date": "20190101"}]).to_csv(path, index=False)
-    with pytest.raises(ValueError, match="Missing required columns"):
-        eda.load_data(path)
+    bad_events = pd.DataFrame([{"Date": "20190101"}])
+    events_path, url_path = write_analysis_ready_tables(tmp_path, events=bad_events)
+    with pytest.raises(ValueError, match="required columns"):
+        eda.load_data(events_path, url_path)
 
 
 def test_load_data_and_preprocess_create_derived_columns(tmp_path: Path) -> None:
-    path = tmp_path / "gdelt_scraped.csv"
-    raw = build_raw_df()
-    raw.to_csv(path, index=False)
-
-    loaded = eda.load_data(path)
+    events_path, url_path = write_analysis_ready_tables(tmp_path)
+    loaded = eda.load_data(events_path, url_path)
     assert loaded is not None
     assert len(loaded) == 3
+    assert (loaded["url_id"] == 1).sum() == 2
+    assert "Title" in loaded.columns
+    assert "Text" in loaded.columns
+    assert "Tokens" in loaded.columns
 
     processed = eda.preprocess_data(loaded.copy())
     assert "DateObject" in processed.columns
@@ -99,7 +134,7 @@ def test_load_data_and_preprocess_create_derived_columns(tmp_path: Path) -> None
 
 def test_plot_functions_write_expected_png_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(eda, "OUTPUT_DIR", tmp_path)
-    processed = eda.preprocess_data(build_raw_df().copy())
+    processed = eda.preprocess_data(build_loaded_df().copy())
 
     eda.plot_timeline(processed)
     with warnings.catch_warnings():
@@ -128,7 +163,7 @@ def test_plot_functions_write_expected_png_files(tmp_path: Path, monkeypatch: py
 
 def test_scrape_and_url_metric_plots_return_metrics(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(eda, "OUTPUT_DIR", tmp_path)
-    processed = eda.preprocess_data(build_raw_df().copy())
+    processed = eda.preprocess_data(build_loaded_df().copy())
 
     scrape = eda.plot_scrape_status(processed)
     urls = eda.plot_url_uniqueness(processed)
@@ -161,6 +196,22 @@ def test_token_counter_applies_normalization_and_stopwords(monkeypatch: pytest.M
     assert "news" not in counts
 
 
+def test_token_counter_from_precomputed_uses_existing_token_lists() -> None:
+    counts = eda._token_counter_from_precomputed(
+        pd.Series(
+            [
+                ["venezuela", "sanction"],
+                ["sanction", "official"],
+                None,
+            ]
+        )
+    )
+
+    assert counts["sanction"] == 2
+    assert counts["venezuela"] == 1
+    assert counts["official"] == 1
+
+
 def test_make_wordcloud_and_top_words(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(eda, "OUTPUT_DIR", tmp_path)
 
@@ -188,7 +239,7 @@ def test_make_wordcloud_and_top_words(monkeypatch: pytest.MonkeyPatch, tmp_path:
 
 def test_generate_report_writes_markdown(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(eda, "OUTPUT_DIR", tmp_path)
-    processed = eda.preprocess_data(build_raw_df().copy())
+    processed = eda.preprocess_data(build_loaded_df().copy())
 
     eda.generate_report(
         processed,
@@ -209,7 +260,7 @@ def test_generate_report_writes_markdown(tmp_path: Path, monkeypatch: pytest.Mon
 
 def test_main_returns_early_when_data_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     called = {"preprocess": False}
-    monkeypatch.setattr(eda, "load_data", lambda path: None)
+    monkeypatch.setattr(eda, "load_data", lambda: None)
     monkeypatch.setattr(
         eda,
         "preprocess_data",
@@ -222,12 +273,12 @@ def test_main_returns_early_when_data_missing(monkeypatch: pytest.MonkeyPatch) -
 
 def test_main_runs_full_pipeline(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
-    raw = build_raw_df()
+    raw = build_loaded_df()
 
     def record(name: str) -> None:
         calls.append(name)
 
-    monkeypatch.setattr(eda, "load_data", lambda path: raw.copy())
+    monkeypatch.setattr(eda, "load_data", lambda: raw.copy())
     monkeypatch.setattr(eda, "preprocess_data", lambda df: df)
     monkeypatch.setattr(eda, "plot_timeline", lambda df: record("timeline"))
     monkeypatch.setattr(eda, "plot_yearly_distribution", lambda df: record("yearly"))
@@ -245,13 +296,18 @@ def test_main_runs_full_pipeline(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda df: (record("urls"), {"valid_url_rows": 3, "unique_urls": 2, "duplicate_url_rows": 1})[1],
     )
 
-    token_call_counter = {"count": 0}
+    token_call_counter = {"title": 0, "text": 0}
 
     def fake_token_counter(series: pd.Series) -> Counter:
-        token_call_counter["count"] += 1
+        token_call_counter["title"] += 1
         return Counter({"venezuela": 2, "us": 1})
 
     monkeypatch.setattr(eda, "_token_counter", fake_token_counter)
+    monkeypatch.setattr(
+        eda,
+        "_token_counter_from_precomputed",
+        lambda series: token_call_counter.__setitem__("text", token_call_counter["text"] + 1) or Counter({"sanction": 3}),
+    )
     monkeypatch.setattr(
         eda,
         "make_wordcloud_from_counts",
@@ -270,7 +326,8 @@ def test_main_runs_full_pipeline(monkeypatch: pytest.MonkeyPatch) -> None:
 
     eda.main()
 
-    assert token_call_counter["count"] == 2
+    assert token_call_counter["title"] == 1
+    assert token_call_counter["text"] == 1
     assert "timeline" in calls
     assert "yearly" in calls
     assert "quad" in calls

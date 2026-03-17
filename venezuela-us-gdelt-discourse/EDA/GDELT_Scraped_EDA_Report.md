@@ -10,14 +10,14 @@
 | **Avg Tone** | -3.08 |
 | **Median Tone** | -3.25 |
 | **Initiator Split (VEN / USA)** | 136,614 / 155,952 |
-| **Successful Scrapes** | 211,071 |
-| **Scrape Success Rate** | 72.14% |
+| **Successful Scrapes** | 226,506 |
+| **Scrape Success Rate** | 77.42% |
 | **Unique URLs** | 105,095 |
-| **Duplicate URL Rows** | 187,470 |
+| **Duplicate URL Rows** | 187,471 |
 
 ### Data Source
-- **Dataset**: Scraped GDELT (Venezuela-US filtered interactions)
-- **Scope**: Event metadata + scraped article title/text content
+- **Dataset**: Analysis-ready GDELT parquet join (Venezuela-US filtered interactions)
+- **Scope**: Event metadata from `analysis_events.parquet` + scraped article title/text content from `analysis_url_content.parquet`
 
 ---
 
@@ -93,21 +93,21 @@
 ### Top Conflict Events (Lowest Goldstein)
 | Date | Actor 1 | Actor 2 | Code | Goldstein | Title |
 |------|---------|---------|------|-----------|-------|
-| 2026-01-11 | PORTLAND | VENEZUELAN | 193 | -10.0 | Anti-ICE protest comes to Nebraska after shootings in Minnesota, Oregon |
-| 2026-01-25 | VENEZUELAN | AMERICAN | 195 | -10.0 | Exclusive-Mexico weighs stopping oil shipments to Cuba amid concerns of Trump retaliation, sources s... |
-| 2013-12-29 | SAN ANTONIO | VENEZUELA | 195 | -10.0 | The NSA Uses Powerful Toolbox in Effort to Spy on Global Networks |
-| 2013-12-29 | SAN ANTONIO | VENEZUELA | 195 | -10.0 | The NSA Uses Powerful Toolbox in Effort to Spy on Global Networks |
-| 2025-09-15 | AMERICAN | VENEZUELA | 193 | -10.0 | Trump wont rule out striking Venezuela |
+| 2013-12-24 | VENEZUELA | UNITED STATES | 193 | -10.0 | 13 stories unforgettable personal essays in parenting, relationships |
+| 2020-08-20 | VENEZUELAN | SAN FRANCISCO | 190 | -10.0 | Crime spikes as Soros-funded DAs take charge: 'They're not progressive, they're rogue' |
+| 2015-03-03 | VENEZUELA | REUTERS | 193 | -10.0 | Venezuela to charge 8 police in young men's disappearance, death |
+| 2019-04-02 | VENEZUELA | UNITED STATES | 190 | -10.0 | The Latest: Venezuela judge seeks to strip Guaido's immunity |
+| 2026-01-04 | UNITED STATES | VENEZUELA | 193 | -10.0 | ‘We’re going to run it’: Trump says military to stay in Venezuela for now |
 
 
 ### Top Cooperation Events (Highest Goldstein)
 | Date | Actor 1 | Actor 2 | Code | Goldstein | Title |
 |------|---------|---------|------|-----------|-------|
-| 2018-12-11 | SAN ANTONIO | VENEZUELA | 874 | 10.0 | ‘Amazing Race’ star details dramatic escape from Venezuela |
-| 2013-07-24 | VENEZUELAN | MIAMI | 874 | 10.0 | Venezuela Consulate Empty But Paying |
-| 2025-03-18 | UNITED STATES | VENEZUELA | 874 | 10.0 | Factbox-Flight data shows timeline of the Venezuelan deportation operation |
-| 2019-05-28 | VENEZUELA | UNITED STATES | 874 | 10.0 | EU names special adviser to help resolve Venezuela crisis |
-| 2017-04-28 | VENEZUELA | UNITED STATES | 874 | 10.0 | Client Challenge |
+| 2024-04-03 | VENEZUELA | AMERICAN | 874 | 10.0 | Wife's brutal punishment for deported migrant influencer who showed illegals how to squat in US home... |
+| 2025-04-07 | VENEZUELA | UNITED STATES | 874 | 10.0 | The frenzied 24 hours when Venezuelan migrants in the US were shipped to an El Salvador prison |
+| 2026-01-10 | THE US | VENEZUELA | 874 | 10.0 | Rodriguez or Trump: Who Is Really Running Venezuela? |
+| 2018-05-16 | VENEZUELAN | KELLOGG COMPANY | 874 | 10.0 | The Sprout: NAFTA clock ticking and big dog lickings |
+| 2026-01-12 | UNITED STATES | VENEZUELA | 874 | 10.0 | Trump goes rogue against Venezuela and lays out his imperialistic goals |
 
 
 ---
@@ -121,9 +121,9 @@
 | Status | Count |
 |--------|-------|
 | Success | 166,878 |
-| Error | 74,112 |
-| Success (Archived) | 44,193 |
-| Empty_Content | 7,383 |
+| Error | 60,382 |
+| Success (Archived) | 59,628 |
+| Empty_Content | 5,678 |
 
 
 ### URL Uniqueness
@@ -140,16 +140,16 @@
 
 | Word | Frequency | Share |
 |------|-----------|-------|
-| venezuela | 83,616 | 5.49% |
-| us | 38,693 | 2.54% |
-| trump | 33,880 | 2.22% |
-| u.s. | 30,796 | 2.02% |
-| venezuelan | 30,729 | 2.02% |
-| maduro | 27,473 | 1.80% |
-| oil | 11,136 | 0.73% |
-| american | 9,993 | 0.66% |
-| president | 9,055 | 0.59% |
-| sanction | 8,863 | 0.58% |
+| venezuela | 102,204 | 5.61% |
+| us | 47,314 | 2.60% |
+| trump | 38,767 | 2.13% |
+| u.s. | 37,324 | 2.05% |
+| venezuelan | 36,918 | 2.03% |
+| maduro | 33,522 | 1.84% |
+| oil | 13,694 | 0.75% |
+| american | 11,532 | 0.63% |
+| sanction | 11,319 | 0.62% |
+| president | 10,775 | 0.59% |
 
 
 ## Content Analysis: Text
@@ -160,18 +160,18 @@
 
 | Word | Frequency | Share |
 |------|-----------|-------|
-| venezuela | 1,081,668 | 1.40% |
-| maduro | 722,962 | 0.93% |
-| venezuelan | 637,143 | 0.82% |
-| state | 627,928 | 0.81% |
-| president | 622,426 | 0.80% |
-| trump | 615,028 | 0.79% |
-| us | 594,045 | 0.77% |
-| u.s. | 589,801 | 0.76% |
-| country | 505,015 | 0.65% |
-| government | 426,847 | 0.55% |
+| venezuela | 194,588 | 0.35% |
+| state | 185,355 | 0.33% |
+| president | 180,631 | 0.33% |
+| venezuelan | 173,984 | 0.31% |
+| country | 167,674 | 0.30% |
+| government | 145,668 | 0.26% |
+| maduro | 144,143 | 0.26% |
+| united | 141,301 | 0.25% |
+| american | 137,901 | 0.25% |
+| would | 127,229 | 0.23% |
 
 
 ---
 
-*Generated: 2026-03-11*
+*Generated: 2026-03-17*

@@ -39,6 +39,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("input", type=Path, help="Input gdelt_scraped-style CSV to process")
     parser.add_argument("--anchors", type=Path, default=base / "anchor_token_sets.json", help="Anchor token JSON")
+    parser.add_argument(
+        "--filter-rules",
+        type=Path,
+        default=base / "filter_rule_config.json",
+        help="Filter rule config JSON",
+    )
 
     # Optional explicit output paths. If omitted, defaults are derived from input file name.
     parser.add_argument("--lookup", type=Path, default=None, help="Output path for url_lookup CSV")
@@ -152,6 +158,8 @@ def main() -> None:
         raise FileNotFoundError(f"Input file not found: {args.input}")
     if not args.anchors.exists():
         raise FileNotFoundError(f"Anchor file not found: {args.anchors}")
+    if not args.filter_rules.exists():
+        raise FileNotFoundError(f"Filter rule config file not found: {args.filter_rules}")
 
     defaults = derive_default_paths(args.input, base)
     lookup = args.lookup if args.lookup is not None else defaults["lookup"]
@@ -236,6 +244,8 @@ def main() -> None:
         str(lookup),
         "--anchors",
         str(args.anchors),
+        "--filter-rules",
+        str(args.filter_rules),
         "--output",
         str(eval_output),
         "--summary-output",

@@ -6,6 +6,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from tqdm import tqdm
@@ -13,6 +14,9 @@ from tqdm import tqdm
 
 WORD_RE = re.compile(r"[A-Za-z0-9']+")
 WS_RE = re.compile(r"\s+")
+DECISION_LABELS = {"drop", "review", "keep"}
+DEFAULT_DECISION_PRIORITY = ("drop", "review", "keep")
+ALLOWED_REVIEW_HANDLING = {"drop", "manual_adjudication", "include_with_flag"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -34,6 +38,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=base / "anchor_token_sets.json",
         help="Path to anchor_token_sets.json",
+    )
+    parser.add_argument(
+        "--filter-rules",
+        type=Path,
+        default=base / "filter_rule_config.json",
+        help="Path to filter_rule_config.json",
     )
     parser.add_argument(
         "--output",
@@ -61,6 +71,162 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed for deterministic sampling")
     return parser.parse_args()
+
+
+def _require_bool(section: str, key: str, value: object) -> bool:
+    """Require a strict boolean config value and raise a clear error otherwise.
+    
+    Args:
+        section (str): Parent config section label.
+        key (str): Config key name.
+        value (object): Raw config value.
+    
+    Returns:
+        bool: Validated boolean value.
+    """
+    if isinstance(value, bool):
+        return value
+    raise ValueError(f"{section}.{key} must be a boolean")
+
+
+def _require_int(section: str, key: str, value: object) -> int:
+    """Require an integer config value and raise a clear error otherwise.
+    
+    Args:
+        section (str): Parent config section label.
+        key (str): Config key name.
+        value (object): Raw config value.
+    
+    Returns:
+        int: Validated integer value.
+    """
+    if isinstance(value, bool):
+        raise ValueError(f"{section}.{key} must be an integer")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    raise ValueError(f"{section}.{key} must be an integer")
+
+
+def _require_float(section: str, key: str, value: object) -> float:
+    """Require a numeric config value and return it as float.
+    
+    Args:
+        section (str): Parent config section label.
+        key (str): Config key name.
+        value (object): Raw config value.
+    
+    Returns:
+        float: Validated numeric value as float.
+    """
+    if isinstance(value, bool):
+        raise ValueError(f"{section}.{key} must be numeric")
+    if isinstance(value, (int, float)):
+        return float(value)
+    raise ValueError(f"{section}.{key} must be numeric")
+
+
+def load_filter_rules(path: Path) -> dict[str, Any]:
+    """Load and validate filter-rule configuration from JSON.
+    
+    Args:
+        path (Path): Path to JSON filter-rule config file.
+    
+    Returns:
+        dict[str, Any]: Normalized config dictionary.
+    """
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(cfg, dict):
+        raise ValueError("Filter rule config root must be an object")
+
+    scope_raw = cfg.get("scope")
+    if not isinstance(scope_raw, dict):
+        raise ValueError("scope section is required and must be an object")
+
+    thresholds_raw = cfg.get("thresholds")
+    if not isinstance(thresholds_raw, dict):
+        raise ValueError("thresholds section is required and must be an object")
+
+    scope = {
+        "require_success_status": _require_bool(
+            "scope",
+            "require_success_status",
+            scope_raw.get("require_success_status"),
+        ),
+        "require_nonempty_text": _require_bool(
+            "scope",
+            "require_nonempty_text",
+            scope_raw.get("require_nonempty_text"),
+        ),
+        "require_nonempty_tokens": _require_bool(
+            "scope",
+            "require_nonempty_tokens",
+            scope_raw.get("require_nonempty_tokens"),
+        ),
+        "require_numeric_score": _require_bool(
+            "scope",
+            "require_numeric_score",
+            scope_raw.get("require_numeric_score"),
+        ),
+    }
+
+    thresholds = {
+        "duplicate_drop_cluster_size_gt": _require_int(
+            "thresholds",
+            "duplicate_drop_cluster_size_gt",
+            thresholds_raw.get("duplicate_drop_cluster_size_gt"),
+        ),
+        "length_drop_lt": _require_int(
+            "thresholds",
+            "length_drop_lt",
+            thresholds_raw.get("length_drop_lt"),
+        ),
+        "length_review_lt": _require_int(
+            "thresholds",
+            "length_review_lt",
+            thresholds_raw.get("length_review_lt"),
+        ),
+        "score_drop_lt": _require_float(
+            "thresholds",
+            "score_drop_lt",
+            thresholds_raw.get("score_drop_lt"),
+        ),
+        "score_review_lt": _require_float(
+            "thresholds",
+            "score_review_lt",
+            thresholds_raw.get("score_review_lt"),
+        ),
+    }
+
+    if thresholds["duplicate_drop_cluster_size_gt"] < 0:
+        raise ValueError("thresholds.duplicate_drop_cluster_size_gt must be >= 0")
+    if thresholds["length_drop_lt"] < 0:
+        raise ValueError("thresholds.length_drop_lt must be >= 0")
+    if thresholds["length_review_lt"] <= thresholds["length_drop_lt"]:
+        raise ValueError("thresholds.length_review_lt must be > thresholds.length_drop_lt")
+    if thresholds["score_review_lt"] <= thresholds["score_drop_lt"]:
+        raise ValueError("thresholds.score_review_lt must be > thresholds.score_drop_lt")
+
+    priority_raw = cfg.get("final_decision_priority", list(DEFAULT_DECISION_PRIORITY))
+    if not isinstance(priority_raw, list) or len(priority_raw) != 3:
+        raise ValueError("final_decision_priority must be a 3-item list")
+    priority = tuple(str(x).strip().lower() for x in priority_raw)
+    if set(priority) != DECISION_LABELS:
+        raise ValueError("final_decision_priority must contain exactly: drop, review, keep")
+
+    review_handling = str(cfg.get("review_handling", "include_with_flag")).strip().lower()
+    if review_handling not in ALLOWED_REVIEW_HANDLING:
+        allowed = ", ".join(sorted(ALLOWED_REVIEW_HANDLING))
+        raise ValueError(f"review_handling must be one of: {allowed}")
+
+    return {
+        "version": str(cfg.get("version", "")).strip(),
+        "scope": scope,
+        "thresholds": thresholds,
+        "final_decision_priority": priority,
+        "review_handling": review_handling,
+    }
 
 
 def parse_token_set(value: object) -> set[str]:
@@ -131,48 +297,53 @@ def text_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def decision_duplicate(cluster_size: int) -> str:
+def decision_duplicate(cluster_size: int, drop_cluster_size_gt: int = 1) -> str:
     """Assign duplicate-stage decision from duplicate cluster size.
     
     Args:
         cluster_size (int): Size of the duplicate text cluster for a row.
+        drop_cluster_size_gt (int): Drop when cluster size is greater than this value. Defaults to 1.
     
     Returns:
         str: Duplicate-stage decision label (drop/review/keep).
     """
-    if cluster_size > 1:
+    if cluster_size > drop_cluster_size_gt:
         return "drop"
     return "keep"
 
 
-def decision_length(word_count: int) -> str:
+def decision_length(word_count: int, drop_lt: int = 40, review_lt: int = 80) -> str:
     """Assign length-stage decision from tokenized word count.
     
     Args:
         word_count (int): Word count for the article text.
+        drop_lt (int): Drop threshold for word count. Defaults to 40.
+        review_lt (int): Review threshold for word count. Defaults to 80.
     
     Returns:
         str: Length-stage decision label (drop/review/keep).
     """
-    if word_count < 40:
+    if word_count < drop_lt:
         return "drop"
-    if word_count < 80:
+    if word_count < review_lt:
         return "review"
     return "keep"
 
 
-def decision_score(score: float) -> str:
+def decision_score(score: float, drop_lt: float = 25.0, review_lt: float = 40.0) -> str:
     """Assign score-stage decision from document relevance score.
     
     Args:
         score (float): Document relevance score.
+        drop_lt (float): Drop threshold for relevance score. Defaults to 25.
+        review_lt (float): Review threshold for relevance score. Defaults to 40.
     
     Returns:
         str: Score-stage decision label (drop/review/keep).
     """
-    if score < 25:
+    if score < drop_lt:
         return "drop"
-    if score < 40:
+    if score < review_lt:
         return "review"
     return "keep"
 
@@ -197,7 +368,13 @@ def decision_anchor(has_ven: bool, has_us_primary: bool, has_relation_secondary:
     return "drop"
 
 
-def final_decision(dup_dec: str, length_dec: str, score_dec: str, anchor_dec: str) -> str:
+def final_decision(
+    dup_dec: str,
+    length_dec: str,
+    score_dec: str,
+    anchor_dec: str,
+    priority: tuple[str, str, str] = DEFAULT_DECISION_PRIORITY,
+) -> str:
     """Combine stage decisions into a single final filter decision.
     
     Args:
@@ -205,15 +382,15 @@ def final_decision(dup_dec: str, length_dec: str, score_dec: str, anchor_dec: st
         length_dec (str): Length-stage decision.
         score_dec (str): Score-stage decision.
         anchor_dec (str): Anchor-stage decision.
+        priority (tuple[str, str, str]): Ordered precedence for final decision labels.
     
     Returns:
         str: Final decision label for the row.
     """
     decisions = [dup_dec, length_dec, score_dec, anchor_dec]
-    if "drop" in decisions:
-        return "drop"
-    if "review" in decisions:
-        return "review"
+    for label in priority:
+        if label in decisions:
+            return label
     return "keep"
 
 
@@ -322,6 +499,8 @@ def main() -> None:
         raise FileNotFoundError(f"Lookup file not found: {args.lookup}")
     if not args.anchors.exists():
         raise FileNotFoundError(f"Anchor config file not found: {args.anchors}")
+    if not args.filter_rules.exists():
+        raise FileNotFoundError(f"Filter rule config file not found: {args.filter_rules}")
 
     print("Loading url_lookup...", flush=True)
     df = pd.read_csv(args.lookup, low_memory=False)
@@ -331,6 +510,12 @@ def main() -> None:
     missing_cols = required_cols - set(df.columns)
     if missing_cols:
         raise ValueError(f"url_lookup missing required columns: {sorted(missing_cols)}")
+
+    print("Loading filter-rule config...", flush=True)
+    rule_cfg = load_filter_rules(args.filter_rules)
+    thresholds = rule_cfg["thresholds"]
+    scope_cfg = rule_cfg["scope"]
+    final_priority = rule_cfg["final_decision_priority"]
 
     print("Loading anchor token sets...", flush=True)
     anchor_cfg = json.loads(args.anchors.read_text(encoding="utf-8"))
@@ -345,7 +530,15 @@ def main() -> None:
     success_mask = df["Scrape_Status"].fillna("").astype(str).str.contains("success", case=False)
     nonempty_text_mask = df["Text"].fillna("").astype(str).str.strip() != ""
     nonempty_tokens_mask = df["Tokens"].fillna("").astype(str).str.strip() != ""
-    in_scope = success_mask & nonempty_text_mask & nonempty_tokens_mask & score.notna()
+    in_scope = pd.Series(True, index=df.index, dtype=bool)
+    if scope_cfg["require_success_status"]:
+        in_scope &= success_mask
+    if scope_cfg["require_nonempty_text"]:
+        in_scope &= nonempty_text_mask
+    if scope_cfg["require_nonempty_tokens"]:
+        in_scope &= nonempty_tokens_mask
+    if scope_cfg["require_numeric_score"]:
+        in_scope &= score.notna()
 
     df["in_filter_scope"] = in_scope
     df["text_word_count"] = df["Text"].apply(count_words)
@@ -402,15 +595,32 @@ def main() -> None:
     df["filter_final_decision"] = "out_of_scope"
 
     for i in tqdm(scope_idx, total=len(scope_idx), desc="Applying filter rules", unit="row", file=sys.stdout):
-        duplicate_dec = decision_duplicate(int(df.at[i, "duplicate_cluster_size"]))
-        length_dec = decision_length(int(df.at[i, "text_word_count"]))
-        score_dec = decision_score(float(df.at[i, "doc_relevance_score_num"]))
+        duplicate_dec = decision_duplicate(
+            int(df.at[i, "duplicate_cluster_size"]),
+            drop_cluster_size_gt=thresholds["duplicate_drop_cluster_size_gt"],
+        )
+        length_dec = decision_length(
+            int(df.at[i, "text_word_count"]),
+            drop_lt=thresholds["length_drop_lt"],
+            review_lt=thresholds["length_review_lt"],
+        )
+        score_dec = decision_score(
+            float(df.at[i, "doc_relevance_score_num"]),
+            drop_lt=thresholds["score_drop_lt"],
+            review_lt=thresholds["score_review_lt"],
+        )
         anchor_dec = decision_anchor(
             bool(df.at[i, "has_ven_anchor"]),
             bool(df.at[i, "has_us_primary"]),
             bool(df.at[i, "has_relation_secondary"]),
         )
-        final_dec = final_decision(duplicate_dec, length_dec, score_dec, anchor_dec)
+        final_dec = final_decision(
+            duplicate_dec,
+            length_dec,
+            score_dec,
+            anchor_dec,
+            priority=final_priority,
+        )
 
         df.at[i, "filter_duplicate_decision"] = duplicate_dec
         df.at[i, "filter_length_decision"] = length_dec

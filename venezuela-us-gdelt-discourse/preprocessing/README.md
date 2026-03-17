@@ -21,6 +21,12 @@ From `venezuela-us-gdelt-discourse/preprocessing`:
 python .\run_preprocessing_pipeline.py ..\data\gdelt_scraped.csv --force-retokenize --require-success-status
 ```
 
+Optional: pass an explicit inclusion-rule config.
+
+```powershell
+python .\run_preprocessing_pipeline.py ..\data\gdelt_scraped.csv --filter-rules .\filter_rule_config.json
+```
+
 ## Exactly What The Orchestrator Does (7 Steps)
 
 When you run the orchestrator, you should see these headings in the console:
@@ -87,6 +93,7 @@ What it does:
   - score decision
   - anchor decision
   - final decision + reasons
+- Applies scope and threshold policy from `filter_rule_config.json`.
 - Writes/updates `url_filter_eval*.csv` by `url_id` (existing IDs are updated with newly computed values).
 - Rewrites `url_filter_summary_counts*.csv`.
 - Writes stratified QA samples into `filter_samples*/`.
@@ -108,6 +115,35 @@ What it does:
 - `url_filter_summary_counts*.csv`: aggregate decision counts by stage.
 - `filter_samples*/`: QA sample CSVs by stage/final decision.
 - `filter_stage_score_histograms*.png`: visualization of score distributions by decision.
+
+## Analysis-Ready Export
+
+Standalone export script:
+
+`build_analysis_ready_datasets.py`
+
+It creates two parquet files:
+
+- `analysis_events.parquet`: one row per original `gdelt_scraped.csv` event row, with `url_id` plus joined filter/scoring metadata.
+- `analysis_url_content.parquet`: one row per `url_id`, with representative `Title`, `Text`, parsed `Tokens`, and filter/scoring metadata.
+
+Default output directory:
+
+`data/analysis_ready/`
+
+Example:
+
+```powershell
+python .\build_analysis_ready_datasets.py --filter-rules .\filter_rule_config.json
+```
+
+Notes:
+
+- The event table preserves the row count of `gdelt_scraped.csv`.
+- By default, raw `Title` and `Text` are omitted from the event table to save space.
+- `filter_final_decision` is preserved as the raw pipeline output.
+- `filter_final_decision_effective` and `analysis_include` apply the current `review_handling` policy from `filter_rule_config.json`.
+- With the current config, `review` is treated as `keep` for analysis exports while still being flagged via `analysis_review_flag`.
 
 ## Naming Behavior
 

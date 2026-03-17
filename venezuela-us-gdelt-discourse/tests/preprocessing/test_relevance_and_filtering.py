@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 import sys
 from pathlib import Path
@@ -276,10 +277,23 @@ def test_evaluate_filter_strategy_helpers_cover_key_branches() -> None:
     assert evaluate_filter_strategy.normalize_text_for_hash("A\nB") == "a b"
     assert evaluate_filter_strategy.text_hash("") == ""
     assert evaluate_filter_strategy.decision_duplicate(2) == "drop"
+    assert evaluate_filter_strategy.decision_duplicate(2, drop_cluster_size_gt=2) == "keep"
     assert evaluate_filter_strategy.decision_length(60) == "review"
+    assert evaluate_filter_strategy.decision_length(50, drop_lt=60, review_lt=90) == "drop"
     assert evaluate_filter_strategy.decision_score(10) == "drop"
+    assert evaluate_filter_strategy.decision_score(30, drop_lt=20, review_lt=35) == "review"
     assert evaluate_filter_strategy.decision_anchor(True, False, True) == "review"
     assert evaluate_filter_strategy.final_decision("keep", "review", "keep", "keep") == "review"
+    assert (
+        evaluate_filter_strategy.final_decision(
+            "drop",
+            "keep",
+            "keep",
+            "review",
+            priority=("review", "drop", "keep"),
+        )
+        == "review"
+    )
     assert (
         evaluate_filter_strategy.reasons_for_row("keep", "review", "drop", "keep", True)
         == "length_review|score_drop"
@@ -302,11 +316,43 @@ def test_evaluate_filter_strategy_helpers_cover_key_branches() -> None:
     assert merged.loc[0, "filter_final_decision"] == "keep"
 
 
+def test_load_filter_rules_validates_and_normalizes_config(tmp_path: Path) -> None:
+    cfg_path = tmp_path / "filter_rule_config.json"
+    cfg_path.write_text(
+        json.dumps(
+            {
+                "version": "test",
+                "scope": {
+                    "require_success_status": True,
+                    "require_nonempty_text": True,
+                    "require_nonempty_tokens": True,
+                    "require_numeric_score": True,
+                },
+                "thresholds": {
+                    "duplicate_drop_cluster_size_gt": 1,
+                    "length_drop_lt": 40,
+                    "length_review_lt": 80,
+                    "score_drop_lt": 25,
+                    "score_review_lt": 40,
+                },
+                "final_decision_priority": ["drop", "review", "keep"],
+                "review_handling": "include_with_flag",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    loaded = evaluate_filter_strategy.load_filter_rules(cfg_path)
+    assert loaded["thresholds"]["length_drop_lt"] == 40
+    assert loaded["final_decision_priority"] == ("drop", "review", "keep")
+
+
 def test_evaluate_filter_strategy_main_writes_eval_summary_and_samples(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     lookup_path = tmp_path / "url_lookup.csv"
     anchors_path = tmp_path / "anchor_token_sets.json"
+    filter_rules_path = tmp_path / "filter_rule_config.json"
     output_path = tmp_path / "url_filter_eval.csv"
     summary_path = tmp_path / "summary.csv"
     sample_dir = tmp_path / "samples"
@@ -378,6 +424,29 @@ def test_evaluate_filter_strategy_main_writes_eval_summary_and_samples(
 """.strip(),
         encoding="utf-8",
     )
+    filter_rules_path.write_text(
+        json.dumps(
+            {
+                "version": "test",
+                "scope": {
+                    "require_success_status": True,
+                    "require_nonempty_text": True,
+                    "require_nonempty_tokens": True,
+                    "require_numeric_score": True,
+                },
+                "thresholds": {
+                    "duplicate_drop_cluster_size_gt": 1,
+                    "length_drop_lt": 40,
+                    "length_review_lt": 80,
+                    "score_drop_lt": 25,
+                    "score_review_lt": 40,
+                },
+                "final_decision_priority": ["drop", "review", "keep"],
+                "review_handling": "include_with_flag",
+            }
+        ),
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr(
         sys,
@@ -388,6 +457,8 @@ def test_evaluate_filter_strategy_main_writes_eval_summary_and_samples(
             str(lookup_path),
             "--anchors",
             str(anchors_path),
+            "--filter-rules",
+            str(filter_rules_path),
             "--output",
             str(output_path),
             "--summary-output",
