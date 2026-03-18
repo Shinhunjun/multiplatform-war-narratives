@@ -1,6 +1,15 @@
 TODO List
 
 --- Pressing Tasks ---
+Create a weekly update pipeline
+- Does not redo previous work.
+1) Download events since last updated.
+2) Scrape and update url_lookup.csv
+3) Tokenize and update ___ files
+4) Score and update ___ files
+5) Filter and update parquet files
+6) Redo analysis
+
 
 
 --- Future Tasks ---
@@ -13,3 +22,5 @@ add versions
 
 1) What is sys.path and why is it unprofessional?
 2) What does adding CI for pytest look like?
+3) How would you improve on run_eda.py?
+4) Since build_text_relevance_tokens.py is used for Title as well in run_eda.py, should it be renamed?
