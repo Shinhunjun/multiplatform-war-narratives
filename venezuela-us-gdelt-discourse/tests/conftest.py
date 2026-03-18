@@ -10,8 +10,8 @@ matplotlib.use("Agg")
 
 MODULE_ROOT = Path(__file__).resolve().parents[1]
 PREPROCESSING_DIR = MODULE_ROOT / "preprocessing"
-EDA_DIR = MODULE_ROOT / "EDA"
-DATA_COLLECTION_DIR = MODULE_ROOT / "data-collection"
+EDA_DIR = MODULE_ROOT / "eda"
+DATA_COLLECTION_DIR = MODULE_ROOT / "data_collection"
 
 for path in (MODULE_ROOT, PREPROCESSING_DIR, EDA_DIR, DATA_COLLECTION_DIR):
     path_str = str(path)

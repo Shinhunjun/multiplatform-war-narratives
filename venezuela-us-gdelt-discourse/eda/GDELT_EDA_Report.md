@@ -1,4 +1,4 @@
-# Venezuela-US GDELT Comprehensive Scraped Analysis Report
+# Venezuela-US GDELT Comprehensive Analysis Report
 
 ## Overview
 

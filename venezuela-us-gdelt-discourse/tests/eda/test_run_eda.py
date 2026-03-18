@@ -7,7 +7,7 @@ import warnings
 import pandas as pd
 import pytest
 
-import run_eda_scraped as eda
+import run_eda as eda
 
 
 def build_event_df() -> pd.DataFrame:
@@ -249,10 +249,10 @@ def test_generate_report_writes_markdown(tmp_path: Path, monkeypatch: pytest.Mon
         top_text_words=[("sanction", 4, 20.0)],
     )
 
-    report = tmp_path / "GDELT_Scraped_EDA_Report.md"
+    report = tmp_path / "GDELT_EDA_Report.md"
     text = report.read_text(encoding="utf-8")
     assert report.exists()
-    assert "Venezuela-US GDELT Comprehensive Scraped Analysis Report" in text
+    assert "Venezuela-US GDELT Comprehensive Analysis Report" in text
     assert "Top Conflict Events" in text
     assert "| venezuela | 3 | 30.00% |" in text
     assert "| sanction | 4 | 20.00% |" in text

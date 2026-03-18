@@ -1,5 +1,0 @@
-pandas
-numpy
-tqdm
-newspaper3k
-waybackpy

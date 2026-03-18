@@ -1,0 +1,5 @@
+pandas==3.0.1
+numpy==2.4.3
+tqdm==4.67.3
+newspaper3k==0.2.8
+waybackpy==3.0.6

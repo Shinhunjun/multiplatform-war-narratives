@@ -1,5 +1,5 @@
 """
-Comprehensive EDA script for scraped GDELT Venezuela-US data.
+Comprehensive EDA script for GDELT Venezuela-US data.
 Combines event-level analysis (timeline, categories, tone/conflict metrics)
 with scrape-quality and content analysis (status, URL uniqueness, word clouds).
 """
@@ -673,7 +673,7 @@ def generate_report(
     top_conflict = df_with_titles.sort_values("GoldsteinScale", ascending=True).head(5)
     top_coop = df_with_titles.sort_values("GoldsteinScale", ascending=False).head(5)
 
-    report = f"""# Venezuela-US GDELT Comprehensive Scraped Analysis Report
+    report = f"""# Venezuela-US GDELT Comprehensive Analysis Report
 
 ## Overview
 
@@ -844,7 +844,7 @@ def generate_report(
 *Generated: {datetime.now().strftime('%Y-%m-%d')}*
 """
 
-    report_path = OUTPUT_DIR / "GDELT_Scraped_EDA_Report.md"
+    report_path = OUTPUT_DIR / "GDELT_EDA_Report.md"
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report)
 
@@ -856,7 +856,7 @@ def main() -> None:
         None: No return value.
     """
     print("=" * 60)
-    print("Comprehensive EDA for scraped GDELT Venezuela-US data")
+    print("Comprehensive EDA for GDELT Venezuela-US data")
     print("=" * 60)
 
     t_all = perf_counter()
@@ -865,7 +865,7 @@ def main() -> None:
         return
     df = preprocess_data(df)
 
-    # Event-level EDA (formerly run_eda.py)
+    # Event-level EDA
     plot_timeline(df)
     plot_yearly_distribution(df)
     plot_quadclass_distribution(df)

@@ -41,38 +41,38 @@ Scrape one year (run from `data/` because script paths are relative):
 
 ```powershell
 cd .\data
-python ..\data-collection\scrape_by_year.py 2020
+python ..\data_collection\scrape_by_year.py 2020
 ```
 
 Rescue one year (run from `data/`):
 
 ```powershell
 cd .\data
-python ..\data-collection\rescue_by_year.py 2020
+python ..\data_collection\rescue_by_year.py 2020
 ```
 
 Consolidate one year:
 
 ```powershell
-python .\data-collection\consolidate_yearly.py --base-dir .\data --years 2020
+python .\data_collection\consolidate_yearly.py --base-dir .\data --years 2020
 ```
 
 Dry run (same logic, no files written):
 
 ```powershell
-python .\data-collection\consolidate_yearly.py --base-dir .\data --years 2020 --dry-run
+python .\data_collection\consolidate_yearly.py --base-dir .\data --years 2020 --dry-run
 ```
 
 Multiple years:
 
 ```powershell
-python .\data-collection\consolidate_yearly.py --base-dir .\data --years 2020-2026
+python .\data_collection\consolidate_yearly.py --base-dir .\data --years 2020-2026
 ```
 
 Disable progress bar:
 
 ```powershell
-python .\data-collection\consolidate_yearly.py --base-dir .\data --years 2020-2026 --no-progress
+python .\data_collection\consolidate_yearly.py --base-dir .\data --years 2020-2026 --no-progress
 ```
 
 ## Output Files

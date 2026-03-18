@@ -1,0 +1,15 @@
+TODO List
+
+--- Pressing Tasks ---
+
+
+--- Future Tasks ---
+1) Refactor data_collection folder into a pipeline
+
+2) requirements files
+add versions
+
+--- Questions ---
+
+1) What is sys.path and why is it unprofessional?
+2) What does adding CI for pytest look like?

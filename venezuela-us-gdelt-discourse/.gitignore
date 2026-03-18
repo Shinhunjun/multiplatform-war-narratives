@@ -1,5 +1,6 @@
 # Data files
-data/
+data/*
+!data/README.md
 
 # Python cache/build artifacts
 __pycache__/
@@ -14,6 +15,5 @@ venv/
 
 
 notes.txt
-TODO.txt
 *.png
 !preprocessing/filter_stage_score_histograms.png

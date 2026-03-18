@@ -12,7 +12,7 @@ import pytest
 import consolidate_yearly
 
 
-SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "data-collection"
+SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "data_collection"
 
 
 def load_data_collection_script(
