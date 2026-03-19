@@ -12,6 +12,9 @@ from ..services.data_service import (
     get_news_sentiment_by_month,
     get_news_sentiment_by_source,
     get_news_sentiment_by_source_month,
+    get_tiktok_sentiment_by_month,
+    get_tiktok_sentiment_by_source,
+    get_tiktok_sentiment_by_source_month,
 )
 
 router = APIRouter(prefix="/api/sentiment", tags=["sentiment"])
@@ -25,6 +28,8 @@ def sentiment_by_month(
 ):
     if platform == "news":
         df = get_news_sentiment_by_month()
+    elif platform == "tiktok":
+        df = get_tiktok_sentiment_by_month()
     else:
         df = get_sentiment_by_month()
     if start:
@@ -41,6 +46,9 @@ def sentiment_by_subreddit(
     if platform == "news":
         df = get_news_sentiment_by_source()
         return df.to_dict(orient="records")
+    if platform == "tiktok":
+        df = get_tiktok_sentiment_by_source()
+        return df.to_dict(orient="records")
     df = get_sentiment_by_subreddit()
     return df.to_dict(orient="records")
 
@@ -54,6 +62,10 @@ def sentiment_by_subreddit_month(
 ):
     if platform == "news":
         df = get_news_sentiment_by_source_month()
+        if subreddit:
+            df = df[df["source"] == subreddit]
+    elif platform == "tiktok":
+        df = get_tiktok_sentiment_by_source_month()
         if subreddit:
             df = df[df["source"] == subreddit]
     else:
@@ -77,6 +89,9 @@ def sentiment_boxplot(
     """Box plot statistics per subreddit/source from monthly sentiment values."""
     if platform == "news":
         df = get_news_sentiment_by_source_month()
+        group_col = "source"
+    elif platform == "tiktok":
+        df = get_tiktok_sentiment_by_source_month()
         group_col = "source"
     else:
         df = get_sentiment_by_subreddit_month()

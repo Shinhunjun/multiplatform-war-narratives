@@ -24,6 +24,16 @@ from .config import (
 
 
 # =============================================================================
+# EXCEPTIONS
+# =============================================================================
+
+
+class QuotaExceededError(Exception):
+    """Raised when TikTok API daily quota is exceeded."""
+    pass
+
+
+# =============================================================================
 # UTILITY FUNCTIONS
 # =============================================================================
 
@@ -201,6 +211,9 @@ def fetch_videos_for_query(
         videos = result[0] if isinstance(result, tuple) else result
         return videos if videos else []
     except Exception as e:
+        err_msg = str(e).lower()
+        if "quota" in err_msg or "daily" in err_msg:
+            raise QuotaExceededError(str(e)) from e
         print(f"  Error fetching videos: {e}")
         return []
 
@@ -286,44 +299,63 @@ def collect_videos_historical(
 
         window_videos = {}
 
-        # Keyword query
-        if keywords:
-            keyword_query = build_keyword_query(keywords)
-            videos = fetch_videos_for_query(
-                api, keyword_query, window_start, window_end,
-                max_count=config.max_count,
-            )
-            for v in videos:
-                vid = str(v.get("id", ""))
-                if vid and vid not in all_video_ids:
-                    v["_matched_type"] = "keyword"
-                    v["_window_start"] = window_start
-                    v["_window_end"] = window_end
-                    v["_collection_type"] = "historical"
-                    window_videos[vid] = v
-                    all_video_ids.add(vid)
-            quota.record_usage(len(videos))
+        try:
+            # Keyword query
+            if keywords:
+                keyword_query = build_keyword_query(keywords)
+                videos = fetch_videos_for_query(
+                    api, keyword_query, window_start, window_end,
+                    max_count=config.max_count,
+                )
+                for v in videos:
+                    vid = str(v.get("id", ""))
+                    if vid and vid not in all_video_ids:
+                        v["_matched_type"] = "keyword"
+                        v["_window_start"] = window_start
+                        v["_window_end"] = window_end
+                        v["_collection_type"] = "historical"
+                        window_videos[vid] = v
+                        all_video_ids.add(vid)
+                quota.record_usage(len(videos))
 
-        # Hashtag query
-        if hashtags and quota.can_request():
-            hashtag_query = build_hashtag_query(hashtags)
-            videos = fetch_videos_for_query(
-                api, hashtag_query, window_start, window_end,
-                max_count=config.max_count,
-            )
-            for v in videos:
-                vid = str(v.get("id", ""))
-                if vid and vid not in all_video_ids:
-                    v["_matched_type"] = "hashtag"
-                    v["_window_start"] = window_start
-                    v["_window_end"] = window_end
-                    v["_collection_type"] = "historical"
-                    window_videos[vid] = v
-                    all_video_ids.add(vid)
-                elif vid in window_videos:
-                    # Already found by keyword, mark as both
-                    window_videos[vid]["_matched_type"] = "keyword+hashtag"
-            quota.record_usage(len(videos))
+            # Hashtag query
+            if hashtags and quota.can_request():
+                hashtag_query = build_hashtag_query(hashtags)
+                videos = fetch_videos_for_query(
+                    api, hashtag_query, window_start, window_end,
+                    max_count=config.max_count,
+                )
+                for v in videos:
+                    vid = str(v.get("id", ""))
+                    if vid and vid not in all_video_ids:
+                        v["_matched_type"] = "hashtag"
+                        v["_window_start"] = window_start
+                        v["_window_end"] = window_end
+                        v["_collection_type"] = "historical"
+                        window_videos[vid] = v
+                        all_video_ids.add(vid)
+                    elif vid in window_videos:
+                        # Already found by keyword, mark as both
+                        window_videos[vid]["_matched_type"] = "keyword+hashtag"
+                quota.record_usage(len(videos))
+
+        except QuotaExceededError:
+            print(f"\n[Quota] Daily quota exceeded at window {window_key}.")
+            # Save any partial data for this window
+            if window_videos:
+                video_list = list(window_videos.values())
+                save_json(video_list, config.videos_dir / f"videos_{window_key}.json")
+                stats[window_key] = len(video_list)
+            # Save checkpoint so next run resumes here
+            quota.save_checkpoint({
+                "completed_windows": list(completed_windows),
+                "total_videos": sum(stats.values()),
+                "status": "quota_exceeded",
+            }, checkpoint_name)
+            total = sum(stats.values())
+            print(f"[Quota] Saved checkpoint. Collected {total:,} videos so far.")
+            print(f"[Quota] Run again later to resume from window {window_key}.")
+            return stats
 
         # Save window data
         if window_videos:
@@ -575,6 +607,13 @@ def collect_comments(
                     all_comments.extend(comments)
 
             except Exception as e:
+                err_msg = str(e).lower()
+                if "quota" in err_msg or "daily" in err_msg:
+                    print(f"\n[Quota] Daily quota exceeded during comment collection.")
+                    save_json(all_comments, comments_filepath)
+                    print(f"[Quota] Saved {len(all_comments):,} comments. Run again to resume.")
+                    file_stats[vf.name] = len(all_comments)
+                    return file_stats
                 print(f"  Error for video {video_id}: {e}")
                 continue
 

@@ -41,14 +41,17 @@ export default function Dashboard() {
   const { selected } = useTimeRange();
   const [redditStats, setRedditStats] = useState<OverviewStats | null>(null);
   const [newsStats, setNewsStats] = useState<OverviewStats | null>(null);
+  const [tiktokStats, setTiktokStats] = useState<OverviewStats | null>(null);
   const [redditMonth, setRedditMonth] = useState<SentimentMonth[]>([]);
   const [newsMonth, setNewsMonth] = useState<SentimentMonth[]>([]);
+  const [tiktokMonth, setTiktokMonth] = useState<SentimentMonth[]>([]);
   const [boxplotData, setBoxplotData] = useState<BoxPlotStat[]>([]);
   const [newsBoxplotData, setNewsBoxplotData] = useState<BoxPlotStat[]>([]);
 
   useEffect(() => {
     fetchOverview('reddit').then(setRedditStats);
     fetchOverview('news').then(d => setNewsStats(d?.total_documents != null ? d : null)).catch(() => setNewsStats(null));
+    fetchOverview('tiktok').then(d => setTiktokStats(d?.total_documents != null ? d : null)).catch(() => setTiktokStats(null));
   }, []);
 
   useEffect(() => {
@@ -56,6 +59,7 @@ export default function Dashboard() {
     const [start, end] = selected;
     fetchSentimentByMonth(start, end, 'reddit').then(setRedditMonth);
     fetchSentimentByMonth(start, end, 'news').then(setNewsMonth).catch(() => setNewsMonth([]));
+    fetchSentimentByMonth(start, end, 'tiktok').then(setTiktokMonth).catch(() => setTiktokMonth([]));
     fetchSentimentBoxplot(start, end).then(setBoxplotData);
     fetchSentimentBoxplot(start, end, 'news').then(setNewsBoxplotData).catch(() => setNewsBoxplotData([]));
   }, [selected]);
@@ -76,6 +80,13 @@ export default function Dashboard() {
     Negative: Math.round(d.negative_ratio * d.total_count),
   }));
 
+  const tiktokVolume = tiktokMonth.map(d => ({
+    year_month: d.year_month,
+    Positive: Math.round(d.positive_ratio * d.total_count),
+    Neutral: Math.round((1 - d.positive_ratio - d.negative_ratio) * d.total_count),
+    Negative: Math.round(d.negative_ratio * d.total_count),
+  }));
+
   // Merge sentiment for comparison chart
   const mergedSentiment: Record<string, any> = {};
   redditMonth.forEach(d => {
@@ -85,9 +96,14 @@ export default function Dashboard() {
     if (!mergedSentiment[d.year_month]) mergedSentiment[d.year_month] = { year_month: d.year_month };
     mergedSentiment[d.year_month].news = d.mean_sentiment;
   });
+  tiktokMonth.forEach(d => {
+    if (!mergedSentiment[d.year_month]) mergedSentiment[d.year_month] = { year_month: d.year_month };
+    mergedSentiment[d.year_month].tiktok = d.mean_sentiment;
+  });
   const comparisonData = Object.values(mergedSentiment).sort((a: any, b: any) => a.year_month.localeCompare(b.year_month));
 
   const hasNews = newsStats !== null;
+  const hasTiktok = tiktokStats !== null;
 
   return (
     <div className="px-6 py-8 space-y-6">
@@ -96,8 +112,8 @@ export default function Dashboard() {
         <div className="h-[2px] w-10 bg-[#6366f1] mt-2 rounded-full" />
       </div>
 
-      {/* Stats cards — side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Stats cards — 3 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Reddit stats */}
         <div className="space-y-3">
           <PlatformLabel platform="Reddit" color="#6366f1" />
@@ -122,16 +138,32 @@ export default function Dashboard() {
           ) : (
             <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-8 text-center">
               <p className="text-[#8b8fa3] text-sm">News data not available yet.</p>
-              <p className="text-[#64748b] text-xs mt-1">Run <code className="text-[#f59e0b]">python scripts/analyze_gdelt.py</code> to generate.</p>
+            </div>
+          )}
+        </div>
+
+        {/* TikTok stats */}
+        <div className="space-y-3">
+          <PlatformLabel platform="TikTok" color="#ff0050" />
+          {hasTiktok ? (
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard label="Documents" value={tiktokStats.total_documents.toLocaleString()} sub={`${tiktokStats.total_videos ?? 0} videos, ${tiktokStats.total_comments ?? 0} comments`} accent="#ff0050" />
+              <StatCard label="Creators" value={tiktokStats.num_sources ?? tiktokStats.sources ?? 0} sub={`${tiktokStats.date_range.start} — ${tiktokStats.date_range.end}`} accent="#ff0050" />
+              <StatCard label="Topics" value={tiktokStats.num_topics} sub="BERTopic fitted" accent="#ff0050" />
+              <StatCard label="Avg Sentiment" value={tiktokStats.avg_sentiment.toFixed(3)} sub="Mean across creators" accent="#ff0050" />
+            </div>
+          ) : (
+            <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-8 text-center">
+              <p className="text-[#8b8fa3] text-sm">TikTok data not available yet.</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Sentiment comparison chart */}
-      {hasNews && comparisonData.length > 0 && (
+      {comparisonData.length > 0 && (
         <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Over Time — Reddit vs News</h3>
+          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Over Time — Cross-Platform</h3>
           <ResponsiveContainer width="100%" height={320}>
             <LineChart data={comparisonData}>
               <CartesianGrid stroke={chartGrid} />
@@ -140,14 +172,15 @@ export default function Dashboard() {
               <Tooltip content={<DarkTooltip />} />
               <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 12 }} />
               <Line type="monotone" dataKey="reddit" stroke="#6366f1" strokeWidth={2} dot={false} name="Reddit" />
-              <Line type="monotone" dataKey="news" stroke="#f59e0b" strokeWidth={2} dot={false} name="GDELT News" />
+              {hasNews && <Line type="monotone" dataKey="news" stroke="#f59e0b" strokeWidth={2} dot={false} name="GDELT News" />}
+              {hasTiktok && <Line type="monotone" dataKey="tiktok" stroke="#ff0050" strokeWidth={2} dot={false} name="TikTok" />}
             </LineChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {/* Volume side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Volume — 3 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
           <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-1">Document Volume — Reddit</h3>
           <ResponsiveContainer width="100%" height={260}>
@@ -181,6 +214,26 @@ export default function Dashboard() {
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-[260px] text-[#64748b] text-sm">No news data available</div>
+          )}
+        </div>
+
+        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-1">Document Volume — TikTok</h3>
+          {tiktokVolume.length > 0 ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={tiktokVolume}>
+                <CartesianGrid stroke={chartGrid} />
+                <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(tiktokVolume.length / 6))} />
+                <YAxis tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+                <Tooltip content={<DarkTooltip />} />
+                <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 11 }} />
+                <Bar dataKey="Positive" stackId="a" fill="#34d399" />
+                <Bar dataKey="Neutral" stackId="a" fill="#64748b" />
+                <Bar dataKey="Negative" stackId="a" fill="#f87171" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[260px] text-[#64748b] text-sm">No TikTok data available</div>
           )}
         </div>
       </div>

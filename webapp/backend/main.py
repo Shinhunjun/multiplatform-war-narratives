@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import clusters, overview, sentiment, topics
+from .routers import chat, clusters, overview, reports, sentiment, tiktok, topics
 from .services.data_service import download_from_gcs
 
 logging.basicConfig(level=logging.INFO)
@@ -56,6 +56,9 @@ app.include_router(overview.router)
 app.include_router(sentiment.router)
 app.include_router(topics.router)
 app.include_router(clusters.router)
+app.include_router(tiktok.router)
+app.include_router(reports.router)
+app.include_router(chat.router)
 
 
 @app.get("/")
@@ -64,7 +67,7 @@ def root():
         "name": "Venezuela-US Narrative Analysis API",
         "version": "0.1.0",
         "docs": "/docs",
-        "platforms": ["reddit", "news"],
+        "platforms": ["reddit", "news", "tiktok"],
     }
 
 

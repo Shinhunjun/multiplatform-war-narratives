@@ -16,6 +16,9 @@ from ..services.data_service import (
     get_news_topics_by_source,
     get_news_topics_monthly,
     get_news_topics_monthly_fitted,
+    get_tiktok_topic_info,
+    get_tiktok_topics_over_time,
+    get_tiktok_topics_monthly_fitted,
 )
 
 router = APIRouter(prefix="/api/topics", tags=["topics"])
@@ -24,7 +27,12 @@ router = APIRouter(prefix="/api/topics", tags=["topics"])
 @functools.lru_cache(maxsize=64)
 def _topic_freq(platform: Optional[str], start: Optional[str], end: Optional[str]) -> dict:
     """Topic frequency sums filtered by time range. Cached per combo."""
-    tot = get_news_topics_over_time() if platform == "news" else get_topics_over_time()
+    if platform == "news":
+        tot = get_news_topics_over_time()
+    elif platform == "tiktok":
+        tot = get_tiktok_topics_over_time()
+    else:
+        tot = get_topics_over_time()
     if tot.empty:
         return {}
     filtered = tot.copy()
@@ -45,6 +53,8 @@ def topic_info(
     """Get all topics with their keywords and counts."""
     if platform == "news":
         df = get_news_topic_info()
+    elif platform == "tiktok":
+        df = get_tiktok_topic_info()
     else:
         df = get_topic_info()
 
@@ -117,6 +127,8 @@ def topics_monthly_fitted(
     """Get top N independently-fitted topics for a specific month."""
     if platform == "news":
         df = get_news_topics_monthly_fitted()
+    elif platform == "tiktok":
+        df = get_tiktok_topics_monthly_fitted()
     else:
         df = get_topics_monthly_fitted()
 
@@ -132,6 +144,8 @@ def topics_monthly_fitted_months(platform: Optional[str] = Query(None)):
     """Get list of available months for independently-fitted topics."""
     if platform == "news":
         df = get_news_topics_monthly_fitted()
+    elif platform == "tiktok":
+        df = get_tiktok_topics_monthly_fitted()
     else:
         df = get_topics_monthly_fitted()
 
@@ -148,6 +162,8 @@ def topics_over_time(
 ):
     if platform == "news":
         df = get_news_topics_over_time()
+    elif platform == "tiktok":
+        df = get_tiktok_topics_over_time()
     else:
         df = get_topics_over_time()
     if topic_id is not None:

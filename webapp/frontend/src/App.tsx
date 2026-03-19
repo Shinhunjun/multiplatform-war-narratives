@@ -6,6 +6,9 @@ import Dashboard from './pages/Dashboard';
 import SentimentPage from './pages/SentimentPage';
 import TopicsPage from './pages/TopicsPage';
 import ClustersPage from './pages/ClustersPage';
+import TikTokPage from './pages/TikTokPage';
+import ReportsPage from './pages/ReportsPage';
+import ChatPage from './pages/ChatPage';
 
 export default function App() {
   return (
@@ -20,7 +23,10 @@ export default function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/sentiment" element={<SentimentPage />} />
                 <Route path="/topics" element={<TopicsPage />} />
+                <Route path="/tiktok" element={<TikTokPage />} />
                 <Route path="/clusters" element={<ClustersPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/chat" element={<ChatPage />} />
               </Routes>
             </div>
           </main>

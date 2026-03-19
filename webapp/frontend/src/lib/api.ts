@@ -4,20 +4,55 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const api = axios.create({ baseURL: API_BASE });
 
-export type Platform = 'reddit' | 'news';
+export type Platform = 'reddit' | 'news' | 'tiktok';
 
 // Types
 export interface OverviewStats {
   platform: string;
   total_documents: number;
+  total_videos?: number;
+  total_comments?: number;
   subreddits?: number;
   sources?: number;
+  num_sources?: number;
   date_range: { start: string; end: string };
   num_topics: number;
   num_clusters: number;
   avg_sentiment: number;
   subreddit_list?: string[];
   source_list?: string[];
+  all_months?: string[];
+}
+
+// TikTok-specific types
+export interface HashtagTrend {
+  hashtag: string;
+  total_count: number;
+  mean_sentiment: number;
+}
+
+export interface HashtagOverTime {
+  year_month: string;
+  hashtag: string;
+  count: number;
+  mean_sentiment: number;
+}
+
+export interface EngagementMetric {
+  year_month: string;
+  video_count: number;
+  total_views: number;
+  total_likes: number;
+  total_shares: number;
+  total_comments: number;
+  avg_views: number;
+  avg_likes: number;
+  avg_duration: number;
+}
+
+export interface RegionDistribution {
+  region_code: string;
+  total_count: number;
 }
 
 export interface SentimentMonth {
@@ -233,6 +268,66 @@ export const fetchClustersMonthly = (month: string, topN = 15) => {
 export const fetchClustersMonthlyMonths = () => {
   return api.get<string[]>(`/api/clusters/monthly/months`).then(r => r.data);
 };
+
+// TikTok-specific endpoints
+export const fetchTikTokHashtags = (topN = 20, start?: string, end?: string) => {
+  const params = new URLSearchParams();
+  params.set('top_n', String(topN));
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  return api.get<HashtagTrend[]>(`/api/tiktok/hashtags?${params}`).then(r => r.data);
+};
+
+export const fetchTikTokHashtagsOverTime = (hashtags?: string, topN = 10) => {
+  const params = new URLSearchParams();
+  params.set('top_n', String(topN));
+  if (hashtags) params.set('hashtags', hashtags);
+  return api.get<HashtagOverTime[]>(`/api/tiktok/hashtags/over-time?${params}`).then(r => r.data);
+};
+
+export const fetchTikTokEngagement = (start?: string, end?: string) => {
+  const params = new URLSearchParams();
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  return api.get<EngagementMetric[]>(`/api/tiktok/engagement?${params}`).then(r => r.data);
+};
+
+export const fetchTikTokRegions = (topN = 15, start?: string, end?: string) => {
+  const params = new URLSearchParams();
+  params.set('top_n', String(topN));
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  return api.get<RegionDistribution[]>(`/api/tiktok/regions?${params}`).then(r => r.data);
+};
+
+// Reports
+export interface Report {
+  period: string;
+  generated_at?: string;
+  report?: string;
+  error?: string;
+  data_summary?: Record<string, any>;
+}
+
+export const fetchReport = (start: string, end: string, force = false) => {
+  const params = new URLSearchParams();
+  params.set('start', start);
+  params.set('end', end);
+  if (force) params.set('force', 'true');
+  return api.get<Report>(`/api/reports/generate?${params}`).then(r => r.data);
+};
+
+export const fetchReportList = () =>
+  api.get<{ period: string; generated_at: string; has_error: boolean }[]>('/api/reports/list').then(r => r.data);
+
+// Chat
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export const sendChatMessage = (question: string, history?: ChatMessage[]) =>
+  api.post<{ answer: string }>('/api/chat', { question, history }).then(r => r.data);
 
 export const fetchTemporalClusters = (limit = 10, start?: string, end?: string) => {
   const params = new URLSearchParams();
