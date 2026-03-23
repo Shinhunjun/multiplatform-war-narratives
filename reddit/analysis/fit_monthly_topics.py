@@ -60,11 +60,12 @@ def _create_model(n_docs: int):
     from sklearn.feature_extraction.text import CountVectorizer
     from umap import UMAP
 
-    min_topic_size = max(5, n_docs // 100)
+    # Adaptive params from hyperparameter experiment (experiment_clustering.py)
+    min_topic_size = max(10, n_docs // 400)
     n_neighbors = min(15, max(3, n_docs // 20))
 
     umap_model = UMAP(
-        n_neighbors=n_neighbors,
+        n_neighbors=min(n_neighbors, 10),
         n_components=5,
         min_dist=0.0,
         metric="cosine",
@@ -72,6 +73,7 @@ def _create_model(n_docs: int):
     )
     hdbscan_model = HDBSCAN(
         min_cluster_size=min_topic_size,
+        min_samples=5,
         metric="euclidean",
         cluster_selection_method="eom",
         prediction_data=True,
@@ -232,7 +234,7 @@ def build_news(base: Path, months_filter: list[str] | None = None):
         return
 
     # Load GDELT text data
-    gdelt_csv = base.parent.parent / "data" / "gdelt" / "gdelt_scraped.csv"
+    gdelt_csv = base.parent.parent / "data" / "gdelt" / "gdelt_scraped_updated.csv"
     if not gdelt_csv.exists():
         logger.warning(f"[News] {gdelt_csv} not found, skipping")
         return

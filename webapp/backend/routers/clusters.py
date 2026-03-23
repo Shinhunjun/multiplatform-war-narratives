@@ -11,6 +11,7 @@ from ..services.data_service import (
     get_cluster_assignments,
     get_cluster_keywords,
     get_cluster_summaries,
+    get_clusters_monthly,
     get_temporal_clusters,
 )
 
@@ -197,6 +198,28 @@ def temporal_clusters(
         df = df[df["year_month"] <= end]
 
     return df.to_dict(orient="records")
+
+
+@router.get("/monthly")
+def clusters_monthly(
+    month: str = Query(..., description="Month YYYY-MM"),
+    top_n: int = Query(15, ge=1, le=50),
+):
+    """Get top N clusters for a specific month."""
+    df = get_clusters_monthly()
+    if df.empty:
+        return []
+    filtered = df[df["year_month"] == month].nlargest(top_n, "count")
+    return filtered.to_dict(orient="records")
+
+
+@router.get("/monthly/months")
+def clusters_monthly_months():
+    """Get list of all available months for cluster slider."""
+    df = get_clusters_monthly()
+    if df.empty:
+        return []
+    return sorted(df["year_month"].unique().tolist())
 
 
 @router.get("/scatter")

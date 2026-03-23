@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 # Paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent  # capstone/
-TIKTOK_DATA_DIR = PROJECT_ROOT / "tiktok" / "data"
+TIKTOK_DATA_DIR = PROJECT_ROOT / "tiktok" / "data-collection" / "data"
 OUTPUT_DIR = PROJECT_ROOT / "reddit" / "analysis" / "outputs_tiktok"
 
 # Add reddit analysis to path for reusing sentiment/topic modules
@@ -60,7 +60,10 @@ sys.path.insert(0, str(REDDIT_ANALYSIS_DIR))
 def load_tiktok_data() -> pd.DataFrame:
     """Load videos + comments into a unified DataFrame."""
     videos_dir = TIKTOK_DATA_DIR / "videos"
-    comments_file = TIKTOK_DATA_DIR / "comments" / "comments_playwright.json"
+    # Try merged comments first, then individual playwright file
+    comments_file = TIKTOK_DATA_DIR / "comments" / "comments_all_merged.json"
+    if not comments_file.exists():
+        comments_file = TIKTOK_DATA_DIR / "comments" / "comments_playwright.json"
 
     # Load all video files
     all_videos = []
@@ -212,16 +215,17 @@ def run_topics(df: pd.DataFrame) -> pd.DataFrame:
     np.save(out_dir / "document_embeddings.npy", embeddings)
     logger.info(f"  Embeddings shape: {embeddings.shape}")
 
-    # Configure BERTopic
-    min_topic_size = max(10, n_docs // 100)
-    n_neighbors = min(15, max(5, n_docs // 50))
+    # Adaptive params from hyperparameter experiment
+    min_topic_size = max(10, n_docs // 400)
+    n_neighbors = min(10, max(5, n_docs // 50))
 
     umap_model = UMAP(
         n_neighbors=n_neighbors, n_components=5,
         min_dist=0.0, metric="cosine", random_state=42,
     )
     hdbscan_model = HDBSCAN(
-        min_cluster_size=min_topic_size, metric="euclidean",
+        min_cluster_size=min_topic_size, min_samples=5,
+        metric="euclidean",
         cluster_selection_method="eom", prediction_data=True,
     )
     vectorizer_model = CountVectorizer(

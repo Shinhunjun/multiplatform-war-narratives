@@ -13,6 +13,8 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 class ChatRequest(BaseModel):
     question: str
     history: list[dict] | None = None
+    start_month: str | None = None
+    end_month: str | None = None
 
 
 class ChatResponse(BaseModel):
@@ -21,5 +23,5 @@ class ChatResponse(BaseModel):
 
 @router.post("", response_model=ChatResponse)
 def chat_endpoint(req: ChatRequest):
-    answer = chat(req.question, req.history)
+    answer = chat(req.question, req.history, req.start_month, req.end_month)
     return ChatResponse(answer=answer)

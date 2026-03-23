@@ -22,17 +22,52 @@ export default function ReportsPage() {
   const [cachedList, setCachedList] = useState<{ period: string; generated_at: string }[]>([]);
   const [startMonth, setStartMonth] = useState('');
   const [endMonth, setEndMonth] = useState('');
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     fetchReportList().then(setCachedList).catch(() => {});
   }, []);
 
+  // Only set defaults once on mount, don't sync with slider afterwards
   useEffect(() => {
-    if (selected) {
+    if (selected && !initialized) {
       setStartMonth(selected[0]);
       setEndMonth(selected[1]);
+      setInitialized(true);
     }
-  }, [selected]);
+  }, [selected, initialized]);
+
+  const handleExportPDF = () => {
+    const reportEl = document.getElementById('report-content');
+    if (!reportEl) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Intelligence Report — ${report?.period || ''}</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 40px; color: #1a1a1a; max-width: 800px; margin: 0 auto; line-height: 1.6; }
+        h1 { font-size: 22px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+        h2 { font-size: 18px; color: #333; margin-top: 24px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+        h3 { font-size: 15px; color: #555; margin-top: 16px; }
+        p, li { font-size: 13px; }
+        ul, ol { padding-left: 20px; }
+        strong { color: #000; }
+        .meta { color: #888; font-size: 11px; margin-bottom: 20px; }
+        .stats { display: flex; gap: 20px; margin: 16px 0; }
+        .stat-box { border: 1px solid #ddd; border-radius: 6px; padding: 12px; flex: 1; }
+        .stat-label { font-size: 10px; color: #888; text-transform: uppercase; }
+        .stat-value { font-size: 18px; font-weight: 600; }
+        @media print { body { padding: 20px; } }
+      </style></head><body>
+      <h1>Venezuela-US Discourse — Intelligence Report</h1>
+      <div class="meta">Period: ${report?.period || ''} &nbsp;|&nbsp; Generated: ${report?.generated_at ? new Date(report.generated_at).toLocaleString() : 'N/A'} &nbsp;|&nbsp; Powered by Gemini</div>
+      ${report?.data_summary?.platforms ? '<div class="stats">' + Object.entries(report.data_summary.platforms).map(([k, d]: [string, any]) =>
+        `<div class="stat-box"><div class="stat-label">${k}</div><div class="stat-value">${(d.total_docs||0).toLocaleString()}</div><div style="font-size:11px;color:#888">docs, sentiment: ${d.mean_sentiment?.toFixed(3)}</div></div>`
+      ).join('') + '</div>' : ''}
+      ${(report?.report || '').replace(/## /g, '<h2>').replace(/### /g, '<h3>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n- /g, '\n<li>').replace(/\n/g, '<br/>')}
+      </body></html>`);
+    printWindow.document.close();
+    setTimeout(() => { printWindow.print(); }, 500);
+  };
 
   const handleGenerate = (force = false) => {
     if (!startMonth || !endMonth) return;
@@ -77,10 +112,19 @@ export default function ReportsPage() {
             {loading ? 'Generating...' : 'Generate Report'}
           </button>
           {report && !report.error && (
-            <button onClick={() => handleGenerate(true)} disabled={loading}
-              className="px-5 py-2 border border-[#2a2e3d] text-[#8b8fa3] rounded-lg text-[13px] hover:text-[#e8eaed] hover:border-[#64748b] transition-colors">
-              Regenerate
-            </button>
+            <>
+              <button onClick={() => handleGenerate(true)} disabled={loading}
+                className="px-5 py-2 border border-[#2a2e3d] text-[#8b8fa3] rounded-lg text-[13px] hover:text-[#e8eaed] hover:border-[#64748b] transition-colors">
+                Regenerate
+              </button>
+              <button onClick={handleExportPDF}
+                className="px-5 py-2 border border-[#2a2e3d] text-[#8b8fa3] rounded-lg text-[13px] hover:text-[#e8eaed] hover:border-[#64748b] transition-colors flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Export PDF
+              </button>
+            </>
           )}
         </div>
       </div>

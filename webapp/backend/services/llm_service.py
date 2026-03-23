@@ -192,10 +192,68 @@ def list_cached_reports() -> list[dict]:
 # CHAT
 # =========================================================================
 
-def _build_chat_context(question: str) -> str:
+def _filter_by_range(df, start: str | None, end: str | None, col: str = "year_month"):
+    """Filter a DataFrame by month range."""
+    if df is None or df.empty:
+        return df
+    if start:
+        df = df[df[col] >= start]
+    if end:
+        df = df[df[col] <= end]
+    return df
+
+
+def _detect_date_from_question(question: str) -> tuple[str | None, str | None]:
+    """Try to extract year-month from the question text."""
+    import re
+    # Match patterns like "2017년 7월", "2017-07", "July 2017", "2024 election"
+    # Korean: YYYY년 M월
+    m = re.search(r'(\d{4})년\s*(\d{1,2})월', question)
+    if m:
+        return f"{m.group(1)}-{m.group(2).zfill(2)}", f"{m.group(1)}-{m.group(2).zfill(2)}"
+    # ISO: YYYY-MM
+    m = re.search(r'(\d{4})-(\d{2})', question)
+    if m:
+        return f"{m.group(1)}-{m.group(2)}", f"{m.group(1)}-{m.group(2)}"
+    # English: Month YYYY or YYYY Month
+    month_names = {'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06',
+                   'july':'07','august':'08','september':'09','october':'10','november':'11','december':'12'}
+    for name, num in month_names.items():
+        m = re.search(rf'{name}\s+(\d{{4}})', question.lower())
+        if m:
+            return f"{m.group(1)}-{num}", f"{m.group(1)}-{num}"
+        m = re.search(rf'(\d{{4}})\s+{name}', question.lower())
+        if m:
+            return f"{m.group(1)}-{num}", f"{m.group(1)}-{num}"
+    # Just a year: YYYY (without month)
+    m = re.search(r'\b(20\d{2})\b', question)
+    if m:
+        year = m.group(1)
+        return f"{year}-01", f"{year}-12"
+    return None, None
+
+
+def _build_chat_context(question: str, start_month: str | None = None, end_month: str | None = None) -> str:
     from . import data_service as ds
 
+    # Auto-detect dates from question if not explicitly set
+    if not start_month and not end_month:
+        start_month, end_month = _detect_date_from_question(question)
+
     parts = []
+    period_label = ""
+    if start_month and end_month:
+        if start_month == end_month:
+            period_label = f" ({start_month})"
+        else:
+            period_label = f" ({start_month} to {end_month})"
+    elif start_month:
+        period_label = f" (from {start_month})"
+    elif end_month:
+        period_label = f" (until {end_month})"
+
+    if period_label:
+        parts.append(f"Analysis period{period_label}")
 
     try:
         r = ds.get_overview_stats()
@@ -222,11 +280,10 @@ def _build_chat_context(question: str) -> str:
         ("TikTok", ds.get_tiktok_sentiment_by_month),
     ]:
         try:
-            df = getter()
-            recent = df.tail(6)
-            if not recent.empty:
-                rows = recent[["year_month", "mean_sentiment", "total_count"]].to_string(index=False)
-                parts.append(f"\n{pname} monthly sentiment (recent):\n{rows}")
+            df = _filter_by_range(getter(), start_month, end_month)
+            if not df.empty:
+                rows = df[["year_month", "mean_sentiment", "total_count"]].to_string(index=False)
+                parts.append(f"\n{pname} monthly sentiment{period_label}:\n{rows}")
         except Exception:
             pass
 
@@ -234,15 +291,15 @@ def _build_chat_context(question: str) -> str:
 
     if any(w in q_lower for w in ["hashtag", "tiktok", "해시태그", "틱톡"]):
         try:
-            ht = ds.get_tiktok_hashtag_trends()
+            ht = _filter_by_range(ds.get_tiktok_hashtag_trends(), start_month, end_month)
             top = ht.groupby("hashtag")["count"].sum().nlargest(15)
-            parts.append(f"\nTikTok top hashtags:\n{top.to_string()}")
+            parts.append(f"\nTikTok top hashtags{period_label}:\n{top.to_string()}")
         except Exception:
             pass
         try:
-            eng = ds.get_tiktok_engagement_metrics()
+            eng = _filter_by_range(ds.get_tiktok_engagement_metrics(), start_month, end_month)
             if not eng.empty:
-                parts.append(f"\nTikTok engagement:\n{eng.to_string(index=False)}")
+                parts.append(f"\nTikTok engagement{period_label}:\n{eng.to_string(index=False)}")
         except Exception:
             pass
 
@@ -253,27 +310,27 @@ def _build_chat_context(question: str) -> str:
             ("TikTok", ds.get_tiktok_topics_monthly_fitted),
         ]:
             try:
-                tf = getter()
+                tf = _filter_by_range(getter(), start_month, end_month)
                 if not tf.empty:
-                    recent = tf.nlargest(10, "count")[["year_month", "keywords", "count"]]
-                    parts.append(f"\n{pname} top topics:\n{recent.to_string(index=False)}")
+                    top = tf.nlargest(10, "count")[["year_month", "keywords", "count"]]
+                    parts.append(f"\n{pname} top topics{period_label}:\n{top.to_string(index=False)}")
             except Exception:
                 pass
 
     if any(w in q_lower for w in ["region", "country", "지역", "국가"]):
         try:
-            reg = ds.get_tiktok_region_distribution()
+            reg = _filter_by_range(ds.get_tiktok_region_distribution(), start_month, end_month)
             if not reg.empty:
                 top = reg.groupby("region_code")["count"].sum().nlargest(10)
-                parts.append(f"\nTikTok regions:\n{top.to_string()}")
+                parts.append(f"\nTikTok regions{period_label}:\n{top.to_string()}")
         except Exception:
             pass
 
     return "\n".join(parts)
 
 
-def chat(question: str, history: list[dict] | None = None) -> str:
-    context = _build_chat_context(question)
+def chat(question: str, history: list[dict] | None = None, start_month: str | None = None, end_month: str | None = None) -> str:
+    context = _build_chat_context(question, start_month, end_month)
 
     system_prompt = """You are an expert analyst for the Venezuela-US Multiplatform Narrative Analysis project.
 You have access to data from 3 platforms: Reddit (2013-2026), GDELT News (2013-2026), and TikTok (2016-2017).

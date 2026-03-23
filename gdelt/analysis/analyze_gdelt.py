@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 # Paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-GDELT_CSV = PROJECT_ROOT / "data" / "gdelt" / "gdelt_scraped.csv"
+GDELT_CSV = PROJECT_ROOT / "data" / "gdelt" / "gdelt_scraped_updated.csv"
 REDDIT_OUTPUTS = PROJECT_ROOT / "reddit" / "analysis" / "outputs"
 OUTPUT_DIR = PROJECT_ROOT / "reddit" / "analysis" / "outputs_news"
 

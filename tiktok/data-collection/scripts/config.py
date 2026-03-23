@@ -54,7 +54,7 @@ class PipelineConfig:
 # =============================================================================
 
 # TikTok launched internationally ~2017, but Research API may have data from 2016+
-HISTORICAL_DEFAULT_START: str = "20130101"
+HISTORICAL_DEFAULT_START: str = "20160801"
 HISTORICAL_DEFAULT_END: str = "20260214"
 
 
@@ -241,8 +241,7 @@ PRIORITY_HASHTAGS: List[str] = [
 VIDEO_FIELDS: str = (
     "id,video_description,create_time,region_code,"
     "share_count,view_count,like_count,comment_count,"
-    "favorites_count,music_id,hashtag_names,username,"
-    "voice_to_text,video_duration"
+    "music_id,hashtag_names,username,video_duration"
 )
 
 COMMENT_FIELDS: str = (

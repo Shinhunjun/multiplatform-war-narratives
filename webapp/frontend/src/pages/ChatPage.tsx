@@ -54,10 +54,10 @@ export default function ChatPage() {
               <p className="text-[#8b8fa3] text-sm mb-4">Ask anything about the data. For example:</p>
               <div className="space-y-2">
                 {[
-                  '2024년 선거 기간에 Reddit과 TikTok의 감성 차이는?',
+                  'How did sentiment differ between Reddit and TikTok during the 2024 election?',
                   'Which platform has the most negative sentiment?',
-                  'Top TikTok 해시태그는 뭐야?',
-                  'Compare topic trends across platforms',
+                  'What are the top TikTok hashtags?',
+                  'Compare topic trends across platforms in 2018',
                 ].map((q, i) => (
                   <button
                     key={i}

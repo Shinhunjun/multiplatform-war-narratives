@@ -185,37 +185,41 @@ def fetch_videos_for_query(
     start_date: str,
     end_date: str,
     max_count: int = 100,
-    max_total: int = 1000000,
+    max_retries: int = 3,
 ) -> List[Dict]:
     """
     Fetch videos for a single query within a date range.
-    The SDK automatically handles 30-day chunking and pagination.
+    Delegates pagination to the SDK via fetch_all_pages=True.
 
     Returns:
-        List of video dictionaries.
+        List of video dicts, or None if all retries failed.
     """
     from tiktok_research_api import QueryVideoRequest
 
-    request = QueryVideoRequest(
-        query=query,
-        start_date=start_date,
-        end_date=end_date,
-        max_count=max_count,
-        max_total=max_total,
-        fields=VIDEO_FIELDS,
-    )
-
-    try:
-        # SDK returns tuple: (videos, search_id, cursor, has_more, start_str, end_str)
-        result = api.query_videos(request, fetch_all_pages=True)
-        videos = result[0] if isinstance(result, tuple) else result
-        return videos if videos else []
-    except Exception as e:
-        err_msg = str(e).lower()
-        if "quota" in err_msg or "daily" in err_msg:
-            raise QuotaExceededError(str(e)) from e
-        print(f"  Error fetching videos: {e}")
-        return []
+    for attempt in range(1, max_retries + 1):
+        try:
+            request = QueryVideoRequest(
+                query=query,
+                start_date=start_date,
+                end_date=end_date,
+                max_count=max_count,
+                fields=VIDEO_FIELDS,
+            )
+            result = api.query_videos(request, fetch_all_pages=True)
+            videos = result[0] if isinstance(result, tuple) else []
+            return videos if videos else []
+        except Exception as e:
+            err_msg = str(e).lower()
+            if "quota" in err_msg or "daily" in err_msg:
+                raise QuotaExceededError(str(e)) from e
+            if attempt < max_retries:
+                wait = 2 ** attempt * 5
+                print(f"  Error (attempt {attempt}/{max_retries}): {e}. Retrying in {wait}s...")
+                time.sleep(wait)
+            else:
+                print(f"  Failed after {max_retries} attempts for {start_date}-{end_date}: {e}")
+                return None
+    return None
 
 
 def collect_videos_historical(
@@ -274,6 +278,7 @@ def collect_videos_historical(
 
     stats = {}
     all_video_ids = set()  # Global dedup
+    consecutive_failures = 0  # Track consecutive failures for quota detection
 
     for window_start, window_end in tqdm(windows, desc="Collecting videos"):
         window_key = f"{window_start}_{window_end}"
@@ -296,48 +301,56 @@ def collect_videos_historical(
                 "total_videos": sum(stats.values()),
             }, checkpoint_name)
             quota.wait_for_reset()
+            consecutive_failures = 0
 
         window_videos = {}
 
         try:
             # Keyword query
+            server_failed = False
             if keywords:
                 keyword_query = build_keyword_query(keywords)
                 videos = fetch_videos_for_query(
                     api, keyword_query, window_start, window_end,
                     max_count=config.max_count,
                 )
-                for v in videos:
-                    vid = str(v.get("id", ""))
-                    if vid and vid not in all_video_ids:
-                        v["_matched_type"] = "keyword"
-                        v["_window_start"] = window_start
-                        v["_window_end"] = window_end
-                        v["_collection_type"] = "historical"
-                        window_videos[vid] = v
-                        all_video_ids.add(vid)
-                quota.record_usage(len(videos))
+                if videos is None:
+                    server_failed = True
+                else:
+                    for v in videos:
+                        vid = str(v.get("id", ""))
+                        if vid and vid not in all_video_ids:
+                            v["_matched_type"] = "keyword"
+                            v["_window_start"] = window_start
+                            v["_window_end"] = window_end
+                            v["_collection_type"] = "historical"
+                            window_videos[vid] = v
+                            all_video_ids.add(vid)
+                    quota.record_usage(len(videos))
 
             # Hashtag query
-            if hashtags and quota.can_request():
+            if hashtags and not server_failed:
                 hashtag_query = build_hashtag_query(hashtags)
                 videos = fetch_videos_for_query(
                     api, hashtag_query, window_start, window_end,
                     max_count=config.max_count,
                 )
-                for v in videos:
-                    vid = str(v.get("id", ""))
-                    if vid and vid not in all_video_ids:
-                        v["_matched_type"] = "hashtag"
-                        v["_window_start"] = window_start
-                        v["_window_end"] = window_end
-                        v["_collection_type"] = "historical"
-                        window_videos[vid] = v
-                        all_video_ids.add(vid)
-                    elif vid in window_videos:
-                        # Already found by keyword, mark as both
-                        window_videos[vid]["_matched_type"] = "keyword+hashtag"
-                quota.record_usage(len(videos))
+                if videos is None:
+                    server_failed = True
+                else:
+                    for v in videos:
+                        vid = str(v.get("id", ""))
+                        if vid and vid not in all_video_ids:
+                            v["_matched_type"] = "hashtag"
+                            v["_window_start"] = window_start
+                            v["_window_end"] = window_end
+                            v["_collection_type"] = "historical"
+                            window_videos[vid] = v
+                            all_video_ids.add(vid)
+                        elif vid in window_videos:
+                            # Already found by keyword, mark as both
+                            window_videos[vid]["_matched_type"] = "keyword+hashtag"
+                    quota.record_usage(len(videos))
 
         except QuotaExceededError:
             print(f"\n[Quota] Daily quota exceeded at window {window_key}.")
@@ -356,6 +369,25 @@ def collect_videos_historical(
             print(f"[Quota] Saved checkpoint. Collected {total:,} videos so far.")
             print(f"[Quota] Run again later to resume from window {window_key}.")
             return stats
+
+        # Detect consecutive failures (likely quota exhausted)
+        if server_failed:
+            consecutive_failures += 1
+            print(f"  [Skip] {window_key}: server error ({consecutive_failures} consecutive)")
+            if consecutive_failures >= 2:
+                print(f"\n[Quota] {consecutive_failures} consecutive failures — likely quota exhausted.")
+                quota.save_checkpoint({
+                    "completed_windows": list(completed_windows),
+                    "total_videos": sum(stats.values()),
+                    "status": "quota_exhausted",
+                }, checkpoint_name)
+                total = sum(stats.values())
+                print(f"[Quota] Saved checkpoint. Collected {total:,} videos so far.")
+                print(f"[Quota] Run again later to resume.")
+                return stats
+            continue
+        else:
+            consecutive_failures = 0
 
         # Save window data
         if window_videos:

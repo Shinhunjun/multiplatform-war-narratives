@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { TimeRangeProvider } from './lib/TimeRangeContext';
 import TimeRangeBar from './components/TimeRangeBar';
 import Sidebar from './components/layout/Sidebar';
@@ -10,6 +10,12 @@ import TikTokPage from './pages/TikTokPage';
 import ReportsPage from './pages/ReportsPage';
 import ChatPage from './pages/ChatPage';
 
+function ConditionalTimeRangeBar() {
+  const { pathname } = useLocation();
+  if (pathname === '/chat' || pathname === '/reports') return null;
+  return <TimeRangeBar />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -17,7 +23,7 @@ export default function App() {
         <div className="flex min-h-screen bg-[#0f1117]">
           <Sidebar />
           <main className="flex-1 min-w-0">
-            <TimeRangeBar />
+            <ConditionalTimeRangeBar />
             <div className="max-w-[1400px] mx-auto">
               <Routes>
                 <Route path="/" element={<Dashboard />} />

@@ -17,8 +17,8 @@ class TemporalClusterer:
 
     def __init__(
         self,
-        min_cluster_size: int = 50,
-        min_samples: int = 10,
+        min_cluster_size: int = 25,
+        min_samples: int = 5,
         cluster_selection_method: str = "eom",
     ):
         self.min_cluster_size = min_cluster_size

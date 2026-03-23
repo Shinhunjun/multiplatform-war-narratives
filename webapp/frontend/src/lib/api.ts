@@ -326,8 +326,8 @@ export interface ChatMessage {
   content: string;
 }
 
-export const sendChatMessage = (question: string, history?: ChatMessage[]) =>
-  api.post<{ answer: string }>('/api/chat', { question, history }).then(r => r.data);
+export const sendChatMessage = (question: string, history?: ChatMessage[], startMonth?: string, endMonth?: string) =>
+  api.post<{ answer: string }>('/api/chat', { question, history, start_month: startMonth || null, end_month: endMonth || null }).then(r => r.data);
 
 export const fetchTemporalClusters = (limit = 10, start?: string, end?: string) => {
   const params = new URLSearchParams();
