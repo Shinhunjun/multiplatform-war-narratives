@@ -1,13 +1,13 @@
-# Weekly Update Design
+# Weekly Update
 
-This folder is the proposed home for the incremental weekly refresh workflow.
+This folder contains the incremental weekly refresh workflow for the Venezuela-USA GDELT corpus.
 
 The purpose of `weekly_update/` is different from `data_collection/`:
 
 - `data_collection/` is for historical dataset construction.
 - `weekly_update/` is for ongoing maintenance of the existing corpus.
 
-The weekly workflow should optimize for predictable automation, frozen scoring artifacts, static filter rules, and lightweight QA. It should not depend on Wayback rescue by default.
+The weekly workflow optimizes for predictable automation, frozen scoring artifacts, static filter rules, and lightweight QA. It does not depend on Wayback rescue by default.
 
 ## Design Principles
 
@@ -18,7 +18,7 @@ The weekly workflow should optimize for predictable automation, frozen scoring a
 - Update only new or changed URLs when possible.
 - Write weekly logs, manifests, and QA snapshots under `data/weekly_runs/`.
 
-## Proposed Folder Layout
+## Folder Layout
 
 ```text
 weekly_update/
@@ -34,18 +34,32 @@ weekly_update/
 └── common.py
 ```
 
-## Proposed Responsibilities
+## Workflow
+
+The intended weekly sequence is:
+
+1. Read the latest event date already present in `data/gdelt_scraped.csv`.
+2. Fetch official GDELT 2 export files from that date forward, inclusive, so same-date overlap is intentionally refetched.
+3. Filter the fetched rows down to the bidirectional `VEN`/`USA` dyad and normalize them into the local raw-event schema.
+4. Reuse existing lookup content where possible and scrape only new canonical URLs.
+5. Append only genuinely new event rows into `data/gdelt_scraped.csv`, while ignoring overlap already present in the master dataset.
+6. Incrementally update `data/preprocessing/url_lookup.csv`.
+7. Apply the frozen token relevance table from `data/preprocessing/text_relevance_tokens.csv`.
+8. Apply the static filter rules from `preprocessing/filter_rule_config.json` only to changed `url_id` values.
+9. Rebuild analysis-ready parquet exports and optionally rerun EDA and downstream analysis.
+
+## Scripts
 
 ### `run_weekly_update.py`
 
 Primary orchestrator for the weekly pipeline.
 
 Responsibilities:
-- Read the last successful run metadata from `data/weekly_runs/`.
-- Determine the weekly date window or input file for the current run.
+- Create a run directory under `data/weekly_runs/`.
+- Default the fetch start date from the latest event date already present in `data/gdelt_scraped.csv`.
 - Execute each stage in order.
 - Stop on failure and write a run manifest with status, timestamps, row counts, and file outputs.
-- Optionally support flags like `--dry-run`, `--from-date`, `--to-date`, and `--skip-analysis`.
+- Support `--from-date`, `--to-date`, `--run-eda`, `--run-analysis`, and `--max-fetch-files`.
 
 This should be the one command you run each week.
 
@@ -54,11 +68,14 @@ This should be the one command you run each week.
 Collect new GDELT event rows for the weekly window.
 
 Responsibilities:
-- Pull only events newer than the last successful weekly run.
+- Read the latest available official export timestamp from `http://data.gdeltproject.org/gdeltv2/lastupdate.txt`.
+- Discover relevant `*.export.CSV.zip` files from `http://data.gdeltproject.org/gdeltv2/masterfilelist.txt`.
+- Pull from the current master dataset's latest event date forward, inclusive, so same-date overlap is intentionally captured.
+- Filter to the inferred historical corpus rule:
+  `(Actor1CountryCode = 'VEN' AND Actor2CountryCode = 'USA') OR (Actor1CountryCode = 'USA' AND Actor2CountryCode = 'VEN')`.
 - Normalize the incoming event schema to match `data/gdelt_scraped.csv` expectations.
 - Write a weekly staging file such as `data/weekly_runs/<run_id>/weekly_events_raw.csv`.
 - Deduplicate incoming event rows before scraping.
-- Record source metadata for the run manifest.
 
 This script should not scrape article text. It should only gather the structured event rows that define the weekly update scope.
 
@@ -68,12 +85,12 @@ Scrape article content for the new weekly event rows.
 
 Responsibilities:
 - Extract candidate `SourceURL` values from the weekly event staging file.
-- Skip URLs already covered by the existing lookup when possible.
-- Scrape only new or changed URLs.
+- Reuse content already present in `data/preprocessing/url_lookup.csv` when the canonical URL already exists.
+- Scrape only new canonical URLs.
 - Write a weekly scrape result file such as `data/weekly_runs/<run_id>/weekly_scraped.csv`.
 - Capture scrape status, retry counts, and basic QA counts.
 
-This is the weekly replacement for the yearly scraping flow. It should be optimized for short windows and quick reruns, not for full historical reconstruction.
+This is the weekly replacement for the yearly scraping flow. It is optimized for short windows and quick reruns, not for full historical reconstruction.
 
 ### `append_master_dataset.py`
 
@@ -81,8 +98,9 @@ Merge the weekly scrape results into the canonical master dataset.
 
 Responsibilities:
 - Validate that the weekly scrape output matches the master schema.
-- Append new rows into `data/gdelt_scraped.csv`.
-- Prevent duplicate event-row insertion.
+- Append only genuinely new rows into `data/gdelt_scraped.csv`.
+- Prevent duplicate insertion caused by same-date overlap.
+- Write the actual appended subset into `data/weekly_runs/<run_id>/weekly_appended.csv`.
 - Write a run-specific audit file such as `data/weekly_runs/<run_id>/append_audit.csv`.
 - Preserve the existing historical rows unchanged.
 
@@ -96,7 +114,8 @@ Responsibilities:
 - Reuse the canonicalization and stable `url_id` rules from `preprocessing/build_url_index.py`.
 - Add new canonical URLs to `data/preprocessing/url_lookup.csv`.
 - Preserve existing `url_id` assignments and existing lookup state.
-- Identify which `url_id` values are new or changed in the current weekly run.
+- Update cumulative `row_count` values for touched canonical URLs.
+- Identify which `url_id` values are new or content-changed in the current weekly run.
 - Emit a small worklist such as `data/weekly_runs/<run_id>/changed_url_ids.csv`.
 
 This should be a weekly-oriented wrapper around the existing URL-index logic, not a brand-new URL identity system.
@@ -107,7 +126,7 @@ Apply existing token relevance scores to weekly additions.
 
 Responsibilities:
 - Read frozen token weights from `data/preprocessing/text_relevance_tokens.csv`.
-- Score only new or changed lookup rows.
+- Tokenize and score only new or changed lookup rows.
 - Update the `doc_relevance_*` fields in `data/preprocessing/url_lookup.csv`.
 - Write a QA snapshot such as `data/weekly_runs/<run_id>/weekly_score_summary.csv`.
 
@@ -119,10 +138,12 @@ Apply the current filter policy to weekly additions.
 
 Responsibilities:
 - Read static rules from `preprocessing/filter_rule_config.json`.
+- Recompute duplicate cluster sizes against the full lookup table.
 - Evaluate only new or changed rows against the current thresholds and anchor logic.
 - Update `data/preprocessing/url_filter_eval.csv`.
 - Refresh `data/preprocessing/url_filter_summary_counts.csv`.
-- Optionally write weekly-only QA samples under `data/weekly_runs/<run_id>/filter_samples/`.
+- Write weekly-only QA samples under `data/weekly_runs/<run_id>/filter_samples/`.
+- Refresh the canonical histogram at `data/preprocessing/filter_stage_score_histograms.png`.
 
 This script should preserve historical decisions unless a row is explicitly reprocessed.
 
@@ -133,9 +154,8 @@ Refresh downstream data products after weekly ingestion.
 Responsibilities:
 - Rebuild `data/analysis_ready/analysis_events.parquet`.
 - Rebuild `data/analysis_ready/analysis_url_content.parquet`.
-- Optionally rerun `eda/run_eda.py`.
-- Optionally rerun `python -m analysis.main --all`.
-- Capture output timestamps and key file paths in the run manifest.
+- Optionally rerun `eda/run_eda.py` when `--run-eda` is provided.
+- Optionally rerun `python -m analysis.main --all` when `--run-analysis` is provided.
 
 This stage is where the weekly pipeline reconnects with the existing EDA and analysis layers.
 
@@ -171,6 +191,7 @@ data/
         ├── manifest.json
         ├── weekly_events_raw.csv
         ├── weekly_scraped.csv
+        ├── weekly_appended.csv
         ├── append_audit.csv
         ├── changed_url_ids.csv
         ├── weekly_score_summary.csv
@@ -185,22 +206,22 @@ data/
 - `data/preprocessing/` remains the home of canonical lookup, scoring, filter, and QA artifacts.
 - `eda/` and `analysis/` remain downstream consumers.
 
-## Implementation Order
+## Run Command
 
-Recommended order for building this:
+Typical weekly run:
 
-1. Create `common.py` and `run_weekly_update.py`.
-2. Implement `fetch_weekly_events.py`.
-3. Implement `scrape_weekly_urls.py`.
-4. Implement `append_master_dataset.py`.
-5. Implement `update_lookup_incremental.py`.
-6. Implement `apply_frozen_relevance.py`.
-7. Implement `apply_static_filters.py`.
-8. Implement `refresh_analysis_exports.py`.
+```bash
+python weekly_update/run_weekly_update.py --run-eda
+```
 
-## Open Design Choices
+If you want to override the fetch window:
 
-- What should define a weekly event-row primary key for append safety?
-- Should changed rows be detected only by new `SourceURL`, or also by changed `Title` and `Text`?
-- Should weekly runs rerun full EDA and full analysis by default, or make them optional flags?
-- Should weekly QA samples live only under `data/weekly_runs/`, or also refresh the canonical preprocessing QA outputs every run?
+```bash
+python weekly_update/run_weekly_update.py --from-date 20260320 --to-date 20260323 --run-eda
+```
+
+## Current Tradeoffs
+
+- Overlap handling is append-safe by raw event identity over the same-date window, but it does not rewrite historical master rows in place.
+- Weekly filtering preserves historical decisions for unchanged URLs; only changed `url_id` values are reevaluated.
+- EDA and downstream analysis are optional flags because they can be slower and more expensive than the core weekly ingest path.

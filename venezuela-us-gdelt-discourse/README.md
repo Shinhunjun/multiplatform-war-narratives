@@ -5,6 +5,7 @@ This project contains the GDELT-specific pipeline for collecting, preprocessing,
 ## Project Layout
 
 - `data_collection/`: yearly scraping, rescue, and consolidation scripts for raw GDELT article content.
+- `weekly_update/`: incremental weekly refresh scripts for ongoing corpus maintenance.
 - `preprocessing/`: preprocessing source code, configs, dictionaries, and supporting documentation.
 - `eda/`: exploratory data analysis over the analysis-ready parquet outputs.
 - `analysis/`: sentiment analysis, topic modeling, clustering, summarization, and visualization workflows.
@@ -44,6 +45,12 @@ python eda/run_eda.py
 python -m analysis.main --all
 ```
 
+Run the weekly update workflow:
+
+```bash
+python weekly_update/run_weekly_update.py --run-eda
+```
+
 ## Key Inputs And Outputs
 
 - Primary input: `data/gdelt_scraped.csv`
@@ -63,5 +70,6 @@ pytest
 ## Notes
 
 - Stage-specific details live in [data_collection/README.md](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/data_collection/README.md) and [preprocessing/README.md](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/preprocessing/README.md).
+- Weekly maintenance details live in [weekly_update/README.md](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/weekly_update/README.md).
 - The codebase currently assumes a local `data/` directory for scrape outputs, generated preprocessing artifacts, and analysis-ready exports.
 - `analysis/` is the cleanest module-style entry point and supports `python -m analysis.main`.

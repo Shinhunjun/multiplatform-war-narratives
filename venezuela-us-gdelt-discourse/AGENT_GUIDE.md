@@ -42,6 +42,14 @@ This file provides project-level guidance for any coding agent working in this r
 - Preserve existing behavior unless the task requires changing it.
 - Respect existing project conventions unless the user asks for a change.
 
+## Python Environment
+
+- Before running Python commands, tests, package checks, or install/verification steps, check whether this project has a local virtual environment at `venezuela-us-gdelt-discourse/.venv/`.
+- If `.venv/bin/python` exists, prefer it over system interpreters like `python`, `python3`, or `/usr/bin/python3`.
+- When reporting missing Python dependencies, verify them in the project virtual environment first before concluding they are not installed.
+- When running `pip`, use the interpreter-coupled form such as `.venv/bin/python -m pip ...` so package checks and installs target the same environment used by the project.
+- If you intentionally use a non-venv interpreter, say so explicitly and explain why.
+
 ## Communication
 
 - Explain what you are doing as you work, especially before significant edits.

@@ -22,6 +22,16 @@ data/
 │   ├── filter_samples/
 │   ├── filter_stage_score_histograms.png
 │   └── redirect_duplicate_clusters.csv
+├── weekly_runs/
+│   └── <run_id>/
+│       ├── manifest.json
+│       ├── weekly_events_raw.csv
+│       ├── weekly_scraped.csv
+│       ├── weekly_appended.csv
+│       ├── append_audit.csv
+│       ├── changed_url_ids.csv
+│       ├── weekly_score_summary.csv
+│       └── filter_samples/
 └── analysis_ready/
     ├── analysis_events.parquet
     └── analysis_url_content.parquet
@@ -48,6 +58,9 @@ data/
 - `analysis_events.parquet`: one row per scraped event row, enriched for downstream analysis.
 - `analysis_url_content.parquet`: one row per URL, with representative title, text, tokens, and metadata.
 
+`data/weekly_runs/`
+- Per-run manifests, staging CSVs, append audits, changed-url worklists, scoring summaries, and weekly-only QA samples for the incremental update workflow.
+
 ## Inputs Versus Outputs
 
 Inputs:
@@ -65,6 +78,7 @@ Generated outputs:
 - `data/preprocessing/url_filter_summary_counts.csv`
 - `data/preprocessing/filter_samples/`
 - `data/preprocessing/filter_stage_score_histograms.png`
+- `data/weekly_runs/<run_id>/...`
 - `data/analysis_ready/analysis_events.parquet`
 - `data/analysis_ready/analysis_url_content.parquet`
 
@@ -74,6 +88,7 @@ Generated outputs:
 - `data_collection/rescue_by_year.py` expects the yearly scrape files in the current working directory.
 - `data_collection/consolidate_yearly.py` reads the yearly files and writes the consolidated CSV plus audit outputs.
 - The preprocessing scripts read from and write to `data/preprocessing/` by default while keeping source code and configs under `preprocessing/`.
+- `weekly_update/` writes run-by-run operational artifacts under `data/weekly_runs/`.
 - `preprocessing/build_analysis_ready_datasets.py` writes the parquet exports under `data/analysis_ready/`.
 - `eda/run_eda.py` and `analysis/` consume the analysis-ready parquet files.
 
