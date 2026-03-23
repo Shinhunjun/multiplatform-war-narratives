@@ -178,7 +178,7 @@ Reddit data was obtained via the Arctic Shift API. We targeted 11~subreddits:
 The raw dataset comprised 533,941 documents. After preprocessing, 426,435 documents from 142,518 unique authors were retained.
 
 \subsubsection{GDELT News}
-GDELT~2.0 was queried via Google BigQuery for events involving Venezuela and the US (292,566 records). Article URLs were scraped via live HTTP and Wayback Machine fallback, achieving a 77.3\% success rate (226,165 articles). The average tone was $-3.08$, indicating generally negative media framing.
+GDELT~2.0 was queried via Google BigQuery for events involving Venezuela and the US (292,566 records). Article URLs were scraped via live HTTP and Wayback Machine fallback, achieving a 77.3\% success rate (64,931 articles). The average tone was $-3.08$, indicating generally negative media framing.
 
 \subsubsection{TikTok}
 Videos were collected via the official TikTok Research API using 24~keyword queries and 18~hashtags. Comments were collected via both the Research API and Playwright browser automation. The final dataset contains 18,632 videos and 34,263 comments from 5,885 creators.
@@ -215,7 +215,7 @@ The content is bilingual---predominantly English on Reddit and GDELT, with signi
         URL removal, whitespace normalization, Markdown stripping (Reddit), video description + voice-to-text combination (TikTok).
 
   \item \textbf{Low-value removal.}
-        Reddit: single-word or deleted posts. GDELT: $<$50 characters. TikTok: $<$2~words or $<$30\% alphabetic.
+        Reddit: single-word or deleted posts. GDELT: $<$50 characters, anchor tokens, and token-relevance scoring. TikTok: $<$2~words or $<$30\% alphabetic.
 
   \item \textbf{Embedding.}
         Sentence-BERT (\texttt{paraphrase-multilingual-MiniLM-L12-v2}, 384-dim). Handles EN--ES code-switching natively.
