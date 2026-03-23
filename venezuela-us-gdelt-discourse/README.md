@@ -5,7 +5,7 @@ This project contains the GDELT-specific pipeline for collecting, preprocessing,
 ## Project Layout
 
 - `data_collection/`: yearly scraping, rescue, and consolidation scripts for raw GDELT article content.
-- `preprocessing/`: URL normalization, tokenization, relevance scoring, filtering, and analysis-ready dataset export.
+- `preprocessing/`: preprocessing source code, configs, dictionaries, and supporting documentation.
 - `eda/`: exploratory data analysis over the analysis-ready parquet outputs.
 - `analysis/`: sentiment analysis, topic modeling, clustering, summarization, and visualization workflows.
 - `tests/`: pytest coverage for collection, preprocessing, EDA, and analysis modules.
@@ -48,7 +48,7 @@ python -m analysis.main --all
 
 - Primary input: `data/gdelt_scraped.csv`
 - Analysis-ready outputs: `data/analysis_ready/analysis_events.parquet` and `data/analysis_ready/analysis_url_content.parquet`
-- Preprocessing artifacts: files such as `url_lookup*.csv`, `text_relevance_tokens*.csv`, and `url_filter_eval*.csv`
+- Preprocessing artifacts: files such as `data/preprocessing/url_lookup*.csv`, `data/preprocessing/text_relevance_tokens*.csv`, and `data/preprocessing/url_filter_eval*.csv`
 - EDA outputs: plots and `eda/GDELT_EDA_Report.md`
 - Analysis outputs: saved artifacts under `analysis/outputs/`
 
@@ -63,5 +63,5 @@ pytest
 ## Notes
 
 - Stage-specific details live in [data_collection/README.md](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/data_collection/README.md) and [preprocessing/README.md](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/preprocessing/README.md).
-- The codebase currently assumes a local `data/` directory for scrape outputs and analysis-ready exports.
+- The codebase currently assumes a local `data/` directory for scrape outputs, generated preprocessing artifacts, and analysis-ready exports.
 - `analysis/` is the cleanest module-style entry point and supports `python -m analysis.main`.

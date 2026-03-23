@@ -20,24 +20,25 @@ def parse_args() -> argparse.Namespace:
     Returns:
         argparse.Namespace: Parsed CLI arguments.
     """
-    base = Path(__file__).resolve().parent
+    project_dir = Path(__file__).resolve().parents[1]
+    artifact_dir = project_dir / "data" / "preprocessing"
     parser = argparse.ArgumentParser(
         description=(
             "Build early duplicate-filter evaluation from url_lookup.csv. "
             "Marks duplicate text clusters without removing rows."
         )
     )
-    parser.add_argument("--lookup", type=Path, default=base / "url_lookup.csv", help="Path to url_lookup.csv")
+    parser.add_argument("--lookup", type=Path, default=artifact_dir / "url_lookup.csv", help="Path to url_lookup.csv")
     parser.add_argument(
         "--output",
         type=Path,
-        default=base / "url_filter_eval.csv",
+        default=artifact_dir / "url_filter_eval.csv",
         help="Output path for url_filter_eval.csv",
     )
     parser.add_argument(
         "--summary-output",
         type=Path,
-        default=base / "url_filter_summary_counts.csv",
+        default=artifact_dir / "url_filter_summary_counts.csv",
         help="Output path for duplicate-only summary counts",
     )
     return parser.parse_args()

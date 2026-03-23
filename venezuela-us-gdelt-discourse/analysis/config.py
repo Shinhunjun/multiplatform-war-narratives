@@ -39,7 +39,7 @@ class AnalysisConfig:
         Returns:
             Path: Filesystem path value.
         """
-        return self.base_dir / "preprocessing"
+        return self.data_dir / "preprocessing"
 
     @property
     def output_dir(self) -> Path:

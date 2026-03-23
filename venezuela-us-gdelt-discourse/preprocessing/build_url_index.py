@@ -32,7 +32,7 @@ def parse_args() -> argparse.Namespace:
     """
     base_dir = Path(__file__).resolve().parents[1]
     default_input = base_dir / "data" / "gdelt_scraped.csv"
-    default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
+    default_lookup = base_dir / "data" / "preprocessing" / "url_lookup.csv"
 
     parser = argparse.ArgumentParser(
         description="Assign stable url_id values and build/update url_lookup.csv."

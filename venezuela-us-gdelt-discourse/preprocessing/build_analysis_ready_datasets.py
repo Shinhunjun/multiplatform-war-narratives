@@ -74,6 +74,7 @@ def parse_args() -> argparse.Namespace:
         argparse.Namespace: Parsed CLI arguments.
     """
     base = Path(__file__).resolve().parent
+    artifact_dir = base.parent / "data" / "preprocessing"
     output_dir = base.parent / "data" / "analysis_ready"
     parser = argparse.ArgumentParser(
         description=(
@@ -90,13 +91,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--lookup",
         type=Path,
-        default=base / "url_lookup.csv",
+        default=artifact_dir / "url_lookup.csv",
         help="Path to url_lookup.csv",
     )
     parser.add_argument(
         "--eval",
         type=Path,
-        default=base / "url_filter_eval.csv",
+        default=artifact_dir / "url_filter_eval.csv",
         help="Path to url_filter_eval.csv",
     )
     parser.add_argument(

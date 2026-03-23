@@ -3,7 +3,7 @@ Example Preprocessing Output
 ========================================================================
 Step 1/7: Build URL Index
 ========================================================================
-Command: python multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\build_url_index.py --input ..\data\gdelt_scraped.csv --lookup multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_lookup.csv
+Command: python multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\build_url_index.py --input ..\data\gdelt_scraped.csv --lookup multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_lookup.csv
 Loading input CSV...
   Rows loaded: 292,566
 Canonicalizing SourceURL values...
@@ -15,19 +15,19 @@ Writing output files...
 Input rows: 292,566
 Unique canonical URLs: 104,967
 New url_id assigned this run: 104,967
-Lookup written: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_lookup.csv
+Lookup written: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_lookup.csv
 Input dataset not written (use --write-input or --output to write gdelt_scraped with url_id).
 Completed in 23.3s
 
 ========================================================================
 Step 2/7: Tokenize URL Lookup
 ========================================================================
-Command: python multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\tokenize_url_lookup.py --lookup multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_lookup.csv --force
+Command: python multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\tokenize_url_lookup.py --lookup multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_lookup.csv --force
 Tokenizing url_lookup rows: 100%|████████████| 79738/79738 [32:32<00:00, 40.85row/s]
 Lookup rows: 104,967
 Rows with non-empty text: 79,738
 Rows tokenized this run: 79,738
-Output written: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_lookup.csv
+Output written: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_lookup.csv
 Completed in 1972.3s
 
 ========================================================================
@@ -42,8 +42,8 @@ Writing duplicate-filter evaluation outputs...
 In-scope rows: 79,738
 Duplicate-drop rows: 11,869
 Rows used for token training: 67,869
-Evaluation table: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_filter_eval.csv
-Summary counts: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_filter_summary_counts.csv
+Evaluation table: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_filter_eval.csv
+Summary counts: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_filter_summary_counts.csv
 Completed in 30.4s
 
 ========================================================================
@@ -58,23 +58,23 @@ Lookup rows after filters: 67,869
 Tokenized docs used: 67,856
 Seed docs: 65,241 | Non-seed docs: 2,615
 Scored tokens written: 1,428
-Output: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\text_relevance_tokens.csv
+Output: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\text_relevance_tokens.csv
 Completed in 46.3s
 
 ========================================================================
 Step 5/7: Score URL Relevance
 ========================================================================
-Command: python multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\score_url_relevance.py --lookup multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_lookup.csv --relevance multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\text_relevance_tokens.csv        
+Command: python multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\score_url_relevance.py --lookup multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_lookup.csv --relevance multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\text_relevance_tokens.csv        
 Scoring url_lookup: 100%|███████████████| 104967/104967 [00:05<00:00, 17773.66row/s]
 Rows scored: 104,967
 Rows with non-zero doc_relevance_score: 79,374
-Output written: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_lookup.csv
+Output written: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_lookup.csv
 Completed in 24.8s
 
 ========================================================================
 Step 6/7: Evaluate Filter Strategy (Full)
 ========================================================================
-Command: python multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\evaluate_filter_strategy.py --lookup multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_lookup.csv --anchors multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\anchor_token_sets.json --output multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_filter_eval.csv --summary-output multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_filter_summary_counts.csv --sample-dir multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\filter_samples --sample-size 25 --seed 42     
+Command: python multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\evaluate_filter_strategy.py --lookup multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_lookup.csv --anchors multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\anchor_token_sets.json --output multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_filter_eval.csv --summary-output multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_filter_summary_counts.csv --sample-dir multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\filter_samples --sample-size 25 --seed 42     
 Loading url_lookup...
   Rows loaded: 104,967
 Loading anchor token sets...
@@ -90,9 +90,9 @@ Building row-level filter reasons...
 Building reason labels: 100%|████████████| 104967/104967 [00:14<00:00, 7466.76row/s] 
 Writing evaluation outputs...
 Writing step sample files...
-Evaluation table: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_filter_eval.csv
-Summary counts: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_filter_summary_counts.csv
-Sample directory: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\filter_samples
+Evaluation table: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_filter_eval.csv
+Summary counts: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_filter_summary_counts.csv
+Sample directory: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\filter_samples
 Decision counts (final):
 filter_final_decision
 keep            51193
@@ -104,7 +104,7 @@ Completed in 195.1s
 ========================================================================
 Step 7/7: Plot Filter Stage Histograms
 ========================================================================
-Command: python multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\plot_filter_stage_score_histograms.py --eval-csv multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_filter_eval.csv --output multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\filter_stage_score_histograms.png --bins 60 --mode stacked
+Command: python multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\plot_filter_stage_score_histograms.py --eval-csv multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_filter_eval.csv --output multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\filter_stage_score_histograms.png --bins 60 --mode stacked
 Saved: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\filter_stage_score_histograms.png
 Stage counts:
   Duplicate -> drop=11,869, review=0, keep=67,869, total=79,738
@@ -115,10 +115,10 @@ Completed in 4.0s
 
 Pipeline complete.
 Input processed: ..\data\gdelt_scraped.csv
-url_lookup: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_lookup.csv
-token scores: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\text_relevance_tokens.csv
-filter eval: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_filter_eval.csv
-summary counts: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\url_filter_summary_counts.csv
-sample dir: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\filter_samples
+url_lookup: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_lookup.csv
+token scores: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\text_relevance_tokens.csv
+filter eval: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_filter_eval.csv
+summary counts: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\url_filter_summary_counts.csv
+sample dir: multiplatform-war-narratives\venezuela-us-gdelt-discourse\data\preprocessing\filter_samples
 histogram PNG: multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing\filter_stage_score_histograms.png
 PS multiplatform-war-narratives\venezuela-us-gdelt-discourse\preprocessing>

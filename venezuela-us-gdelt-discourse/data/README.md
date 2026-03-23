@@ -1,6 +1,6 @@
 # Data Folder
 
-This folder is the working area for the GDELT pipeline. It holds the raw collection artifacts, the consolidated master CSV, QA outputs from consolidation, and the analysis-ready parquet exports used by preprocessing, EDA, and analysis.
+This folder is the working area for the GDELT pipeline. It holds the raw collection artifacts, the consolidated master CSV, preprocessing artifacts, QA outputs from consolidation, and the analysis-ready parquet exports used by preprocessing, EDA, and analysis.
 
 ## Intended Structure
 
@@ -14,6 +14,14 @@ data/
 ├── gdelt_scraped.csv
 ├── problematic_rows.csv
 ├── consolidation_audit.csv
+├── preprocessing/
+│   ├── url_lookup.csv
+│   ├── text_relevance_tokens.csv
+│   ├── url_filter_eval.csv
+│   ├── url_filter_summary_counts.csv
+│   ├── filter_samples/
+│   ├── filter_stage_score_histograms.png
+│   └── redirect_duplicate_clusters.csv
 └── analysis_ready/
     ├── analysis_events.parquet
     └── analysis_url_content.parquet
@@ -31,6 +39,11 @@ data/
 - The canonical consolidated dataset: `gdelt_scraped.csv`.
 - Consolidation QA outputs: `problematic_rows.csv` and `consolidation_audit.csv`.
 
+`data/preprocessing/`
+- Generated preprocessing artifacts such as `url_lookup.csv`, `text_relevance_tokens.csv`, and `url_filter_eval.csv`.
+- QA outputs such as `url_filter_summary_counts.csv`, `filter_samples/`, and `filter_stage_score_histograms.png`.
+- Additional preprocessing diagnostics such as `redirect_duplicate_clusters.csv`.
+
 `data/analysis_ready/`
 - `analysis_events.parquet`: one row per scraped event row, enriched for downstream analysis.
 - `analysis_url_content.parquet`: one row per URL, with representative title, text, tokens, and metadata.
@@ -46,6 +59,12 @@ Generated outputs:
 - `data/gdelt_scraped.csv`
 - `data/problematic_rows.csv`
 - `data/consolidation_audit.csv`
+- `data/preprocessing/url_lookup.csv`
+- `data/preprocessing/text_relevance_tokens.csv`
+- `data/preprocessing/url_filter_eval.csv`
+- `data/preprocessing/url_filter_summary_counts.csv`
+- `data/preprocessing/filter_samples/`
+- `data/preprocessing/filter_stage_score_histograms.png`
 - `data/analysis_ready/analysis_events.parquet`
 - `data/analysis_ready/analysis_url_content.parquet`
 
@@ -54,6 +73,7 @@ Generated outputs:
 - `data_collection/scrape_by_year.py` expects the raw source export to be available in the current working directory when run from `data/`.
 - `data_collection/rescue_by_year.py` expects the yearly scrape files in the current working directory.
 - `data_collection/consolidate_yearly.py` reads the yearly files and writes the consolidated CSV plus audit outputs.
+- The preprocessing scripts read from and write to `data/preprocessing/` by default while keeping source code and configs under `preprocessing/`.
 - `preprocessing/build_analysis_ready_datasets.py` writes the parquet exports under `data/analysis_ready/`.
 - `eda/run_eda.py` and `analysis/` consume the analysis-ready parquet files.
 

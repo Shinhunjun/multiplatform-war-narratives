@@ -2,8 +2,8 @@ Feature Dictionary
 
 This file documents the columns used in:
 - data/gdelt_scraped.csv
-- preprocessing/url_lookup.csv
-- preprocessing/url_filter_eval.csv
+- data/preprocessing/url_lookup.csv
+- data/preprocessing/url_filter_eval.csv
 
 ============================================================
 data/gdelt_scraped.csv
@@ -55,10 +55,10 @@ Error_Details
 - Scraper error details/message for failed or partial scrapes.
 
 url_id
-- Stable URL identifier assigned in preprocessing; joins to preprocessing/url_lookup.csv.
+- Stable URL identifier assigned in preprocessing; joins to data/preprocessing/url_lookup.csv.
 
 ============================================================
-preprocessing/url_lookup.csv
+data/preprocessing/url_lookup.csv
 ============================================================
 
 url_id
@@ -117,7 +117,7 @@ suspect_redirect_content
 - Boolean flag for likely redirect/fallback duplicate content clusters.
 
 ============================================================
-preprocessing/url_filter_eval.csv
+data/preprocessing/url_filter_eval.csv
 ============================================================
 
 url_id
@@ -238,4 +238,4 @@ It contains the representative URL-level content and metadata used for downstrea
 - `analysis_review_flag`
 
 Tokens
-- Stored in parquet as a parsed list of normalized token strings, not as the serialized JSON string used in `url_lookup.csv`.
+- Stored in parquet as a parsed list of normalized token strings, not as the serialized JSON string used in `data/preprocessing/url_lookup.csv`.

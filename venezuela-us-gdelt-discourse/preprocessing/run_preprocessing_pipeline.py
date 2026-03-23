@@ -98,27 +98,29 @@ def derive_default_paths(input_path: Path, base: Path) -> dict[str, Path]:
     Returns:
         dict[str, Path]: Dictionary of output artifact paths keyed by artifact name.
     """
-    default_input = (base.parent / "data" / "gdelt_scraped.csv").resolve()
+    data_dir = base.parent / "data"
+    artifact_dir = data_dir / "preprocessing"
+    default_input = (data_dir / "gdelt_scraped.csv").resolve()
     resolved_input = input_path.resolve()
 
     if resolved_input == default_input:
         return {
-            "lookup": base / "url_lookup.csv",
-            "token_scores": base / "text_relevance_tokens.csv",
-            "eval_output": base / "url_filter_eval.csv",
-            "summary_output": base / "url_filter_summary_counts.csv",
-            "sample_dir": base / "filter_samples",
-            "hist_output": base / "filter_stage_score_histograms.png",
+            "lookup": artifact_dir / "url_lookup.csv",
+            "token_scores": artifact_dir / "text_relevance_tokens.csv",
+            "eval_output": artifact_dir / "url_filter_eval.csv",
+            "summary_output": artifact_dir / "url_filter_summary_counts.csv",
+            "sample_dir": artifact_dir / "filter_samples",
+            "hist_output": artifact_dir / "filter_stage_score_histograms.png",
         }
 
     tag = sanitize_tag(input_path.stem)
     return {
-        "lookup": base / f"url_lookup_{tag}.csv",
-        "token_scores": base / f"text_relevance_tokens_{tag}.csv",
-        "eval_output": base / f"url_filter_eval_{tag}.csv",
-        "summary_output": base / f"url_filter_summary_counts_{tag}.csv",
-        "sample_dir": base / f"filter_samples_{tag}",
-        "hist_output": base / f"filter_stage_score_histograms_{tag}.png",
+        "lookup": artifact_dir / f"url_lookup_{tag}.csv",
+        "token_scores": artifact_dir / f"text_relevance_tokens_{tag}.csv",
+        "eval_output": artifact_dir / f"url_filter_eval_{tag}.csv",
+        "summary_output": artifact_dir / f"url_filter_summary_counts_{tag}.csv",
+        "sample_dir": artifact_dir / f"filter_samples_{tag}",
+        "hist_output": artifact_dir / f"filter_stage_score_histograms_{tag}.png",
     }
 
 

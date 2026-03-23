@@ -19,7 +19,7 @@ def parse_args() -> argparse.Namespace:
         argparse.Namespace: Parsed CLI arguments.
     """
     base_dir = Path(__file__).resolve().parents[1]
-    default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
+    default_lookup = base_dir / "data" / "preprocessing" / "url_lookup.csv"
     default_gdelt = base_dir / "data" / "gdelt_scraped.csv"
 
     parser = argparse.ArgumentParser(

@@ -98,8 +98,9 @@ def parse_args() -> argparse.Namespace:
     Returns:
         argparse.Namespace: Parsed CLI arguments.
     """
-    default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
-    default_out = Path(__file__).resolve().parent / "text_relevance_tokens.csv"
+    artifact_dir = Path(__file__).resolve().parents[1] / "data" / "preprocessing"
+    default_lookup = artifact_dir / "url_lookup.csv"
+    default_out = artifact_dir / "text_relevance_tokens.csv"
 
     parser = argparse.ArgumentParser(
         description="Build token relevance scores from pre-tokenized url_lookup.csv Tokens."

@@ -1,7 +1,7 @@
 {
   "version": "2026-03-05",
   "source": {
-    "score_file": "text_relevance_tokens.csv",
+    "score_file": "../data/preprocessing/text_relevance_tokens.csv",
     "notes": "Initial anchor seeds derived from current relevance scores + prior review work. Adjust groups iteratively after manual QA. candidate_tokens_for_review merged into relation_context_secondary. us_secondary_ambiguous replaced with explicit us_primary_token_pairs for pair matching logic."
   },
   "anchors": {

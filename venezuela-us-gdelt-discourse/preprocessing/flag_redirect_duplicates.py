@@ -18,11 +18,12 @@ def parse_args() -> argparse.Namespace:
     Returns:
         argparse.Namespace: Parsed CLI arguments.
     """
-    base = Path(__file__).resolve().parent
+    project_dir = Path(__file__).resolve().parents[1]
+    artifact_dir = project_dir / "data" / "preprocessing"
     parser = argparse.ArgumentParser(
         description="Flag likely redirect/fallback content via duplicate normalized Text hashes."
     )
-    parser.add_argument("--lookup", type=Path, default=base / "url_lookup.csv", help="Path to url_lookup.csv")
+    parser.add_argument("--lookup", type=Path, default=artifact_dir / "url_lookup.csv", help="Path to url_lookup.csv")
     parser.add_argument(
         "--output",
         type=Path,
@@ -32,7 +33,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--review-output",
         type=Path,
-        default=base / "redirect_duplicate_clusters.csv",
+        default=artifact_dir / "redirect_duplicate_clusters.csv",
         help="Path to cluster review CSV output",
     )
     parser.add_argument(

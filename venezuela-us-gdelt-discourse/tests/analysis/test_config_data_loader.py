@@ -185,7 +185,7 @@ def build_legacy_gdelt_rows() -> list[dict[str, object]]:
 def write_core_files(base_dir: Path) -> None:
     (base_dir / "data").mkdir(parents=True, exist_ok=True)
     (base_dir / "data" / "analysis_ready").mkdir(parents=True, exist_ok=True)
-    (base_dir / "preprocessing").mkdir(parents=True, exist_ok=True)
+    (base_dir / "data" / "preprocessing").mkdir(parents=True, exist_ok=True)
 
     pd.DataFrame(build_legacy_gdelt_rows()).to_csv(base_dir / "data" / "gdelt_scraped.csv", index=False)
     pd.DataFrame(build_analysis_event_rows()).to_parquet(
@@ -231,28 +231,28 @@ def write_core_files(base_dir: Path) -> None:
                 "row_count": 2,
             },
         ]
-    ).to_csv(base_dir / "preprocessing" / "url_lookup.csv", index=False)
+    ).to_csv(base_dir / "data" / "preprocessing" / "url_lookup.csv", index=False)
 
     pd.DataFrame(
         [
             {"token": "venezuela", "relevance_score": 5.0},
             {"token": "sanction", "relevance_score": 8.0},
         ]
-    ).to_csv(base_dir / "preprocessing" / "relevant_terms.csv", index=False)
+    ).to_csv(base_dir / "data" / "preprocessing" / "relevant_terms.csv", index=False)
 
     pd.DataFrame(
         [
             {"token": "us", "relevance_score": 1.0},
             {"token": "venezuela", "relevance_score": 9.0},
         ]
-    ).to_csv(base_dir / "preprocessing" / "text_relevance_tokens.csv", index=False)
+    ).to_csv(base_dir / "data" / "preprocessing" / "text_relevance_tokens.csv", index=False)
 
 
 def test_analysis_config_paths_and_directory_creation(tmp_path: Path) -> None:
     cfg = AnalysisConfig(base_dir=tmp_path)
     assert cfg.data_dir == tmp_path / "data"
     assert cfg.analysis_ready_dir == tmp_path / "data" / "analysis_ready"
-    assert cfg.preprocessing_dir == tmp_path / "preprocessing"
+    assert cfg.preprocessing_dir == tmp_path / "data" / "preprocessing"
     assert cfg.output_dir == tmp_path / "analysis" / "outputs"
     assert cfg.analysis_events_path == tmp_path / "data" / "analysis_ready" / "analysis_events.parquet"
     assert cfg.analysis_url_content_path == tmp_path / "data" / "analysis_ready" / "analysis_url_content.parquet"

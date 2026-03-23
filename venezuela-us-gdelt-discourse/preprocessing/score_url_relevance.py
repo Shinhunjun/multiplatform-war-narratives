@@ -16,15 +16,15 @@ def parse_args() -> argparse.Namespace:
     Returns:
         argparse.Namespace: Parsed CLI arguments.
     """
-    base = Path(__file__).resolve().parent
+    artifact_dir = Path(__file__).resolve().parents[1] / "data" / "preprocessing"
     parser = argparse.ArgumentParser(
         description="Score url_lookup rows using token relevance scores."
     )
-    parser.add_argument("--lookup", type=Path, default=base / "url_lookup.csv", help="Path to url_lookup.csv")
+    parser.add_argument("--lookup", type=Path, default=artifact_dir / "url_lookup.csv", help="Path to url_lookup.csv")
     parser.add_argument(
         "--relevance",
         type=Path,
-        default=base / "text_relevance_tokens.csv",
+        default=artifact_dir / "text_relevance_tokens.csv",
         help="Path to text_relevance_tokens.csv",
     )
     parser.add_argument(

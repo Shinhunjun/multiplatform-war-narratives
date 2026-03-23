@@ -22,7 +22,8 @@ def parse_args() -> argparse.Namespace:
     Returns:
         argparse.Namespace: Parsed CLI arguments.
     """
-    base = Path(__file__).resolve().parent
+    project_dir = Path(__file__).resolve().parents[1]
+    artifact_dir = project_dir / "data" / "preprocessing"
     parser = argparse.ArgumentParser(
         description=(
             "Create 3-panel histograms of doc_relevance_score split by filter stage "
@@ -32,13 +33,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--eval-csv",
         type=Path,
-        default=base / "url_filter_eval.csv",
+        default=artifact_dir / "url_filter_eval.csv",
         help="Path to url_filter_eval.csv",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=base / "filter_stage_score_histograms.png",
+        default=artifact_dir / "filter_stage_score_histograms.png",
         help="Output PNG path",
     )
     parser.add_argument("--bins", type=int, default=60, help="Histogram bin count")

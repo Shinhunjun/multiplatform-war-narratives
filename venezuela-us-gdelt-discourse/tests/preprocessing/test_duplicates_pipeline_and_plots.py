@@ -107,12 +107,14 @@ def test_run_preprocessing_pipeline_helpers_and_main(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     base = Path(run_preprocessing_pipeline.__file__).resolve().parent
+    artifact_dir = base.parent / "data" / "preprocessing"
     assert run_preprocessing_pipeline.sanitize_tag("My File.csv") == "my_file_csv"
 
     custom_input = tmp_path / "Weekly Input.csv"
     custom_input.write_text("placeholder", encoding="utf-8")
     defaults = run_preprocessing_pipeline.derive_default_paths(custom_input, base)
     assert defaults["lookup"].name == "url_lookup_weekly_input.csv"
+    assert defaults["lookup"].parent == artifact_dir
 
     anchors = tmp_path / "anchors.json"
     anchors.write_text("{}", encoding="utf-8")
@@ -144,6 +146,7 @@ def test_run_preprocessing_pipeline_helpers_and_main(
     assert calls[0][0] == "Step 1/7: Build URL Index"
     assert Path(calls[0][1][1]).name == "build_url_index.py"
     assert "url_lookup_weekly_input.csv" in " ".join(calls[0][1])
+    assert str(artifact_dir / "filter_samples_weekly_input") in calls[5][1]
     assert "--filter-rules" in calls[5][1]
     assert str(filter_rules) in calls[5][1]
     assert Path(calls[-1][1][1]).name == "plot_filter_stage_score_histograms.py"

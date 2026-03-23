@@ -26,13 +26,14 @@ def parse_args() -> argparse.Namespace:
         argparse.Namespace: Parsed CLI arguments.
     """
     base = Path(__file__).resolve().parent
+    artifact_dir = base.parent / "data" / "preprocessing"
     parser = argparse.ArgumentParser(
         description=(
             "Evaluate filtering strategy on url_lookup.csv, write url_filter_eval.csv, and "
             "export step-by-step sample CSVs for manual QA."
         )
     )
-    parser.add_argument("--lookup", type=Path, default=base / "url_lookup.csv", help="Path to url_lookup.csv")
+    parser.add_argument("--lookup", type=Path, default=artifact_dir / "url_lookup.csv", help="Path to url_lookup.csv")
     parser.add_argument(
         "--anchors",
         type=Path,
@@ -48,19 +49,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=base / "url_filter_eval.csv",
+        default=artifact_dir / "url_filter_eval.csv",
         help="Output path for filter evaluation table",
     )
     parser.add_argument(
         "--summary-output",
         type=Path,
-        default=base / "url_filter_summary_counts.csv",
+        default=artifact_dir / "url_filter_summary_counts.csv",
         help="Output path for summary counts",
     )
     parser.add_argument(
         "--sample-dir",
         type=Path,
-        default=base / "filter_samples",
+        default=artifact_dir / "filter_samples",
         help="Directory for step sample CSV files",
     )
     parser.add_argument(

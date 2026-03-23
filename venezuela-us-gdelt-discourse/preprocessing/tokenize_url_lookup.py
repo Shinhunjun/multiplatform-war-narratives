@@ -18,7 +18,7 @@ def parse_args() -> argparse.Namespace:
     Returns:
         argparse.Namespace: Parsed CLI arguments.
     """
-    default_lookup = Path(__file__).resolve().parent / "url_lookup.csv"
+    default_lookup = Path(__file__).resolve().parents[1] / "data" / "preprocessing" / "url_lookup.csv"
     parser = argparse.ArgumentParser(
         description="Tokenize url_lookup Text column and store token arrays in Tokens."
     )
