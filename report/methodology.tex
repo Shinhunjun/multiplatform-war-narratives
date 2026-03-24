@@ -289,8 +289,10 @@ Each monthly model:
   \item \textbf{Representation:} c-TF-IDF + KeyBERTInspired, bilingual stopwords
 \end{enumerate}
 
-\subsubsection{Global Clustering}
-Applied to all three platforms with the same adaptive UMAP+HDBSCAN pipeline. Reddit: 3,406~clusters (noise~61\%). GDELT: 92~clusters (noise~40\%). TikTok: 78~clusters (noise~28\%).
+\subsubsection{Monthly Independent Clustering}
+Analogous to monthly BERTopic, we also fit \emph{independent} HDBSCAN clustering per month per platform. Each month's document embeddings are reduced via UMAP ($384 \to 5$ dims) and clustered with adaptive $min\_cluster\_size = \max(10, \lfloor n_{\text{month}} / 400 \rfloor)$, where $n_{\text{month}}$ is the number of documents in that month. This captures how narrative communities form and dissolve around specific events---a global clustering would average these dynamics away.
+
+In addition, a single global clustering pass is applied for high-level overview: Reddit~3,406 clusters, GDELT~92 clusters, TikTok~78 clusters.
 
 \subsection{Training Process}
 
@@ -298,6 +300,7 @@ All NLP models are pre-trained or unsupervised---no train/test split:
 \begin{itemize}[leftmargin=*]
   \item \textbf{Sentiment:} Direct inference; validated on 200 random samples.
   \item \textbf{BERTopic:} Independent per-month fitting prevents temporal leakage.
+  \item \textbf{HDBSCAN:} Independent per-month fitting with adaptive parameters ensures cluster granularity scales with monthly data volume.
   \item \textbf{GraphRAG:} Entity extraction on curated 200-thread subset; validated manually.
 \end{itemize}
 
