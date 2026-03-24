@@ -12,8 +12,9 @@ import { useTimeRange } from '../lib/TimeRangeContext';
 import { DarkTooltip, PlatformLabel, COLORS, chartGrid, chartTick, chartAxisLine } from '../components/charts/shared';
 
 function parseTopicLabel(name: string): string {
-  const parts = name.split('_').slice(1, 4);
-  return parts.join(', ');
+  const parts = name.split('_').slice(1, 3);
+  const label = parts.join(', ');
+  return label.length > 25 ? label.slice(0, 22) + '...' : label;
 }
 
 function TopicEvolutionChart({ timeline, topics, selected, title }: { timeline: TopicOverTime[]; topics: TopicInfo[]; selected: [string, string] | null; title: string }) {
@@ -45,13 +46,13 @@ function TopicEvolutionChart({ timeline, topics, selected, title }: { timeline: 
   return (
     <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
       <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">{title}</h3>
-      <ResponsiveContainer width="100%" height={350}>
+      <ResponsiveContainer width="100%" height={500}>
         <AreaChart data={timelineRows}>
           <CartesianGrid stroke={chartGrid} />
-          <XAxis dataKey="month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(timelineRows.length / 8))} />
+          <XAxis dataKey="month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(timelineRows.length / 6))} />
           <YAxis tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
           <Tooltip content={<DarkTooltip />} />
-          <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 12 }} />
+          <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 10, lineHeight: '14px' }} iconSize={8} />
           {topTopics.map((t, i) => (
             <Area
               key={t.Topic}
@@ -103,7 +104,13 @@ function MonthlyFittedBarChart({ topics, color, title }: { topics: TopicMonthlyF
 }
 
 export default function TopicsPage() {
-  const { selectedMonth } = useTimeRange();
+  const { range } = useTimeRange();
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+
+  // Set default month when range loads
+  useEffect(() => {
+    if (range && !selectedMonth) setSelectedMonth(range.allMonths[range.allMonths.length - 1]);
+  }, [range, selectedMonth]);
 
   const [loading, setLoading] = useState(false);
   const [redditFitted, setRedditFitted] = useState<TopicMonthlyFitted[]>([]);
@@ -152,86 +159,114 @@ export default function TopicsPage() {
 
   return (
     <div className="px-6 py-8 space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-[#e8eaed] tracking-tight">Topic Modeling (BERTopic)</h2>
-        <p className="text-[13px] text-[#8b8fa3] mt-1">
-          Independent BERTopic model fitted per month — use the slider above to explore
-        </p>
-        <div className="h-[2px] w-10 bg-[#6366f1] mt-2 rounded-full" />
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-[#e8eaed] tracking-tight">Topic Modeling (BERTopic)</h2>
+          <p className="text-[13px] text-[#8b8fa3] mt-1">Independent BERTopic model fitted per month</p>
+          <div className="h-[2px] w-10 bg-[#6366f1] mt-2 rounded-full" />
+        </div>
+        {range && (
+          <div className="flex items-center gap-2">
+            <label className="text-[11px] text-[#8b8fa3] uppercase tracking-wider font-medium">Month</label>
+            <select
+              value={selectedMonth || ''}
+              onChange={e => setSelectedMonth(e.target.value)}
+              className="bg-[#0f1117] border border-[#2a2e3d] rounded-lg px-3 py-1.5 text-[13px] text-[#e8eaed] focus:border-[#6366f1] outline-none"
+            >
+              {range.allMonths.map(m => (
+                <option key={m} value={m}>{new Date(m + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      {/* Monthly Fitted Topics — Reddit & News side by side */}
+      {/* Monthly Fitted Topics — only show platforms with data */}
       {loading ? (
         <div className="flex items-center justify-center h-[200px] text-[#64748b] text-sm">Loading...</div>
       ) : !selectedMonth ? (
         <div className="flex items-center justify-center h-[200px] text-[#64748b] text-sm">Loading...</div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div>
-            <div className="mb-2"><PlatformLabel platform="Reddit" color="#6366f1" /></div>
-            <MonthlyFittedBarChart topics={redditFitted} color="#6366f1" title={`Topics — Reddit (${monthLabel})`} />
+      ) : (() => {
+        const activeFitted = [
+          { label: 'Reddit', color: '#6366f1', data: redditFitted },
+          { label: 'GDELT News', color: '#f59e0b', data: newsFitted },
+          { label: 'TikTok', color: '#ff0050', data: tiktokFitted },
+        ].filter(p => p.data.length > 0);
+        const cols = activeFitted.length === 1 ? 'lg:grid-cols-1' : activeFitted.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3';
+        return activeFitted.length > 0 ? (
+          <div className={`grid grid-cols-1 ${cols} gap-4`}>
+            {activeFitted.map(({ label, color, data }) => (
+              <div key={label}>
+                <div className="mb-2"><PlatformLabel platform={label} color={color} /></div>
+                <MonthlyFittedBarChart topics={data} color={color} title={`Topics — ${label} (${monthLabel})`} />
+              </div>
+            ))}
           </div>
-          <div>
-            <div className="mb-2"><PlatformLabel platform="GDELT News" color="#f59e0b" /></div>
-            <MonthlyFittedBarChart topics={newsFitted} color="#f59e0b" title={`Topics — News (${monthLabel})`} />
-          </div>
-          <div>
-            <div className="mb-2"><PlatformLabel platform="TikTok" color="#ff0050" /></div>
-            <MonthlyFittedBarChart topics={tiktokFitted} color="#ff0050" title={`Topics — TikTok (${monthLabel})`} />
-          </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex items-center justify-center h-[200px] text-[#64748b] text-sm">No topic data for {monthLabel}</div>
+        );
+      })()}
 
-      {/* Topic details tables */}
-      {!loading && selectedMonth && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {[
-            { label: 'Reddit', color: '#6366f1', data: redditFitted },
-            { label: 'GDELT News', color: '#f59e0b', data: newsFitted },
-            { label: 'TikTok', color: '#ff0050', data: tiktokFitted },
-          ].map(({ label, color, data }) => (
+      {/* Topic details tables — only show platforms with data */}
+      {!loading && selectedMonth && (() => {
+        const activeDetails = [
+          { label: 'Reddit', color: '#6366f1', data: redditFitted },
+          { label: 'GDELT News', color: '#f59e0b', data: newsFitted },
+          { label: 'TikTok', color: '#ff0050', data: tiktokFitted },
+        ].filter(p => p.data.length > 0);
+        const cols = activeDetails.length === 1 ? 'lg:grid-cols-1' : activeDetails.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3';
+        return activeDetails.length > 0 ? (
+        <div className={`grid grid-cols-1 ${cols} gap-4`}>
+          {activeDetails.map(({ label, color, data }) => (
             <div key={label} className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
               <div className="flex items-center gap-2 mb-4">
                 <PlatformLabel platform={label} color={color} />
                 <h3 className="text-[13px] font-semibold text-[#e8eaed]">Topic Details — {monthLabel}</h3>
               </div>
-              {data.length > 0 ? (
-                <div className="max-h-[400px] overflow-y-auto">
-                  <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-[#1a1d27]">
-                      <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
-                        <th className="py-2.5 w-12 font-medium">ID</th>
-                        <th className="py-2.5 font-medium">Keywords</th>
-                        <th className="py-2.5 w-20 font-medium">Docs</th>
-                        <th className="py-2.5 w-20 font-medium">Share</th>
+              <div className="max-h-[400px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-[#1a1d27]">
+                    <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
+                      <th className="py-2.5 w-12 font-medium">ID</th>
+                      <th className="py-2.5 font-medium">Keywords</th>
+                      <th className="py-2.5 w-20 font-medium">Docs</th>
+                      <th className="py-2.5 w-20 font-medium">Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.map(t => (
+                      <tr key={t.topic_id} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
+                        <td className="py-2 font-mono text-[#64748b] text-xs">{t.topic_id}</td>
+                        <td className="py-2 text-[#e8eaed] text-[12px]">{t.keywords}</td>
+                        <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{t.count.toLocaleString()}</td>
+                        <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{(t.proportion * 100).toFixed(1)}%</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {data.map(t => (
-                        <tr key={t.topic_id} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
-                          <td className="py-2 font-mono text-[#64748b] text-xs">{t.topic_id}</td>
-                          <td className="py-2 text-[#e8eaed] text-[12px]">{t.keywords}</td>
-                          <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{t.count.toLocaleString()}</td>
-                          <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{(t.proportion * 100).toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-32 text-[#64748b] text-sm">No data for this month</div>
-              )}
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ))}
         </div>
-      )}
+        ) : null;
+      })()}
 
-      {/* Topic Evolution (global model, stacked area) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <TopicEvolutionChart timeline={redditTimeline} topics={redditTopics} selected={null} title="Topic Evolution (Top 8) — Reddit" />
-        <TopicEvolutionChart timeline={newsTimeline} topics={newsTopics} selected={null} title="Topic Evolution (Top 8) — News" />
-        <TopicEvolutionChart timeline={tiktokTimeline} topics={tiktokTopics} selected={null} title="Topic Evolution (Top 8) — TikTok" />
-      </div>
+      {/* Topic Evolution (global model, stacked area) — only show platforms with data */}
+      {(() => {
+        const activeEvolution = [
+          { timeline: redditTimeline, topics: redditTopics, title: 'Topic Evolution (Top 8) — Reddit' },
+          { timeline: newsTimeline, topics: newsTopics, title: 'Topic Evolution (Top 8) — News' },
+          { timeline: tiktokTimeline, topics: tiktokTopics, title: 'Topic Evolution (Top 8) — TikTok' },
+        ].filter(p => p.timeline.length > 0);
+        const cols = activeEvolution.length === 1 ? 'lg:grid-cols-1' : 'lg:grid-cols-2';
+        return activeEvolution.length > 0 ? (
+          <div className={`grid grid-cols-1 ${cols} gap-4`}>
+            {activeEvolution.map(({ timeline, topics, title }) => (
+              <TopicEvolutionChart key={title} timeline={timeline} topics={topics} selected={null} title={title} />
+            ))}
+          </div>
+        ) : null;
+      })()}
     </div>
   );
 }

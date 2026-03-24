@@ -7,35 +7,52 @@ import { fetchOverview, fetchSentimentByMonth, fetchSentimentBoxplot } from '../
 import type { OverviewStats, SentimentMonth, BoxPlotStat } from '../lib/api';
 import { useTimeRange } from '../lib/TimeRangeContext';
 import BoxPlotChart from '../components/charts/BoxPlotChart';
-import { DarkTooltip, PlatformLabel, chartGrid, chartTick, chartAxisLine } from '../components/charts/shared';
-
-function StatCard({ label, value, sub, accent }: { label: string; value: string | number; sub?: string; accent?: string }) {
-  return (
-    <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5 relative overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ backgroundColor: accent || '#6366f1' }} />
-      <p className="text-[11px] text-[#8b8fa3] uppercase tracking-wider font-medium">{label}</p>
-      <p className="text-2xl font-semibold text-[#e8eaed] mt-1.5 font-mono">{value}</p>
-      {sub && <p className="text-[11px] text-[#64748b] mt-1">{sub}</p>}
-    </div>
-  );
-}
+import { DarkTooltip, chartGrid, chartTick, chartAxisLine } from '../components/charts/shared';
+import { PlatformStats } from '../components/PlatformStats';
 
 function LoadingSkeleton() {
   return (
     <div className="px-6 py-8 space-y-6">
-      <div className="h-7 w-32 animate-pulse bg-[#1a1d27] rounded" />
+      <div className="h-7 w-32 animate-pulse bg-background-primary rounded" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="animate-pulse bg-[#1a1d27] rounded-lg h-24 border border-[#2a2e3d]" />
+          <div key={i} className="animate-pulse bg-background-primary rounded-lg h-24 border border-background-secondary" />
         ))}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="animate-pulse bg-[#1a1d27] rounded-lg h-[340px] border border-[#2a2e3d]" />
-        <div className="animate-pulse bg-[#1a1d27] rounded-lg h-[340px] border border-[#2a2e3d]" />
+        <div className="animate-pulse bg-background-primary rounded-lg h-[340px] border border-background-secondary" />
+        <div className="animate-pulse bg-background-primary rounded-lg h-[340px] border border-background-secondary" />
       </div>
     </div>
   );
 }
+
+const CustomSentimentTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-background-primary border border-background-secondary rounded-lg px-3 py-2 shadow-xl">
+        <p className="text-[11px] text-text-secondary mb-1 font-mono">{label}</p>
+        {data.reddit != null && (
+          <p className="text-[12px] font-medium text-accent-reddit">
+            Reddit: {data.reddit.toFixed(3)}
+          </p>
+        )}
+        {data.news != null && (
+          <p className="text-[12px] font-medium text-accent-news">
+            GDELT News: {data.news.toFixed(3)}
+          </p>
+        )}
+        {data.tiktok != null && (
+          <p className="text-[12px] font-medium text-accent-tiktok">
+            TikTok: {data.tiktok.toFixed(3)}
+          </p>
+        )}
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function Dashboard() {
   const { selected } = useTimeRange();
@@ -108,68 +125,27 @@ export default function Dashboard() {
   return (
     <div className="px-6 py-8 space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-[#e8eaed] tracking-tight">Overview</h2>
-        <div className="h-[2px] w-10 bg-[#6366f1] mt-2 rounded-full" />
+        <h2 className="text-xl font-bold text-text-primary tracking-tight">Overview</h2>
+        <div className="h-[2px] w-10 bg-accent-reddit mt-2 rounded-full" />
       </div>
 
       {/* Stats cards — 3 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Reddit stats */}
-        <div className="space-y-3">
-          <PlatformLabel platform="Reddit" color="#6366f1" />
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard label="Documents" value={redditStats.total_documents.toLocaleString()} sub="Posts & comments" accent="#6366f1" />
-            <StatCard label="Subreddits" value={redditStats.subreddits ?? 0} sub={`${redditStats.date_range.start} — ${redditStats.date_range.end}`} accent="#6366f1" />
-            <StatCard label="Topics" value={redditStats.num_topics} sub="BERTopic clusters" accent="#6366f1" />
-            <StatCard label="Avg Sentiment" value={redditStats.avg_sentiment.toFixed(3)} sub="Mean across subreddits" accent="#6366f1" />
-          </div>
-        </div>
-
-        {/* News stats */}
-        <div className="space-y-3">
-          <PlatformLabel platform="GDELT News" color="#f59e0b" />
-          {hasNews ? (
-            <div className="grid grid-cols-2 gap-3">
-              <StatCard label="Documents" value={newsStats.total_documents.toLocaleString()} sub="News articles" accent="#f59e0b" />
-              <StatCard label="Sources" value={newsStats.sources ?? 0} sub={`${newsStats.date_range.start} — ${newsStats.date_range.end}`} accent="#f59e0b" />
-              <StatCard label="Topics" value={newsStats.num_topics} sub="Mapped from Reddit" accent="#f59e0b" />
-              <StatCard label="Avg Sentiment" value={newsStats.avg_sentiment.toFixed(3)} sub="Mean across sources" accent="#f59e0b" />
-            </div>
-          ) : (
-            <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-8 text-center">
-              <p className="text-[#8b8fa3] text-sm">News data not available yet.</p>
-            </div>
-          )}
-        </div>
-
-        {/* TikTok stats */}
-        <div className="space-y-3">
-          <PlatformLabel platform="TikTok" color="#ff0050" />
-          {hasTiktok ? (
-            <div className="grid grid-cols-2 gap-3">
-              <StatCard label="Documents" value={tiktokStats.total_documents.toLocaleString()} sub={`${tiktokStats.total_videos ?? 0} videos, ${tiktokStats.total_comments ?? 0} comments`} accent="#ff0050" />
-              <StatCard label="Creators" value={tiktokStats.num_sources ?? tiktokStats.sources ?? 0} sub={`${tiktokStats.date_range.start} — ${tiktokStats.date_range.end}`} accent="#ff0050" />
-              <StatCard label="Topics" value={tiktokStats.num_topics} sub="BERTopic fitted" accent="#ff0050" />
-              <StatCard label="Avg Sentiment" value={tiktokStats.avg_sentiment.toFixed(3)} sub="Mean across creators" accent="#ff0050" />
-            </div>
-          ) : (
-            <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-8 text-center">
-              <p className="text-[#8b8fa3] text-sm">TikTok data not available yet.</p>
-            </div>
-          )}
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <PlatformStats platform="Reddit" stats={redditStats} />
+        <PlatformStats platform="GDELT News" stats={newsStats} />
+        <PlatformStats platform="TikTok" stats={tiktokStats} />
       </div>
 
       {/* Sentiment comparison chart */}
       {comparisonData.length > 0 && (
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Over Time — Cross-Platform</h3>
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4">Sentiment Over Time — Cross-Platform</h3>
           <ResponsiveContainer width="100%" height={320}>
             <LineChart data={comparisonData}>
               <CartesianGrid stroke={chartGrid} />
               <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(comparisonData.length / 10))} />
               <YAxis domain={[-0.8, 0.4]} tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
-              <Tooltip content={<DarkTooltip />} />
+              <Tooltip content={<CustomSentimentTooltip />} />
               <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 12 }} />
               <Line type="monotone" dataKey="reddit" stroke="#6366f1" strokeWidth={2} dot={false} name="Reddit" />
               {hasNews && <Line type="monotone" dataKey="news" stroke="#f59e0b" strokeWidth={2} dot={false} name="GDELT News" />}
@@ -179,77 +155,49 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Volume — 3 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-1">Document Volume — Reddit</h3>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={redditVolume}>
-              <CartesianGrid stroke={chartGrid} />
-              <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(redditVolume.length / 6))} />
-              <YAxis tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
-              <Tooltip content={<DarkTooltip />} />
-              <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 11 }} />
-              <Bar dataKey="Positive" stackId="a" fill="#34d399" />
-              <Bar dataKey="Neutral" stackId="a" fill="#64748b" />
-              <Bar dataKey="Negative" stackId="a" fill="#f87171" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-1">Document Volume — News</h3>
-          {newsVolume.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={newsVolume}>
-                <CartesianGrid stroke={chartGrid} />
-                <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(newsVolume.length / 6))} />
-                <YAxis tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
-                <Tooltip content={<DarkTooltip />} />
-                <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 11 }} />
-                <Bar dataKey="Positive" stackId="a" fill="#34d399" />
-                <Bar dataKey="Neutral" stackId="a" fill="#64748b" />
-                <Bar dataKey="Negative" stackId="a" fill="#f87171" radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[260px] text-[#64748b] text-sm">No news data available</div>
-          )}
-        </div>
-
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-1">Document Volume — TikTok</h3>
-          {tiktokVolume.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={tiktokVolume}>
-                <CartesianGrid stroke={chartGrid} />
-                <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(tiktokVolume.length / 6))} />
-                <YAxis tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
-                <Tooltip content={<DarkTooltip />} />
-                <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 11 }} />
-                <Bar dataKey="Positive" stackId="a" fill="#34d399" />
-                <Bar dataKey="Neutral" stackId="a" fill="#64748b" />
-                <Bar dataKey="Negative" stackId="a" fill="#f87171" radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[260px] text-[#64748b] text-sm">No TikTok data available</div>
-          )}
-        </div>
-      </div>
+      {/* Volume — dynamic columns based on data availability */}
+      {(() => {
+        const volumeCharts = [
+          { label: 'Reddit', data: redditVolume },
+          { label: 'News', data: newsVolume },
+          { label: 'TikTok', data: tiktokVolume },
+        ].filter(c => c.data.length > 0);
+        const cols = volumeCharts.length === 1 ? 'lg:grid-cols-1' : volumeCharts.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3';
+        return (
+          <div className={`grid grid-cols-1 ${cols} gap-4`}>
+            {volumeCharts.map(({ label, data }) => (
+              <div key={label} className="bg-background-primary rounded-lg border border-background-secondary p-5">
+                <h3 className="text-[13px] font-semibold text-text-primary mb-1">Document Volume — {label}</h3>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={data}>
+                    <CartesianGrid stroke={chartGrid} />
+                    <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(data.length / 6))} />
+                    <YAxis tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+                    <Tooltip content={<DarkTooltip />} />
+                    <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 11 }} />
+                    <Bar dataKey="Positive" stackId="a" fill="#34d399" />
+                    <Bar dataKey="Neutral" stackId="a" fill="#64748b" />
+                    <Bar dataKey="Negative" stackId="a" fill="#f87171" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Box plots — Reddit & News side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Distribution — Reddit</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4">Sentiment Distribution — Reddit</h3>
           <BoxPlotChart data={boxplotData} />
         </div>
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Distribution — News Top 20</h3>
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4">Sentiment Distribution — News Top 20</h3>
           {newsBoxplotData.length > 0 ? (
             <BoxPlotChart data={newsBoxplotData} labelPrefix="" />
           ) : (
-            <div className="flex items-center justify-center h-[200px] text-[#64748b] text-sm">No news data available</div>
+            <div className="flex items-center justify-center h-[200px] text-text-muted text-sm">No news data available</div>
           )}
         </div>
       </div>

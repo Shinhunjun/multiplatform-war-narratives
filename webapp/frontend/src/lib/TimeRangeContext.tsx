@@ -10,10 +10,10 @@ interface TimeRange {
 
 interface TimeRangeContextValue {
   range: TimeRange | null;
-  /** Currently selected single month (YYYY-MM) */
+  /** Currently selected single month (YYYY-MM) — used for monthly-fitted views */
   selectedMonth: string | null;
   setSelectedMonth: (month: string) => void;
-  /** [start, end] tuple for backward compat — both equal selectedMonth */
+  /** [start, end] range — used for sentiment, clusters, dashboard */
   selected: [string, string] | null;
   setSelected: (range: [string, string]) => void;
 }
@@ -46,21 +46,37 @@ function generateMonths(start: string, end: string): string[] {
 export function TimeRangeProvider({ children }: { children: ReactNode }) {
   const [range, setRange] = useState<TimeRange | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [selected, setSelected] = useState<[string, string] | null>(null);
 
   useEffect(() => {
     fetchOverview().then(stats => {
       const allMonths = generateMonths(stats.date_range.start, stats.date_range.end);
       setRange({ start: stats.date_range.start, end: stats.date_range.end, allMonths });
-      // Default to last month
+      // Default: last month for single-month views, full range for range views
       setSelectedMonth(allMonths[allMonths.length - 1]);
+      setSelected([allMonths[0], allMonths[allMonths.length - 1]]);
     });
   }, []);
 
-  const selected: [string, string] | null = selectedMonth ? [selectedMonth, selectedMonth] : null;
-  const setSelected = (r: [string, string]) => setSelectedMonth(r[1]);
+  // Keep selectedMonth in sync: when range changes, pick the end of range
+  const handleSetSelected = (r: [string, string]) => {
+    setSelected(r);
+    setSelectedMonth(r[1]);
+  };
+
+  const handleSetMonth = (m: string) => {
+    setSelectedMonth(m);
+    // Don't change the range — single month selection is independent
+  };
 
   return (
-    <TimeRangeContext.Provider value={{ range, selectedMonth, setSelectedMonth, selected, setSelected }}>
+    <TimeRangeContext.Provider value={{
+      range,
+      selectedMonth,
+      setSelectedMonth: handleSetMonth,
+      selected,
+      setSelected: handleSetSelected,
+    }}>
       {children}
     </TimeRangeContext.Provider>
   );

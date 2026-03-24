@@ -12,7 +12,16 @@ from ..services.data_service import (
     get_cluster_keywords,
     get_cluster_summaries,
     get_clusters_monthly,
+    get_cross_platform_scatter,
     get_temporal_clusters,
+    get_news_cluster_summaries,
+    get_news_cluster_keywords,
+    get_news_temporal_clusters,
+    get_news_clusters_monthly,
+    get_tiktok_cluster_summaries,
+    get_tiktok_cluster_keywords,
+    get_tiktok_temporal_clusters,
+    get_tiktok_clusters_monthly,
 )
 
 router = APIRouter(prefix="/api/clusters", tags=["clusters"])
@@ -122,39 +131,113 @@ def _keywords_map() -> dict:
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/cross-platform-scatter")
+def cross_platform_scatter(
+    max_points: int = Query(30000),
+    start: Optional[str] = Query(None),
+    end: Optional[str] = Query(None),
+):
+    """Unified UMAP scatter: Reddit + News in the same embedding space."""
+    df = get_cross_platform_scatter()
+    if df.empty:
+        return []
+    if start:
+        df = df[df["year_month"] >= start]
+    if end:
+        df = df[df["year_month"] <= end]
+    if len(df) > max_points:
+        df = df.sample(n=max_points, random_state=42)
+    return df.to_dict(orient="records")
+
+
 @router.get("/summaries")
 def cluster_summaries(
     limit: int = Query(50, description="Max clusters to return"),
     min_count: int = Query(10, description="Minimum document count"),
     start: Optional[str] = Query(None, description="Start month YYYY-MM"),
     end: Optional[str] = Query(None, description="End month YYYY-MM"),
+    platform: Optional[str] = Query(None),
 ):
     """Get cluster summaries sorted by document count, with keywords."""
-    df = get_cluster_summaries()
+    if platform == "news":
+        df = get_news_cluster_summaries()
+    elif platform == "tiktok":
+        df = get_tiktok_cluster_summaries()
+    else:
+        df = get_cluster_summaries()
+    if df.empty:
+        return []
 
-    # If time range specified, recompute counts and top_subreddit from assignments
+    # If time range specified, recompute counts from assignments
     if start or end:
-        stats = _filtered_stats(start, end)
-        if stats is not None:
-            stats_map = stats.set_index("cluster_id")
-            df = df.copy()
-            df["count"] = df["cluster_id"].map(stats_map["count"]).fillna(0).astype(int)
-            df["top_subreddit"] = df["cluster_id"].map(stats_map["top_subreddit"]).fillna(df["top_subreddit"])
+        if platform == "news":
+            adf_raw = _load_platform_assignments("news")
+        elif platform == "tiktok":
+            adf_raw = _load_platform_assignments("tiktok")
+        else:
+            adf_raw = get_cluster_assignments()
+
+        if adf_raw is not None and not adf_raw.empty:
+            adf = adf_raw[adf_raw["cluster_id"] != -1]
+            if start:
+                adf = adf[adf["year_month"] >= start]
+            if end:
+                adf = adf[adf["year_month"] <= end]
+            if not adf.empty:
+                counts = adf["cluster_id"].value_counts().to_dict()
+                df = df.copy()
+                df["count"] = df["cluster_id"].map(counts).fillna(0).astype(int)
+                # Update top source if available
+                src_col = "subreddit" if "subreddit" in adf.columns else "source" if "source" in adf.columns else None
+                if src_col:
+                    top_src = adf.groupby("cluster_id")[src_col].agg(lambda s: s.value_counts().index[0] if len(s) > 0 else "")
+                    if "top_subreddit" in df.columns:
+                        df["top_subreddit"] = df["cluster_id"].map(top_src).fillna(df["top_subreddit"])
+                    elif "top_source" in df.columns:
+                        df["top_source"] = df["cluster_id"].map(top_src).fillna(df["top_source"])
 
     df = df[df["count"] >= min_count]
     df = df.sort_values("count", ascending=False).head(limit)
-
-    # Join keywords and use top-3 keywords as label when theme is "Error"
-    kw_map = _keywords_map()
     df = df.copy()
-    df["keywords"] = df["cluster_id"].map(kw_map).fillna("")
+
+    # Ensure keywords column exists
+    if "keywords" not in df.columns:
+        # Try platform-specific keywords
+        if platform == "news":
+            kw = get_news_cluster_keywords()
+        elif platform == "tiktok":
+            kw = get_tiktok_cluster_keywords()
+        else:
+            kw = get_cluster_keywords()
+        if not kw.empty:
+            kw_map = {row["cluster_id"]: str(row["keywords"])[:60] for _, row in kw.iterrows() if isinstance(row.get("keywords"), str)}
+            df["keywords"] = df["cluster_id"].map(kw_map).fillna("")
+        else:
+            df["keywords"] = ""
+
     df["keywords_short"] = df["keywords"].apply(
-        lambda k: ", ".join(k.split(", ")[:3]) if isinstance(k, str) and k else ""
+        lambda k: ", ".join(str(k).split(", ")[:3]) if k else ""
     )
-    df["theme"] = df.apply(
-        lambda r: r["keywords_short"] if r["theme"] == "Error" and r["keywords_short"] else r["theme"],
-        axis=1,
-    )
+
+    # theme column may not exist for news/tiktok
+    if "theme" not in df.columns:
+        df["theme"] = df["keywords_short"]
+    else:
+        df["theme"] = df.apply(
+            lambda r: r["keywords_short"] if r.get("theme") in (None, "Error", "") else r["theme"],
+            axis=1,
+        )
+
+    # Ensure expected columns exist
+    for col in ["top_subreddit", "sentiment_mean", "time_start", "time_end"]:
+        if col not in df.columns:
+            if col == "top_subreddit":
+                df[col] = df.get("top_source", "")
+            elif col == "sentiment_mean":
+                df[col] = None
+            else:
+                df[col] = ""
+
     return df.to_dict(orient="records")
 
 
@@ -177,9 +260,15 @@ def temporal_clusters(
     start: Optional[str] = Query(None, description="Start month YYYY-MM"),
     end: Optional[str] = Query(None, description="End month YYYY-MM"),
     limit: int = Query(20, description="Top N clusters by total count"),
+    platform: Optional[str] = Query(None),
 ):
     """Get temporal cluster activity."""
-    df = get_temporal_clusters()
+    if platform == "news":
+        df = get_news_temporal_clusters()
+    elif platform == "tiktok":
+        df = get_tiktok_temporal_clusters()
+    else:
+        df = get_temporal_clusters()
 
     if cluster_id is not None:
         df = df[df["cluster_id"] == cluster_id]
@@ -204,9 +293,15 @@ def temporal_clusters(
 def clusters_monthly(
     month: str = Query(..., description="Month YYYY-MM"),
     top_n: int = Query(15, ge=1, le=50),
+    platform: Optional[str] = Query(None),
 ):
     """Get top N clusters for a specific month."""
-    df = get_clusters_monthly()
+    if platform == "news":
+        df = get_news_clusters_monthly()
+    elif platform == "tiktok":
+        df = get_tiktok_clusters_monthly()
+    else:
+        df = get_clusters_monthly()
     if df.empty:
         return []
     filtered = df[df["year_month"] == month].nlargest(top_n, "count")
@@ -214,9 +309,14 @@ def clusters_monthly(
 
 
 @router.get("/monthly/months")
-def clusters_monthly_months():
+def clusters_monthly_months(platform: Optional[str] = Query(None)):
     """Get list of all available months for cluster slider."""
-    df = get_clusters_monthly()
+    if platform == "news":
+        df = get_news_clusters_monthly()
+    elif platform == "tiktok":
+        df = get_tiktok_clusters_monthly()
+    else:
+        df = get_clusters_monthly()
     if df.empty:
         return []
     return sorted(df["year_month"].unique().tolist())
@@ -228,6 +328,58 @@ def cluster_scatter(
     max_points: int = Query(30000, description="Maximum number of points"),
     start: Optional[str] = Query(None, description="Start month YYYY-MM"),
     end: Optional[str] = Query(None, description="End month YYYY-MM"),
+    platform: Optional[str] = Query(None),
 ):
     """Get scatter plot data: stratified sample of top clusters with UMAP coords."""
-    return _scatter_data(top_n, max_points, start, end)
+    if platform == "news":
+        from ..services.data_service import get_news_cluster_keywords
+        assignments_fn = lambda: _load_platform_assignments("news")
+        kw_fn = get_news_cluster_keywords
+    elif platform == "tiktok":
+        from ..services.data_service import get_tiktok_cluster_keywords
+        assignments_fn = lambda: _load_platform_assignments("tiktok")
+        kw_fn = get_tiktok_cluster_keywords
+    else:
+        return _scatter_data(top_n, max_points, start, end)
+
+    assignments = assignments_fn()
+    if assignments is None or assignments.empty:
+        return []
+    df = assignments[assignments["cluster_id"] != -1]
+    if start:
+        df = df[df["year_month"] >= start]
+    if end:
+        df = df[df["year_month"] <= end]
+    if df.empty:
+        return []
+    top_clusters = df["cluster_id"].value_counts().nlargest(top_n).index.tolist()
+    df = df[df["cluster_id"].isin(top_clusters)]
+    if len(df) > max_points:
+        df = df.sample(n=max_points, random_state=42)
+    kw = kw_fn()
+    kw_map = {row["cluster_id"]: ", ".join(str(row["keywords"]).split(", ")[:3]) for _, row in kw.iterrows() if isinstance(row.get("keywords"), str)} if not kw.empty else {}
+    df = df.copy()
+    df["keywords"] = df["cluster_id"].map(kw_map).fillna("")
+    src_col = "source" if "source" in df.columns else "subreddit" if "subreddit" in df.columns else None
+    result = df[["umap_1", "umap_2", "cluster_id", "keywords"]].copy()
+    if src_col:
+        result["subreddit"] = df[src_col]
+    else:
+        result["subreddit"] = ""
+    result = result.rename(columns={"umap_1": "x", "umap_2": "y"})
+    result = result.replace([np.inf, -np.inf], np.nan)
+    return result.where(result.notna(), None).to_dict(orient="records")
+
+
+def _load_platform_assignments(platform: str):
+    """Load cluster assignments for news/tiktok."""
+    from ..services.data_service import NEWS_CLUSTERS_DIR, TIKTOK_CLUSTERS_DIR
+    if platform == "news":
+        path = NEWS_CLUSTERS_DIR / "cluster_assignments.parquet"
+    elif platform == "tiktok":
+        path = TIKTOK_CLUSTERS_DIR / "cluster_assignments.parquet"
+    else:
+        return None
+    if path.exists():
+        return pd.read_parquet(path)
+    return None

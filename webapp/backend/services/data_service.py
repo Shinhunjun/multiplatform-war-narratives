@@ -32,9 +32,11 @@ VISUALIZATIONS_DIR = ANALYSIS_DIR / "visualizations"
 
 NEWS_SENTIMENT_DIR = NEWS_ANALYSIS_DIR / "sentiment"
 NEWS_TOPICS_DIR = NEWS_ANALYSIS_DIR / "topics"
+NEWS_CLUSTERS_DIR = NEWS_ANALYSIS_DIR / "clusters"
 
 TIKTOK_SENTIMENT_DIR = TIKTOK_ANALYSIS_DIR / "sentiment"
 TIKTOK_TOPICS_DIR = TIKTOK_ANALYSIS_DIR / "topics"
+TIKTOK_CLUSTERS_DIR = TIKTOK_ANALYSIS_DIR / "clusters"
 TIKTOK_SPECIFIC_DIR = TIKTOK_ANALYSIS_DIR / "tiktok_specific"
 
 
@@ -46,10 +48,10 @@ def download_from_gcs() -> None:
     if not bucket_name:
         return
 
-    # Skip if all platform data already downloaded
-    has_reddit = SENTIMENT_DIR.exists() and any(SENTIMENT_DIR.iterdir())
-    has_tiktok = TIKTOK_SENTIMENT_DIR.exists() and any(TIKTOK_SENTIMENT_DIR.iterdir())
-    if has_reddit and has_tiktok:
+    # Skip if cross-platform scatter already downloaded (latest addition)
+    cross_scatter = CLUSTERS_DIR / "cross_platform_scatter.parquet"
+    has_all = cross_scatter.exists() and SENTIMENT_DIR.exists() and any(SENTIMENT_DIR.iterdir())
+    if has_all:
         logger.info("Data already present, skipping GCS download")
         return
 
@@ -58,7 +60,7 @@ def download_from_gcs() -> None:
     # Skip large files not needed by the API server
     _SKIP_PATTERNS = {
         "embeddings.npy", "embeddings_2d.npy", "document_embeddings.npy",
-        "sentiment_full.parquet", "bertopic_model", "topic_assignments.parquet",
+        "sentiment_full.parquet", "bertopic_model",
     }
 
     def _should_skip(name: str) -> bool:
@@ -213,9 +215,72 @@ def get_news_topics_monthly_fitted() -> pd.DataFrame:
 
 
 @functools.lru_cache(maxsize=1)
+def get_cross_platform_scatter() -> pd.DataFrame:
+    """Load unified cross-platform UMAP scatter (Reddit + News in same space)."""
+    path = CLUSTERS_DIR / "cross_platform_scatter.parquet"
+    if path.exists():
+        return pd.read_parquet(path)
+    return pd.DataFrame()
+
+
+@functools.lru_cache(maxsize=1)
 def get_clusters_monthly() -> pd.DataFrame:
     """Load pre-computed monthly cluster counts."""
     path = CLUSTERS_DIR / "clusters_monthly.parquet"
+    if path.exists():
+        return pd.read_parquet(path)
+    return pd.DataFrame(columns=["year_month", "cluster_id", "count", "proportion", "keywords"])
+
+
+# --- News clusters ---
+@functools.lru_cache(maxsize=1)
+def get_news_cluster_summaries() -> pd.DataFrame:
+    path = NEWS_CLUSTERS_DIR / "cluster_summaries.csv"
+    return pd.read_csv(path) if path.exists() else pd.DataFrame()
+
+
+@functools.lru_cache(maxsize=1)
+def get_news_cluster_keywords() -> pd.DataFrame:
+    path = NEWS_CLUSTERS_DIR / "cluster_keywords.csv"
+    return pd.read_csv(path) if path.exists() else pd.DataFrame()
+
+
+@functools.lru_cache(maxsize=1)
+def get_news_temporal_clusters() -> pd.DataFrame:
+    path = NEWS_CLUSTERS_DIR / "temporal_clusters.csv"
+    return pd.read_csv(path) if path.exists() else pd.DataFrame()
+
+
+@functools.lru_cache(maxsize=1)
+def get_news_clusters_monthly() -> pd.DataFrame:
+    path = NEWS_CLUSTERS_DIR / "monthly_clusters_fitted.parquet"
+    if path.exists():
+        return pd.read_parquet(path)
+    return pd.DataFrame(columns=["year_month", "cluster_id", "count", "proportion", "keywords"])
+
+
+# --- TikTok clusters ---
+@functools.lru_cache(maxsize=1)
+def get_tiktok_cluster_summaries() -> pd.DataFrame:
+    path = TIKTOK_CLUSTERS_DIR / "cluster_summaries.csv"
+    return pd.read_csv(path) if path.exists() else pd.DataFrame()
+
+
+@functools.lru_cache(maxsize=1)
+def get_tiktok_cluster_keywords() -> pd.DataFrame:
+    path = TIKTOK_CLUSTERS_DIR / "cluster_keywords.csv"
+    return pd.read_csv(path) if path.exists() else pd.DataFrame()
+
+
+@functools.lru_cache(maxsize=1)
+def get_tiktok_temporal_clusters() -> pd.DataFrame:
+    path = TIKTOK_CLUSTERS_DIR / "temporal_clusters.csv"
+    return pd.read_csv(path) if path.exists() else pd.DataFrame()
+
+
+@functools.lru_cache(maxsize=1)
+def get_tiktok_clusters_monthly() -> pd.DataFrame:
+    path = TIKTOK_CLUSTERS_DIR / "monthly_clusters_fitted.parquet"
     if path.exists():
         return pd.read_parquet(path)
     return pd.DataFrame(columns=["year_month", "cluster_id", "count", "proportion", "keywords"])

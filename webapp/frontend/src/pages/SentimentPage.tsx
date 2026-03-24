@@ -17,9 +17,9 @@ export default function SentimentPage() {
   const [boxplotData, setBoxplotData] = useState<BoxPlotStat[]>([]);
   const [newsBoxplotData, setNewsBoxplotData] = useState<BoxPlotStat[]>([]);
 
-  // News state
   const [redditMonthly, setRedditMonthly] = useState<SentimentMonth[]>([]);
   const [newsMonthly, setNewsMonthly] = useState<SentimentMonth[]>([]);
+  const [tiktokMonthly, setTiktokMonthly] = useState<SentimentMonth[]>([]);
   const [newsSources, setNewsSources] = useState<any[]>([]);
 
   useEffect(() => {
@@ -34,6 +34,7 @@ export default function SentimentPage() {
     fetchSentimentBoxplot(start, end, 'news').then(setNewsBoxplotData).catch(() => setNewsBoxplotData([]));
     fetchSentimentByMonth(start, end, 'reddit').then(setRedditMonthly);
     fetchSentimentByMonth(start, end, 'news').then(setNewsMonthly).catch(() => setNewsMonthly([]));
+    fetchSentimentByMonth(start, end, 'tiktok').then(setTiktokMonthly).catch(() => setTiktokMonthly([]));
   }, [selected]);
 
   useEffect(() => {
@@ -73,9 +74,9 @@ export default function SentimentPage() {
     .sort((a: any, b: any) => b.total_count - a.total_count)
     .slice(0, 10);
 
-  // Merge Reddit vs News monthly sentiment
+  // Merge Reddit vs News vs TikTok monthly sentiment
   const comparisonData: Record<string, any>[] = [];
-  if (redditMonthly.length > 0 || newsMonthly.length > 0) {
+  if (redditMonthly.length > 0 || newsMonthly.length > 0 || tiktokMonthly.length > 0) {
     const merged: Record<string, any> = {};
     redditMonthly.forEach(d => {
       merged[d.year_month] = { year_month: d.year_month, reddit: d.mean_sentiment };
@@ -83,6 +84,10 @@ export default function SentimentPage() {
     newsMonthly.forEach(d => {
       if (!merged[d.year_month]) merged[d.year_month] = { year_month: d.year_month };
       merged[d.year_month].news = d.mean_sentiment;
+    });
+    tiktokMonthly.forEach(d => {
+      if (!merged[d.year_month]) merged[d.year_month] = { year_month: d.year_month };
+      merged[d.year_month].tiktok = d.mean_sentiment;
     });
     comparisonData.push(...Object.values(merged).sort((a, b) => a.year_month.localeCompare(b.year_month)));
   }
@@ -95,34 +100,56 @@ export default function SentimentPage() {
   return (
     <div className="px-6 py-8 space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-[#e8eaed] tracking-tight">Sentiment Analysis</h2>
-        <div className="h-[2px] w-10 bg-[#6366f1] mt-2 rounded-full" />
+        <h2 className="text-xl font-bold text-text-primary tracking-tight">Sentiment Analysis</h2>
+        <div className="h-[2px] w-10 bg-accent-reddit mt-2 rounded-full" />
       </div>
 
-      {/* Reddit vs News comparison */}
-      {comparisonData.length > 0 && (
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">
-            Reddit vs News — Sentiment Over Time
-          </h3>
-          <ResponsiveContainer width="100%" height={320}>
-            <LineChart data={comparisonData}>
-              <CartesianGrid stroke={chartGrid} />
-              <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(comparisonData.length / 10))} />
-              <YAxis domain={[-0.8, 0.4]} tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
-              <Tooltip content={<DarkTooltip />} />
-              <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 12 }} />
-              <Line type="monotone" dataKey="reddit" stroke="#6366f1" strokeWidth={2} dot={false} name="Reddit" />
-              <Line type="monotone" dataKey="news" stroke="#f59e0b" strokeWidth={2} dot={false} name="GDELT News" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {/* Reddit vs News comparison — with 3-month moving average */}
+      {comparisonData.length > 0 && (() => {
+        // Compute 3-month moving average for smoother trends
+        const smoothed = comparisonData.map((d, i) => {
+          const window = comparisonData.slice(Math.max(0, i - 1), i + 2);
+          const rVals = window.map(w => w.reddit).filter((v: any) => v != null);
+          const nVals = window.map(w => w.news).filter((v: any) => v != null);
+          const tVals = window.map(w => w.tiktok).filter((v: any) => v != null);
+          return {
+            ...d,
+            reddit_smooth: rVals.length ? +(rVals.reduce((a: number, b: number) => a + b, 0) / rVals.length).toFixed(4) : null,
+            news_smooth: nVals.length ? +(nVals.reduce((a: number, b: number) => a + b, 0) / nVals.length).toFixed(4) : null,
+            tiktok_smooth: tVals.length ? +(tVals.reduce((a: number, b: number) => a + b, 0) / tVals.length).toFixed(4) : null,
+          };
+        });
+        return (
+          <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+            <h3 className="text-[13px] font-semibold text-text-primary mb-1">
+              Cross-Platform Sentiment Over Time
+            </h3>
+            <p className="text-[11px] text-text-muted mb-4">Solid lines: 3-month moving average. Faded lines: raw monthly values.</p>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={smoothed}>
+                <CartesianGrid stroke={chartGrid} />
+                <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(smoothed.length / 12))} />
+                <YAxis domain={[-0.5, 0.4]} tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+                <Tooltip content={<DarkTooltip />} />
+                <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 12 }} />
+                {/* Raw (faded) */}
+                <Line type="monotone" dataKey="reddit" stroke="#6366f1" strokeWidth={1} strokeOpacity={0.25} dot={false} name="Reddit (raw)" />
+                <Line type="monotone" dataKey="news" stroke="#f59e0b" strokeWidth={1} strokeOpacity={0.25} dot={false} name="News (raw)" />
+                <Line type="monotone" dataKey="tiktok" stroke="#ff0050" strokeWidth={1} strokeOpacity={0.25} dot={false} name="TikTok (raw)" />
+                {/* Smoothed (bold) */}
+                <Line type="monotone" dataKey="reddit_smooth" stroke="#6366f1" strokeWidth={2.5} dot={false} name="Reddit (3mo avg)" />
+                <Line type="monotone" dataKey="news_smooth" stroke="#f59e0b" strokeWidth={2.5} dot={false} name="News (3mo avg)" />
+                <Line type="monotone" dataKey="tiktok_smooth" stroke="#ff0050" strokeWidth={2.5} dot={false} name="TikTok (3mo avg)" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      })()}
 
       {/* Source selector */}
       <div className="space-y-3">
         <div>
-          <PlatformLabel platform="Reddit" color="#6366f1" />
+          <PlatformLabel platform="Reddit" />
           <div className="flex flex-wrap gap-2 mt-2">
             {subreddits.map(s => (
               <button
@@ -130,8 +157,8 @@ export default function SentimentPage() {
                 onClick={() => toggleSubreddit(s.subreddit)}
                 className={`px-3 py-1 text-[12px] rounded-full border transition-colors font-medium ${
                   sel.includes(s.subreddit)
-                    ? 'bg-[#6366f1]/15 text-[#6366f1] border-[#6366f1]/40'
-                    : 'bg-[#1a1d27] text-[#8b8fa3] border-[#2a2e3d] hover:border-[#6366f1]/30 hover:text-[#e8eaed]'
+                    ? 'bg-accent-reddit/10 text-accent-reddit border-accent-reddit/25'
+                    : 'bg-background-primary text-text-secondary border-background-secondary hover:border-accent-reddit/25 hover:text-text-primary'
                 }`}
               >
                 r/{s.subreddit}
@@ -141,7 +168,7 @@ export default function SentimentPage() {
         </div>
         {topNewsForSelector.length > 0 && (
           <div>
-            <PlatformLabel platform="GDELT News" color="#f59e0b" />
+            <PlatformLabel platform="GDELT News" />
             <div className="flex flex-wrap gap-2 mt-2">
               {topNewsForSelector.map((s: any) => (
                 <button
@@ -149,8 +176,8 @@ export default function SentimentPage() {
                   onClick={() => toggleNewsSource(s.source)}
                   className={`px-3 py-1 text-[12px] rounded-full border transition-colors font-medium ${
                     selNews.includes(s.source)
-                      ? 'bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/40'
-                      : 'bg-[#1a1d27] text-[#8b8fa3] border-[#2a2e3d] hover:border-[#f59e0b]/30 hover:text-[#e8eaed]'
+                      ? 'bg-accent-news/10 text-accent-news border-accent-news/25'
+                      : 'bg-background-primary text-text-secondary border-background-secondary hover:border-accent-news/25 hover:text-text-primary'
                   }`}
                 >
                   {s.source}
@@ -161,15 +188,15 @@ export default function SentimentPage() {
         )}
       </div>
 
-      <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">
+      <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+        <h3 className="text-[13px] font-semibold text-text-primary mb-4">
           Sentiment Comparison — {sel.length + selNews.length} source{sel.length + selNews.length !== 1 ? 's' : ''}
         </h3>
-        <ResponsiveContainer width="100%" height={360}>
+        <ResponsiveContainer width="100%" height={420}>
           <LineChart data={timelineData}>
             <CartesianGrid stroke={chartGrid} />
-            <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(timelineData.length / 8))} />
-            <YAxis domain={[-0.8, 0.3]} tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
+            <XAxis dataKey="year_month" tick={chartTick} axisLine={chartAxisLine} tickLine={false} interval={Math.max(1, Math.floor(timelineData.length / 12))} />
+            <YAxis domain={[-0.5, 0.4]} tick={chartTick} axisLine={chartAxisLine} tickLine={false} />
             <Tooltip content={<DarkTooltip />} />
             <Legend wrapperStyle={{ color: '#8b8fa3', fontSize: 12 }} />
             {sel.map((sub, i) => (
@@ -200,30 +227,30 @@ export default function SentimentPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Distribution — Reddit</h3>
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4">Sentiment Distribution — Reddit</h3>
           <BoxPlotChart data={boxplotData} />
         </div>
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Distribution — News Top 20</h3>
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4">Sentiment Distribution — News Top 20</h3>
           {newsBoxplotData.length > 0 ? (
             <BoxPlotChart data={newsBoxplotData} labelPrefix="" />
           ) : (
-            <div className="flex items-center justify-center h-[200px] text-[#64748b] text-sm">No news data available</div>
+            <div className="flex items-center justify-center h-[200px] text-text-muted text-sm">No news data available</div>
           )}
         </div>
       </div>
 
       {/* Side-by-side tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
           <div className="flex items-center gap-2 mb-4">
-            <PlatformLabel platform="Reddit" color="#6366f1" />
-            <h3 className="text-[13px] font-semibold text-[#e8eaed]">Subreddit Overview</h3>
+            <PlatformLabel platform="Reddit" />
+            <h3 className="text-[13px] font-semibold text-text-primary">Subreddit Overview</h3>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
+              <tr className="border-b border-background-secondary text-left text-[11px] text-text-secondary uppercase tracking-wider">
                 <th className="py-2.5 font-medium">Subreddit</th>
                 <th className="py-2.5 font-medium">Sentiment</th>
                 <th className="py-2.5 font-medium">Pos</th>
@@ -233,29 +260,29 @@ export default function SentimentPage() {
             </thead>
             <tbody>
               {[...subreddits].sort((a, b) => a.mean_sentiment - b.mean_sentiment).map(s => (
-                <tr key={s.subreddit} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
-                  <td className="py-2 font-medium text-[#e8eaed] text-[12px]">r/{s.subreddit}</td>
-                  <td className={`py-2 font-mono text-[12px] ${s.mean_sentiment < -0.3 ? 'text-[#f87171]' : s.mean_sentiment > 0 ? 'text-[#34d399]' : 'text-[#64748b]'}`}>
+                <tr key={s.subreddit} className="border-b border-background-secondary/50 hover:bg-[#242838] transition-colors">
+                  <td className="py-2 font-medium text-text-primary text-[12px]">r/{s.subreddit}</td>
+                  <td className={`py-2 font-mono text-[12px] ${s.mean_sentiment < -0.3 ? 'text-sentiment-negative' : s.mean_sentiment > 0 ? 'text-sentiment-positive' : 'text-text-muted'}`}>
                     {s.mean_sentiment.toFixed(3)}
                   </td>
-                  <td className="py-2 text-[#34d399] font-mono text-[12px]">{(s.positive_ratio * 100).toFixed(1)}%</td>
-                  <td className="py-2 text-[#f87171] font-mono text-[12px]">{(s.negative_ratio * 100).toFixed(1)}%</td>
-                  <td className="py-2 text-[#64748b] font-mono text-[12px]">{s.total_count.toLocaleString()}</td>
+                  <td className="py-2 text-sentiment-positive font-mono text-[12px]">{(s.positive_ratio * 100).toFixed(1)}%</td>
+                  <td className="py-2 text-sentiment-negative font-mono text-[12px]">{(s.negative_ratio * 100).toFixed(1)}%</td>
+                  <td className="py-2 text-text-muted font-mono text-[12px]">{s.total_count.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
           <div className="flex items-center gap-2 mb-4">
-            <PlatformLabel platform="GDELT News" color="#f59e0b" />
-            <h3 className="text-[13px] font-semibold text-[#e8eaed]">Top Sources</h3>
+            <PlatformLabel platform="GDELT News" />
+            <h3 className="text-[13px] font-semibold text-text-primary">Top Sources</h3>
           </div>
           {topNewsSources.length > 0 ? (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
+                <tr className="border-b border-background-secondary text-left text-[11px] text-text-secondary uppercase tracking-wider">
                   <th className="py-2.5 font-medium">Source</th>
                   <th className="py-2.5 font-medium">Sentiment</th>
                   <th className="py-2.5 font-medium">Pos</th>
@@ -265,20 +292,20 @@ export default function SentimentPage() {
               </thead>
               <tbody>
                 {topNewsSources.map((s: any) => (
-                  <tr key={s.source} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
-                    <td className="py-2 font-medium text-[#e8eaed] text-[12px] truncate max-w-[150px]">{s.source}</td>
-                    <td className={`py-2 font-mono text-[12px] ${s.mean_sentiment < -0.3 ? 'text-[#f87171]' : s.mean_sentiment > 0 ? 'text-[#34d399]' : 'text-[#64748b]'}`}>
+                  <tr key={s.source} className="border-b border-background-secondary/50 hover:bg-[#242838] transition-colors">
+                    <td className="py-2 font-medium text-text-primary text-[12px] truncate max-w-[150px]">{s.source}</td>
+                    <td className={`py-2 font-mono text-[12px] ${s.mean_sentiment < -0.3 ? 'text-sentiment-negative' : s.mean_sentiment > 0 ? 'text-sentiment-positive' : 'text-text-muted'}`}>
                       {s.mean_sentiment.toFixed(3)}
                     </td>
-                    <td className="py-2 text-[#34d399] font-mono text-[12px]">{(s.positive_ratio * 100).toFixed(1)}%</td>
-                    <td className="py-2 text-[#f87171] font-mono text-[12px]">{(s.negative_ratio * 100).toFixed(1)}%</td>
-                    <td className="py-2 text-[#64748b] font-mono text-[12px]">{s.total_count.toLocaleString()}</td>
+                    <td className="py-2 text-sentiment-positive font-mono text-[12px]">{(s.positive_ratio * 100).toFixed(1)}%</td>
+                    <td className="py-2 text-sentiment-negative font-mono text-[12px]">{(s.negative_ratio * 100).toFixed(1)}%</td>
+                    <td className="py-2 text-text-muted font-mono text-[12px]">{s.total_count.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           ) : (
-            <div className="flex items-center justify-center h-32 text-[#64748b] text-sm">No news data available</div>
+            <div className="flex items-center justify-center h-32 text-text-muted text-sm">No news data available</div>
           )}
         </div>
       </div>

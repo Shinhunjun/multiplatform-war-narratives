@@ -240,33 +240,49 @@ export const fetchTopicsBySubreddit = (platform?: Platform) => {
   return api.get<{ subreddit: string; topic_id: number; count: number; proportion: number }[]>(`/api/topics/by-subreddit?${params}`).then(r => r.data);
 };
 
-export const fetchClusterSummaries = (limit = 30, minCount = 20, start?: string, end?: string) => {
+export const fetchClusterSummaries = (limit = 30, minCount = 20, start?: string, end?: string, platform?: string) => {
   const params = new URLSearchParams();
   params.set('limit', String(limit));
   params.set('min_count', String(minCount));
   if (start) params.set('start', start);
   if (end) params.set('end', end);
+  if (platform) params.set('platform', platform);
   return api.get<ClusterSummary[]>(`/api/clusters/summaries?${params}`).then(r => r.data);
 };
 
-export const fetchClusterScatter = (topN = 50, maxPoints = 30000, start?: string, end?: string) => {
+export const fetchClusterScatter = (topN = 50, maxPoints = 30000, start?: string, end?: string, platform?: string) => {
   const params = new URLSearchParams();
   params.set('top_n', String(topN));
   params.set('max_points', String(maxPoints));
   if (start) params.set('start', start);
   if (end) params.set('end', end);
+  if (platform) params.set('platform', platform);
   return api.get<ClusterScatterPoint[]>(`/api/clusters/scatter?${params}`).then(r => r.data);
 };
 
-export const fetchClustersMonthly = (month: string, topN = 15) => {
+export interface CrossPlatformPoint {
+  x: number; y: number; platform: string; source: string; year_month: string; topic_id: number;
+}
+export const fetchCrossPlatformScatter = (maxPoints = 30000, start?: string, end?: string) => {
+  const params = new URLSearchParams();
+  params.set('max_points', String(maxPoints));
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  return api.get<CrossPlatformPoint[]>(`/api/clusters/cross-platform-scatter?${params}`).then(r => r.data);
+};
+
+export const fetchClustersMonthly = (month: string, topN = 15, platform?: string) => {
   const params = new URLSearchParams();
   params.set('month', month);
   params.set('top_n', String(topN));
+  if (platform) params.set('platform', platform);
   return api.get<ClusterMonthly[]>(`/api/clusters/monthly?${params}`).then(r => r.data);
 };
 
-export const fetchClustersMonthlyMonths = () => {
-  return api.get<string[]>(`/api/clusters/monthly/months`).then(r => r.data);
+export const fetchClustersMonthlyMonths = (platform?: string) => {
+  const params = new URLSearchParams();
+  if (platform) params.set('platform', platform);
+  return api.get<string[]>(`/api/clusters/monthly/months?${params}`).then(r => r.data);
 };
 
 // TikTok-specific endpoints
@@ -329,10 +345,11 @@ export interface ChatMessage {
 export const sendChatMessage = (question: string, history?: ChatMessage[], startMonth?: string, endMonth?: string) =>
   api.post<{ answer: string }>('/api/chat', { question, history, start_month: startMonth || null, end_month: endMonth || null }).then(r => r.data);
 
-export const fetchTemporalClusters = (limit = 10, start?: string, end?: string) => {
+export const fetchTemporalClusters = (limit = 10, start?: string, end?: string, platform?: string) => {
   const params = new URLSearchParams();
   params.set('limit', String(limit));
   if (start) params.set('start', start);
   if (end) params.set('end', end);
+  if (platform) params.set('platform', platform);
   return api.get<{ year_month: string; cluster_id: number; count: number; proportion: number }[]>(`/api/clusters/temporal?${params}`).then(r => r.data);
 };
