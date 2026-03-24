@@ -17,6 +17,12 @@ function parseTopicLabel(name: string): string {
   return label.length > 25 ? label.slice(0, 22) + '...' : label;
 }
 
+const PLATFORMS = [
+  { key: 'reddit', label: 'Reddit' as const, color: '#6366f1' },
+  { key: 'news', label: 'GDELT News' as const, color: '#f59e0b' },
+  { key: 'tiktok', label: 'TikTok' as const, color: '#ff0050' },
+];
+
 function TopicEvolutionChart({ timeline, topics, selected, title }: { timeline: TopicOverTime[]; topics: TopicInfo[]; selected: [string, string] | null; title: string }) {
   const filteredTimeline = selected
     ? timeline.filter(row => {
@@ -36,16 +42,16 @@ function TopicEvolutionChart({ timeline, topics, selected, title }: { timeline: 
 
   if (timelineRows.length === 0) {
     return (
-      <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">{title}</h3>
-        <div className="flex items-center justify-center h-[350px] text-[#64748b] text-sm">No data available</div>
+      <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+        <h3 className="text-[13px] font-semibold text-text-primary mb-4">{title}</h3>
+        <div className="flex items-center justify-center h-[350px] text-text-muted text-sm">No data available</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-      <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">{title}</h3>
+    <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+      <h3 className="text-[13px] font-semibold text-text-primary mb-4">{title}</h3>
       <ResponsiveContainer width="100%" height={500}>
         <AreaChart data={timelineRows}>
           <CartesianGrid stroke={chartGrid} />
@@ -80,16 +86,16 @@ function MonthlyFittedBarChart({ topics, color, title }: { topics: TopicMonthlyF
 
   if (bars.length === 0) {
     return (
-      <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-        <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">{title}</h3>
-        <div className="flex items-center justify-center h-[350px] text-[#64748b] text-sm">No topics for this month</div>
+      <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+        <h3 className="text-[13px] font-semibold text-text-primary mb-4">{title}</h3>
+        <div className="flex items-center justify-center h-[350px] text-text-muted text-sm">No topics for this month</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-      <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">{title}</h3>
+    <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+      <h3 className="text-[13px] font-semibold text-text-primary mb-4">{title}</h3>
       <ResponsiveContainer width="100%" height={350}>
         <BarChart data={bars} layout="vertical">
           <CartesianGrid stroke={chartGrid} horizontal={false} />
@@ -159,74 +165,93 @@ export default function TopicsPage() {
 
   return (
     <div className="px-6 py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-[#e8eaed] tracking-tight">Topic Modeling (BERTopic)</h2>
-          <p className="text-[13px] text-[#8b8fa3] mt-1">Independent BERTopic model fitted per month</p>
-          <div className="h-[2px] w-10 bg-[#6366f1] mt-2 rounded-full" />
-        </div>
-        {range && (
-          <div className="flex items-center gap-2">
-            <label className="text-[11px] text-[#8b8fa3] uppercase tracking-wider font-medium">Month</label>
-            <select
-              value={selectedMonth || ''}
-              onChange={e => setSelectedMonth(e.target.value)}
-              className="bg-[#0f1117] border border-[#2a2e3d] rounded-lg px-3 py-1.5 text-[13px] text-[#e8eaed] focus:border-[#6366f1] outline-none"
-            >
-              {range.allMonths.map(m => (
-                <option key={m} value={m}>{new Date(m + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}</option>
-              ))}
-            </select>
-          </div>
-        )}
+      <div>
+        <h2 className="text-xl font-bold text-text-primary tracking-tight">Topic Modeling (BERTopic)</h2>
+        <p className="text-[13px] text-text-secondary mt-1">Independent BERTopic model fitted per month</p>
+        <div className="h-[2px] w-10 bg-accent-reddit mt-2 rounded-full" />
       </div>
+
+      {/* Month slider */}
+      {range && selectedMonth && (() => {
+        const idx = range.allMonths.indexOf(selectedMonth);
+        const total = range.allMonths.length - 1;
+        return (
+          <div className="bg-background-primary rounded-lg border border-background-secondary px-5 py-3">
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] text-text-secondary font-medium uppercase tracking-wider shrink-0">Month</span>
+              <button
+                onClick={() => idx > 0 && setSelectedMonth(range.allMonths[idx - 1])}
+                disabled={idx <= 0}
+                className="w-7 h-7 flex items-center justify-center rounded-md bg-background-secondary text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 text-sm font-medium"
+              >‹</button>
+              <input
+                type="range"
+                min={0}
+                max={total}
+                value={idx}
+                onChange={e => setSelectedMonth(range.allMonths[Number(e.target.value)])}
+                className="flex-1 h-1.5 rounded-lg appearance-none cursor-pointer accent-[#6366f1] bg-[#2a2e3d]"
+              />
+              <button
+                onClick={() => idx < total && setSelectedMonth(range.allMonths[idx + 1])}
+                disabled={idx >= total}
+                className="w-7 h-7 flex items-center justify-center rounded-md bg-background-secondary text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 text-sm font-medium"
+              >›</button>
+              <span className="text-[13px] text-text-primary font-medium shrink-0 font-mono tabular-nums bg-background-secondary px-3 py-1 rounded-md min-w-[100px] text-center">
+                {monthLabel}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Monthly Fitted Topics — only show platforms with data */}
       {loading ? (
-        <div className="flex items-center justify-center h-[200px] text-[#64748b] text-sm">Loading...</div>
+        <div className="flex items-center justify-center h-[200px] text-text-muted text-sm">Loading...</div>
       ) : !selectedMonth ? (
-        <div className="flex items-center justify-center h-[200px] text-[#64748b] text-sm">Loading...</div>
+        <div className="flex items-center justify-center h-[200px] text-text-muted text-sm">Loading...</div>
       ) : (() => {
-        const activeFitted = [
-          { label: 'Reddit', color: '#6366f1', data: redditFitted },
-          { label: 'GDELT News', color: '#f59e0b', data: newsFitted },
-          { label: 'TikTok', color: '#ff0050', data: tiktokFitted },
-        ].filter(p => p.data.length > 0);
+        const allFitted = [
+          { ...PLATFORMS[0], data: redditFitted },
+          { ...PLATFORMS[1], data: newsFitted },
+          { ...PLATFORMS[2], data: tiktokFitted },
+        ];
+        const activeFitted = allFitted.filter(p => p.data.length > 0);
         const cols = activeFitted.length === 1 ? 'lg:grid-cols-1' : activeFitted.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3';
         return activeFitted.length > 0 ? (
           <div className={`grid grid-cols-1 ${cols} gap-4`}>
-            {activeFitted.map(({ label, color, data }) => (
-              <div key={label}>
-                <div className="mb-2"><PlatformLabel platform={label} color={color} /></div>
+            {activeFitted.map(({ key, label, color, data }) => (
+              <div key={key}>
+                <div className="mb-2"><PlatformLabel platform={label} /></div>
                 <MonthlyFittedBarChart topics={data} color={color} title={`Topics — ${label} (${monthLabel})`} />
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center h-[200px] text-[#64748b] text-sm">No topic data for {monthLabel}</div>
+          <div className="flex items-center justify-center h-[200px] text-text-muted text-sm">No topic data for {monthLabel}</div>
         );
       })()}
 
       {/* Topic details tables — only show platforms with data */}
       {!loading && selectedMonth && (() => {
         const activeDetails = [
-          { label: 'Reddit', color: '#6366f1', data: redditFitted },
-          { label: 'GDELT News', color: '#f59e0b', data: newsFitted },
-          { label: 'TikTok', color: '#ff0050', data: tiktokFitted },
+          { ...PLATFORMS[0], data: redditFitted },
+          { ...PLATFORMS[1], data: newsFitted },
+          { ...PLATFORMS[2], data: tiktokFitted },
         ].filter(p => p.data.length > 0);
         const cols = activeDetails.length === 1 ? 'lg:grid-cols-1' : activeDetails.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3';
         return activeDetails.length > 0 ? (
         <div className={`grid grid-cols-1 ${cols} gap-4`}>
-          {activeDetails.map(({ label, color, data }) => (
-            <div key={label} className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
+          {activeDetails.map(({ key, label, data }) => (
+            <div key={key} className="bg-background-primary rounded-lg border border-background-secondary p-5">
               <div className="flex items-center gap-2 mb-4">
-                <PlatformLabel platform={label} color={color} />
-                <h3 className="text-[13px] font-semibold text-[#e8eaed]">Topic Details — {monthLabel}</h3>
+                <PlatformLabel platform={label} />
+                <h3 className="text-[13px] font-semibold text-text-primary">Topic Details — {monthLabel}</h3>
               </div>
               <div className="max-h-[400px] overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-[#1a1d27]">
-                    <tr className="border-b border-[#2a2e3d] text-left text-[11px] text-[#8b8fa3] uppercase tracking-wider">
+                  <thead className="sticky top-0 bg-background-primary">
+                    <tr className="border-b border-background-secondary text-left text-[11px] text-text-secondary uppercase tracking-wider">
                       <th className="py-2.5 w-12 font-medium">ID</th>
                       <th className="py-2.5 font-medium">Keywords</th>
                       <th className="py-2.5 w-20 font-medium">Docs</th>
@@ -235,11 +260,11 @@ export default function TopicsPage() {
                   </thead>
                   <tbody>
                     {data.map(t => (
-                      <tr key={t.topic_id} className="border-b border-[#2a2e3d]/50 hover:bg-[#242838] transition-colors">
-                        <td className="py-2 font-mono text-[#64748b] text-xs">{t.topic_id}</td>
-                        <td className="py-2 text-[#e8eaed] text-[12px]">{t.keywords}</td>
-                        <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{t.count.toLocaleString()}</td>
-                        <td className="py-2 text-[#8b8fa3] font-mono text-[12px]">{(t.proportion * 100).toFixed(1)}%</td>
+                      <tr key={t.topic_id} className="border-b border-background-secondary/50 hover:bg-background-secondary/50 transition-colors">
+                        <td className="py-2 font-mono text-text-muted text-xs">{t.topic_id}</td>
+                        <td className="py-2 text-text-primary text-[12px]">{t.keywords}</td>
+                        <td className="py-2 text-text-secondary font-mono text-[12px]">{t.count.toLocaleString()}</td>
+                        <td className="py-2 text-text-secondary font-mono text-[12px]">{(t.proportion * 100).toFixed(1)}%</td>
                       </tr>
                     ))}
                   </tbody>

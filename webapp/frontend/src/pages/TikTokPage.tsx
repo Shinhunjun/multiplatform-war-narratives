@@ -60,16 +60,16 @@ export default function TikTokPage() {
     <div className="px-6 py-8 space-y-6">
       <div>
         <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold text-[#e8eaed] tracking-tight">TikTok Insights</h2>
-          <PlatformLabel platform="TikTok" color="#ff0050" />
+          <h2 className="text-xl font-bold text-text-primary tracking-tight">TikTok Insights</h2>
+          <PlatformLabel platform="TikTok" />
         </div>
-        <div className="h-[2px] w-10 bg-[#ff0050] mt-2 rounded-full" />
+        <div className="h-[2px] w-10 bg-accent-tiktok mt-2 rounded-full" />
       </div>
 
       {/* Sentiment + Engagement side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Sentiment Over Time</h3>
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4">Sentiment Over Time</h3>
           {sentiment.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={sentiment}>
@@ -81,12 +81,12 @@ export default function TikTokPage() {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[280px] text-[#64748b] text-sm">No data</div>
+            <div className="flex items-center justify-center h-[280px] text-text-muted text-sm">No data</div>
           )}
         </div>
 
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Engagement Metrics</h3>
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4">Engagement Metrics</h3>
           {engagement.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={engagement}>
@@ -101,15 +101,15 @@ export default function TikTokPage() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[280px] text-[#64748b] text-sm">No data</div>
+            <div className="flex items-center justify-center h-[280px] text-text-muted text-sm">No data</div>
           )}
         </div>
       </div>
 
       {/* Hashtag Trends */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Top Hashtags</h3>
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4">Top Hashtags</h3>
           {hashtags.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={hashtags} layout="vertical" margin={{ left: 80 }}>
@@ -121,12 +121,12 @@ export default function TikTokPage() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[400px] text-[#64748b] text-sm">No data</div>
+            <div className="flex items-center justify-center h-[400px] text-text-muted text-sm">No data</div>
           )}
         </div>
 
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Hashtag Trends Over Time</h3>
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4">Hashtag Trends Over Time</h3>
           {htAreaData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
               <AreaChart data={htAreaData}>
@@ -143,15 +143,15 @@ export default function TikTokPage() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[400px] text-[#64748b] text-sm">No data</div>
+            <div className="flex items-center justify-center h-[400px] text-text-muted text-sm">No data</div>
           )}
         </div>
       </div>
 
       {/* Region + Monthly Topics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">Video Distribution by Region</h3>
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4">Video Distribution by Region</h3>
           {regions.length > 0 ? (
             <ResponsiveContainer width="100%" height={340}>
               <BarChart data={regions} layout="vertical" margin={{ left: 40 }}>
@@ -163,12 +163,12 @@ export default function TikTokPage() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[340px] text-[#64748b] text-sm">No data</div>
+            <div className="flex items-center justify-center h-[340px] text-text-muted text-sm">No data</div>
           )}
         </div>
 
-        <div className="bg-[#1a1d27] rounded-lg border border-[#2a2e3d] p-5">
-          <h3 className="text-[13px] font-semibold text-[#e8eaed] mb-4">
+        <div className="bg-background-primary rounded-lg border border-background-secondary p-5">
+          <h3 className="text-[13px] font-semibold text-text-primary mb-4">
             Monthly Topics {selectedMonth && availableMonths.includes(selectedMonth) ? `— ${selectedMonth}` : availableMonths.length > 0 ? `— ${availableMonths[availableMonths.length - 1]}` : ''}
           </h3>
           {fittedTopics.length > 0 ? (
@@ -182,7 +182,7 @@ export default function TikTokPage() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[340px] text-[#64748b] text-sm">No topic data for this month</div>
+            <div className="flex items-center justify-center h-[340px] text-text-muted text-sm">No topic data for this month</div>
           )}
         </div>
       </div>

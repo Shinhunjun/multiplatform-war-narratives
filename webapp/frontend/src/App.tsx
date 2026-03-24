@@ -12,7 +12,7 @@ import ChatPage from './pages/ChatPage';
 
 function ConditionalTimeRangeBar() {
   const { pathname } = useLocation();
-  if (pathname === '/chat' || pathname === '/reports') return null;
+  if (pathname === '/chat' || pathname === '/reports' || pathname === '/topics') return null;
   return <TimeRangeBar />;
 }
 
