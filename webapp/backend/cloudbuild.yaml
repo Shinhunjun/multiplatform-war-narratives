@@ -1,0 +1,31 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/backend-api'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/backend-api'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'backend-api'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/backend-api'
+      - '--region'
+      - 'us-central1'
+      - '--set-env-vars'
+      - 'GCS_BUCKET=mlops-compute-lab-analysis-data,DATA_DIR=/tmp/analysis_data,GCP_PROJECT=theta-bliss-486220-s1,GCP_LOCATION=us-central1'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '1Gi'
+
+images:
+  - 'gcr.io/$PROJECT_ID/backend-api'

@@ -1,14 +1,14 @@
 # Venezuela-US Multiplatform Narrative Analysis
 
-End-to-end pipeline for collecting, analyzing, and visualizing online discourse about Venezuela-US relations during the Maduro era (2013–2026). Covers Reddit, GDELT news, and TikTok across 11 subreddits and multiple platforms.
+End-to-end pipeline for collecting, analyzing, and visualizing online discourse about Venezuela-US relations during the Maduro era (2013–2026). Covers **Reddit**, **GDELT News**, and **TikTok** with AI-powered reports and interactive chat.
 
 ## Live Demo
 
 | Service | URL | Status |
 |---------|-----|--------|
-| **Dashboard** | [frontend-shinhunjuns-projects.vercel.app](https://frontend-a26f9qr47-shinhunjuns-projects.vercel.app) | Deployed |
-| **API** | [backend-api-762303020827.us-central1.run.app](https://backend-api-762303020827.us-central1.run.app/docs) | Deployed |
-| **API Health** | [/health](https://backend-api-762303020827.us-central1.run.app/health) | `{"status":"ok"}` |
+| **Dashboard** | [capstone-dashboard-iota.vercel.app](https://capstone-dashboard-iota.vercel.app) | Deployed |
+| **API** | [backend-api-318799600047.us-central1.run.app](https://backend-api-318799600047.us-central1.run.app/docs) | Deployed |
+| **API Health** | [/health](https://backend-api-318799600047.us-central1.run.app/health) | `{"status":"ok"}` |
 
 ## Architecture
 
@@ -23,7 +23,8 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 │  COLLECTION → PREPROCESSING → ANALYSIS                          │
 │  Arctic Shift API    Filter bots     Sentiment (RoBERTa)        │
 │  BigQuery            Clean text      Topics (BERTopic)          │
-│  TikTok SDK          Normalize       Clusters (HDBSCAN+UMAP)   │
+│  TikTok Research     Normalize       Clusters (HDBSCAN+UMAP)   │
+│  + Playwright                        TikTok-specific analytics  │
 └──────────────┬──────────────────────────────┬───────────────────┘
                │                              │
                ▼                              ▼
@@ -31,11 +32,14 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 │  KNOWLEDGE GRAPH (GraphRAG)  │ │  WEB APPLICATION               │
 │  Microsoft GraphRAG          │ │  FastAPI (Cloud Run)  ◄──►     │
 │  Ollama (llama3.1:8b)        │ │  React + Recharts (Vercel)     │
-│  LanceDB vector store        │ │  GCS bucket (29MB)             │
-└──────────────────────────────┘ └────────────────────────────────┘
+│  LanceDB vector store        │ │  Gemini LLM (Reports + Chat)   │
+└──────────────────────────────┘ │  GCS bucket (data storage)     │
+                                 └────────────────────────────────┘
 ```
 
 ## Data Statistics
+
+### Reddit
 
 | Metric | Raw Data | After Preprocessing |
 |--------|----------|---------------------|
@@ -47,7 +51,7 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 | **Unique Comment Authors** | 129,740 | 119,021 |
 | **Subreddits** | 11 | 11 |
 
-### Target Subreddits (11)
+**Target Subreddits (11):**
 
 | Category | Subreddits |
 |----------|------------|
@@ -56,31 +60,68 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 | Ideological | r/Conservative, r/neoliberal, r/socialism, r/Libertarian |
 | Regional | r/LatinAmerica, r/geopolitics |
 
+### GDELT News
+
+| Metric | Value |
+|--------|-------|
+| **Data Period** | 2013-01 ~ 2026-01 |
+| **Total Events** | 292,566 |
+| **Successful Scrapes** | 211,071 (72.1% success rate) |
+| **Unique URLs** | 105,095 |
+| **Avg Goldstein Scale** | 0.04 |
+| **Avg Tone** | -3.08 |
+| **Initiator Split (VEN / USA)** | 136,614 / 155,952 |
+
+### TikTok
+
+| Metric | Value |
+|--------|-------|
+| **Data Period** | 2016-09 ~ 2026-03 |
+| **Total Videos** | 3,399 |
+| **Total Comments** | 1,309 (Playwright browser collection) |
+| **Total Documents** | 4,656 |
+| **Unique Creators** | 1,013 |
+| **Unique Hashtags** | 3,147 |
+| **Top Region** | Venezuela (50.6%), Spain (12.5%), USA (11.7%) |
+| **Collection Method** | TikTok Research API (videos) + Playwright (comments) |
+
 ## Analysis Pipeline
 
 ### Sentiment Analysis — RoBERTa
 - **Model:** `cardiffnlp/twitter-roberta-base-sentiment-latest` (124M params)
 - **Output:** sentiment score (-1 to +1), label, confidence per document
-- **Aggregation:** by month, by subreddit, by subreddit×month
+- **Applied to:** Reddit posts/comments, GDELT news articles, TikTok videos/comments
+- **Aggregation:** by month, by subreddit/source/creator, cross-tabulated
 
 ### Topic Modeling — BERTopic
-- **Embedding:** Sentence-BERT (`all-MiniLM-L6-v2`, 384-dim)
+- **Embedding:** Sentence-BERT (`paraphrase-multilingual-MiniLM-L12-v2`, 384-dim)
 - **Reduction:** UMAP (384→5 dim)
 - **Clustering:** HDBSCAN (min_cluster_size=50)
-- **Result:** 15 topics discovered (+ outlier topic -1)
+- **Stopwords:** Combined EN+ES (504 words) for bilingual topic representation
+- **Monthly fitting:** Independent BERTopic models per month for all 3 platforms
+- **Result:** Reddit 647 topics, News 1,169 topics, TikTok 19 topics
 
 ### Semantic Clustering — HDBSCAN + UMAP
 - **Separate from BERTopic** — finer-grained global clustering
 - **Result:** 3,406 clusters with keywords, temporal evolution, and 2D UMAP visualization
+
+### TikTok-Specific Analytics
+- **Hashtag trends:** 3,147 unique hashtags with frequency and sentiment over time
+- **Engagement metrics:** Views, likes, shares, comments aggregated monthly
+- **Region distribution:** Video origin by country code
+- **Voice-to-text:** Auto-caption text included in analysis
 
 ### Knowledge Graph — Microsoft GraphRAG
 - **Framework:** [Microsoft GraphRAG](https://github.com/microsoft/graphrag) with local LLM
 - **LLM:** Ollama `llama3.1:8b` (entity extraction, community reports)
 - **Embedding:** `nomic-embed-text` (768-dim, via Ollama)
 - **Vector Store:** LanceDB
-- **Entity Types:** PERSON, ORGANIZATION, EVENT, POLICY, LOCATION, TOPIC
 - **Input:** 200 high-engagement Reddit threads from the 2019 Guaido Recognition Crisis
-- **Query Modes:** Local search, Global search, Drift search
+
+### LLM Features — Gemini via Vertex AI
+- **Intelligence Reports:** AI-generated cross-platform analysis for any time period
+- **Data Chat:** Natural language Q&A over all platform data with auto context retrieval
+- **Model:** `gemini-2.0-flash` via Vertex AI (project: `theta-bliss-486220-s1`)
 
 ## Web Dashboard
 
@@ -88,64 +129,52 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/overview/stats` | Summary statistics |
+| `GET /api/overview/stats` | Summary statistics (platform=reddit\|news\|tiktok) |
 | `GET /api/sentiment/by-month` | Monthly sentiment trends |
-| `GET /api/sentiment/by-subreddit` | Per-subreddit sentiment |
+| `GET /api/sentiment/by-subreddit` | Per-subreddit/source/creator sentiment |
 | `GET /api/sentiment/by-subreddit-month` | Subreddit×month matrix |
+| `GET /api/sentiment/boxplot` | Box plot statistics |
 | `GET /api/topics/info` | Topic list with keywords |
 | `GET /api/topics/over-time` | Topic temporal evolution |
-| `GET /api/topics/by-subreddit` | Topic distribution by subreddit |
+| `GET /api/topics/monthly-fitted` | Independent monthly BERTopic results |
 | `GET /api/clusters/summaries` | Cluster summaries |
-| `GET /api/clusters/keywords` | Cluster keywords |
+| `GET /api/clusters/scatter` | UMAP scatter (30K points) |
 | `GET /api/clusters/temporal` | Cluster temporal changes |
+| `GET /api/tiktok/hashtags` | TikTok hashtag trends |
+| `GET /api/tiktok/engagement` | TikTok engagement metrics |
+| `GET /api/tiktok/regions` | TikTok region distribution |
+| `GET /api/reports/generate` | AI-generated intelligence report |
+| `POST /api/chat` | Natural language data chat |
 
 ### Frontend — React on Vercel
 
 | Page | Visualizations |
 |------|----------------|
-| **Dashboard** | StatCards, Sentiment Timeline, Subreddit BarChart, Volume Distribution |
-| **Sentiment** | Multi-subreddit comparison, Composite Timeline, Overview Table |
-| **Topics** | Topic distribution, Top 8 Stacked AreaChart, Detail Table |
-| **Clusters** | Top 20 clusters (sentiment-colored), Custom Tooltips, Detail Table |
+| **Dashboard** | 3-platform StatCards, Cross-platform Sentiment Timeline, Volume Distribution (Reddit/News/TikTok) |
+| **Sentiment** | Multi-source comparison, Composite Timeline, Box Plots |
+| **Topics** | 3-column monthly BERTopic (Reddit/News/TikTok), Topic Evolution AreaCharts |
+| **TikTok** | Hashtag trends, Engagement metrics, Region distribution, Monthly topics |
+| **Clusters** | UMAP scatter (30K points), Top 20 clusters, Temporal bar charts |
+| **Reports** | AI intelligence report generation with period selector, platform stats cards |
+| **Chat** | Natural language Q&A with suggested questions, conversation history |
 
 ## Deployment
 
 ### Backend (GCP Cloud Run)
 
 ```bash
-# 1. Upload data to GCS (~29MB)
-bash webapp/backend/upload_data_to_gcs.sh
-
-# 2. Deploy to Cloud Run
-gcloud run deploy backend-api \
-  --source webapp/backend \
-  --project mlops-compute-lab \
-  --region us-central1 \
-  --set-env-vars GCS_BUCKET=mlops-compute-lab-analysis-data,DATA_DIR=/tmp/analysis_data \
-  --allow-unauthenticated \
-  --memory 1Gi
+cd webapp/backend
+gcloud builds submit --config=cloudbuild.yaml --project=theta-bliss-486220-s1
 ```
-
-The backend downloads data from GCS on startup (`download_from_gcs()` in lifespan handler).
 
 ### Frontend (Vercel)
 
 ```bash
 cd webapp/frontend
-vercel --prod
+npm run build && npx vercel --prod
 ```
 
 **Environment variable:** `VITE_API_URL` → Cloud Run backend URL (set in `.env.production`)
-
-### Daily ETL Pipeline (Cloud Run Jobs)
-
-```bash
-# Deploy pipeline job
-gcloud builds submit --config webapp/pipeline/deploy/cloudbuild.yaml .
-
-# Setup Cloud Scheduler (daily 06:00 UTC)
-./webapp/pipeline/deploy/setup_scheduler.sh mlops-compute-lab us-central1
-```
 
 ## Key Crisis Periods
 
@@ -162,52 +191,42 @@ gcloud builds submit --config webapp/pipeline/deploy/cloudbuild.yaml .
 
 ```
 capstone/
-├── README.md                              # This file
-├── PIPELINE.md                            # Detailed pipeline & algorithm docs
-├── venezuela-us-reddit-discourse/         # Reddit data + analysis
+├── README.md
+├── reddit/                                # Reddit data + analysis
 │   ├── data-collection/                   # Arctic Shift API collection
 │   ├── preprocessing/                     # Text cleaning pipeline
 │   ├── analysis/                          # Sentiment, topics, clustering
-│   │   └── outputs/                       # CSV/Parquet/npy results
-│   └── EDA/                               # Exploratory data analysis
-├── venezuela-tiktok-discourse/            # TikTok collection pipeline
-├── graphrag/                              # Microsoft GraphRAG framework (source)
-├── venezuela-graphrag/                    # GraphRAG knowledge graph for Venezuela data
-│   ├── settings.yaml                      # GraphRAG config (Ollama LLM + embeddings)
-│   ├── input/                             # 200 Reddit thread documents (.txt)
-│   ├── output/                            # Indexed entities, communities, text units
-│   ├── prompts/                           # Custom extraction & search prompts
-│   └── cache/                             # LLM response cache
-├── gdelt/                                 # GDELT BigQuery export data
+│   │   ├── outputs/                       # Reddit analysis results
+│   │   ├── outputs_news/                  # GDELT analysis results
+│   │   └── outputs_tiktok/                # TikTok analysis results
+│   └── eda/                               # Exploratory data analysis
+├── gdelt/                                 # GDELT news data
+│   ├── data-collection/                   # BigQuery export + web scraping
+│   ├── preprocessing/                     # Text relevance filtering
+│   └── analysis/                          # EDA + analyze_gdelt.py
+├── tiktok/                                # TikTok data pipeline
+│   ├── data-collection/                   # TikTok Research API + Playwright comments
+│   ├── analysis/                          # run_analysis.py (sentiment + topics + specific)
+│   └── preprocessing/                     # Video/comment filtering
+├── comment_scrape/                        # Playwright-based TikTok comment scraper
+├── graphrag/                              # GraphRAG knowledge graph instance
 ├── webapp/
-│   ├── backend/                           # FastAPI + GCS data loading
-│   │   ├── main.py                        # App entry, CORS, lifespan
-│   │   ├── routers/                       # API route handlers
-│   │   ├── services/data_service.py       # Data loading + GCS download
-│   │   ├── Dockerfile                     # Cloud Run container
-│   │   ├── cloudbuild.yaml                # Cloud Build config
-│   │   └── requirements.txt
-│   ├── frontend/                          # React + Vite + TailwindCSS
-│   │   ├── src/
-│   │   │   ├── pages/                     # Dashboard, Sentiment, Topics, Clusters
-│   │   │   ├── components/                # Layout, charts
-│   │   │   └── lib/api.ts                 # API client
-│   │   ├── vercel.json                    # Vercel SPA config
-│   │   └── .env.production                # VITE_API_URL
+│   ├── backend/                           # FastAPI + GCS + Gemini (Cloud Run)
+│   │   ├── routers/                       # overview, sentiment, topics, clusters, tiktok, reports, chat
+│   │   └── services/                      # data_service, llm_service
+│   ├── frontend/                          # React + Vite + Recharts + TailwindCSS (Vercel)
+│   │   └── src/pages/                     # Dashboard, Sentiment, Topics, TikTok, Clusters, Reports, Chat
 │   └── pipeline/                          # Daily ETL (Cloud Run Jobs)
-│       ├── collectors/                    # Reddit, GDELT, news scraper
-│       ├── processing/                    # Preprocessing + analysis
-│       └── deploy/                        # Cloud Build + Scheduler
-└── pipeline_data/                         # Pipeline runtime data
+└── data/                                  # Raw data files (gitignored)
 ```
 
 ## Local Development
 
 ```bash
 # Backend
-cd webapp/backend
-pip install -r requirements.txt
-uvicorn webapp.backend.main:app --reload
+cd webapp
+pip install -r backend/requirements.txt
+uvicorn backend.main:app --reload --port 8000
 
 # Frontend
 cd webapp/frontend
@@ -215,28 +234,29 @@ npm install
 npm run dev    # → http://localhost:5173 (proxies /api to localhost:8000)
 ```
 
-## Data Access
-
-**Full dataset on Google Drive:** [Download Here](https://drive.google.com/drive/folders/1MV2-ktL-OsiT4cDmoGWwlmt9l-OY_j-U?usp=sharing)
-
 ## Technical Stack
 
 | Component | Technology |
 |-----------|------------|
-| Data Collection | Arctic Shift API, BigQuery, TikTok Research API |
+| Data Collection | Arctic Shift API, BigQuery, TikTok Research API, Playwright |
 | Preprocessing | pandas, regex, Parquet |
 | Sentiment | RoBERTa (`twitter-roberta-base-sentiment-latest`) |
 | Topic Modeling | BERTopic, Sentence-BERT, UMAP, HDBSCAN |
 | Clustering | HDBSCAN, UMAP, TF-IDF |
 | Knowledge Graph | Microsoft GraphRAG, Ollama (llama3.1:8b), LanceDB |
+| LLM | Gemini 2.0 Flash via Vertex AI |
 | Backend | FastAPI, Google Cloud Storage, Cloud Run |
 | Frontend | React 19, TypeScript, Vite, TailwindCSS, Recharts |
-| Deployment | GCP Cloud Run, Vercel, Cloud Scheduler |
+| Deployment | GCP Cloud Run, Vercel, Cloud Build |
+
+## Data Access
+
+**Full dataset on Google Drive:** [Download Here](https://drive.google.com/drive/folders/1MV2-ktL-OsiT4cDmoGWwlmt9l-OY_j-U?usp=sharing)
 
 ## License
 
 For academic research purposes only.
 
-## Author
+## Authors
 
-Hunjun Shin
+Hunjun Shin, Rich Goodier, Ameir El Ouadi

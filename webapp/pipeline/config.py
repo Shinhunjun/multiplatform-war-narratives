@@ -31,7 +31,7 @@ class PipelineConfig:
 
     @property
     def outputs_dir(self) -> Path:
-        return self.base_dir / "venezuela-us-reddit-discourse" / "analysis" / "outputs"
+        return self.base_dir / "reddit" / "analysis" / "outputs"
 
     # --- GCS (for Cloud Run deployment) ---
     gcs_bucket: str = field(

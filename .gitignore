@@ -3,6 +3,9 @@
 *.csv
 !**/pyproject.toml
 
+# Raw data directory
+data/
+
 # Raw JSON data (large)
 data-collection/data/**/*.json
 pipeline_data/
