@@ -35,7 +35,7 @@ Useful optional flags:
 
 ## Inputs
 
-Primary runtime inputs are resolved by [config.py](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/analysis/config.py):
+Primary runtime inputs are resolved by `config.py`:
 
 - `data/analysis_ready/analysis_events.parquet`
 - `data/analysis_ready/analysis_url_content.parquet`
@@ -48,13 +48,13 @@ By default the pipeline prefers the analysis-ready parquet exports over legacy d
 
 ## Folder Layout
 
-- [config.py](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/analysis/config.py): central path and runtime configuration.
-- [data_loader.py](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/analysis/data_loader.py): loads analysis-ready data and preprocessing artifacts.
-- [main.py](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/analysis/main.py): top-level pipeline runner.
+- `config.py`: central path and runtime configuration.
+- `data_loader.py`: loads analysis-ready data and preprocessing artifacts.
+- `main.py`: top-level pipeline runner.
 - `sentiment/`: sentiment model wrappers and aggregation helpers.
 - `topic/`: BERTopic modeling helpers.
 - `clustering/`: embedding, clustering, temporal visualization, and summarization helpers.
-- [visualize_temporal.py](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/analysis/visualize_temporal.py): additional temporal plotting utilities.
+- `visualize_temporal.py`: additional temporal plotting utilities.
 - `outputs/`: saved artifacts from analysis runs.
 
 ## Outputs
@@ -93,4 +93,4 @@ The pipeline writes into `analysis/outputs/`:
 
 - The analysis stack is dependency-heavy because it includes `torch`, `transformers`, BERTopic, and clustering libraries.
 - Cluster summarization may require API credentials depending on whether you use `--llm anthropic` or `--llm openai`.
-- If you want to change default paths or filtering behavior, start in [config.py](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/analysis/config.py).
+- If you want to change default paths or filtering behavior, start in `config.py`.

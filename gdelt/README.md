@@ -69,7 +69,7 @@ pytest
 
 ## Notes
 
-- Stage-specific details live in [data_collection/README.md](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/data_collection/README.md) and [preprocessing/README.md](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/preprocessing/README.md).
-- Weekly maintenance details live in [weekly_update/README.md](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/weekly_update/README.md).
+- Stage-specific details live in `data_collection/README.md` and `preprocessing/README.md`.
+- Weekly maintenance details live in `weekly_update/README.md`.
 - The codebase currently assumes a local `data/` directory for scrape outputs, generated preprocessing artifacts, and analysis-ready exports.
 - `analysis/` is the cleanest module-style entry point and supports `python -m analysis.main`.

@@ -4,9 +4,9 @@ This file provides project-level guidance for any coding agent working in this r
 
 ## Scope Boundary
 
-- The user is responsible for everything inside `venezuela-us-gdelt-discourse/`.
-- Files outside `venezuela-us-gdelt-discourse/` are out of scope.
-- Never edit, move, delete, or reformat files outside `venezuela-us-gdelt-discourse/`.
+- The user is responsible for everything inside `gdelt/`.
+- Files outside `gdelt/` are out of scope.
+- Never edit, move, delete, or reformat files outside `gdelt/`.
 - Never expand the scope of work beyond this directory unless the user explicitly changes that boundary.
 
 ## Working Style
@@ -44,8 +44,8 @@ This file provides project-level guidance for any coding agent working in this r
 
 ## Python Environment
 
-- Before running Python commands, tests, package checks, or install/verification steps, check whether this project has a local virtual environment at `venezuela-us-gdelt-discourse/.venv/`.
-- If `.venv/bin/python` exists, prefer it over system interpreters like `python`, `python3`, or `/usr/bin/python3`.
+- Before running Python commands, tests, package checks, or install/verification steps, check whether this project has a local virtual environment at `gdelt/.venv/`.
+- If a project-local `.venv` interpreter exists, prefer it over system interpreters like `python` or `python3`.
 - When reporting missing Python dependencies, verify them in the project virtual environment first before concluding they are not installed.
 - When running `pip`, use the interpreter-coupled form such as `.venv/bin/python -m pip ...` so package checks and installs target the same environment used by the project.
 - If you intentionally use a non-venv interpreter, say so explicitly and explain why.

@@ -35,7 +35,7 @@ Note: this script does not do incremental in-place updates against an already-ex
 
 ## Run Commands
 
-Run from the project root (`venezuela-us-gdelt-discourse`) unless noted.
+Run from the project root (`gdelt`) unless noted.
 
 Scrape one year (run from `data/` because script paths are relative):
 

@@ -14,7 +14,7 @@ This folder contains the automated test suite for the GDELT project.
 - `data_collection/`: tests for yearly scraping, rescue, and consolidation logic.
 - `eda/`: tests for analysis-ready loading and report/plot generation behavior.
 - `preprocessing/`: tests for URL indexing, tokenization, relevance scoring, filtering, plotting, and analysis-ready export.
-- [conftest.py](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/tests/conftest.py): shared test bootstrap. It sets a non-interactive matplotlib backend and adjusts import paths for the current project layout.
+- `conftest.py`: shared test bootstrap. It sets a non-interactive matplotlib backend and adjusts import paths for the current project layout.
 
 ## Running Tests
 
@@ -53,4 +53,4 @@ Run one test file with verbose output:
 
 ## Practical Note
 
-Because the codebase still includes some script-style modules, [conftest.py](/home/rich/Desktop/capstone/multiplatform-war-narratives/venezuela-us-gdelt-discourse/tests/conftest.py) adds the project directories to `sys.path` during testing. That keeps the current layout testable, but it is also a sign that future packaging cleanup could simplify imports.
+Because the codebase still includes some script-style modules, `conftest.py` adds the project directories to `sys.path` during testing. That keeps the current layout testable, but it is also a sign that future packaging cleanup could simplify imports.

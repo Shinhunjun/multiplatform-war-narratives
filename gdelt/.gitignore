@@ -20,3 +20,6 @@ venv/
 notes.txt
 *.png
 !preprocessing/filter_stage_score_histograms.png
+preprocessing/feature_dictionary.txt
+preprocessing/filter_strategy.txt
+preprocessing/example_preprocessing_output.txt

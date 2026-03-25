@@ -17,7 +17,7 @@ Generated preprocessing artifacts are written under `data/preprocessing/` by def
 
 ## Run
 
-From `venezuela-us-gdelt-discourse/preprocessing`:
+From `gdelt/preprocessing`:
 
 ```powershell
 python .\run_preprocessing_pipeline.py ..\data\gdelt_scraped.csv --force-retokenize --require-success-status
