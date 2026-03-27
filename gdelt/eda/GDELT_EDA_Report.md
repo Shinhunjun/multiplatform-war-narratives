@@ -4,20 +4,60 @@
 
 | Metric | Value |
 |--------|-------|
-| **Data Period** | 2013-01-07 ~ 2026-01-26 |
-| **Total Events** | 292,566 |
-| **Avg Goldstein Scale** | 0.04 |
+| **Data Period** | 2013-01-07 ~ 2026-03-25 |
+| **Total Events** | 301,007 |
+| **Avg Goldstein Scale** | 0.02 |
 | **Avg Tone** | -3.08 |
-| **Median Tone** | -3.25 |
-| **Initiator Split (VEN / USA)** | 136,614 / 155,952 |
-| **Successful Scrapes** | 226,506 |
-| **Scrape Success Rate** | 77.42% |
-| **Unique URLs** | 105,095 |
-| **Duplicate URL Rows** | 187,471 |
+| **Median Tone** | -3.24 |
+| **Initiator Split (VEN / USA)** | 140,275 / 160,732 |
+| **Unique URLs** | 108,066 |
+| **Articles in Analysis Corpus** | 67,022 |
 
 ### Data Source
 - **Dataset**: Analysis-ready GDELT parquet join (Venezuela-US filtered interactions)
 - **Scope**: Event metadata from `analysis_events.parquet` + scraped article title/text content from `analysis_url_content.parquet`
+
+---
+
+## Content Analysis
+
+### Title Word Cloud
+
+![Title Word Cloud](08_title_wordcloud.png)
+
+### Top Title Terms
+
+| Word | Frequency | Share |
+|------|-----------|-------|
+| venezuela | 34,693 | 5.51% |
+| us | 16,398 | 2.60% |
+| trump | 13,744 | 2.18% |
+| u.s. | 12,649 | 2.01% |
+| venezuelan | 11,904 | 1.89% |
+| maduro | 10,863 | 1.72% |
+| oil | 5,609 | 0.89% |
+| sanction | 4,034 | 0.64% |
+| president | 3,750 | 0.60% |
+| american | 3,346 | 0.53% |
+
+### Text Word Cloud
+
+![Text Word Cloud](09_text_wordcloud.png)
+
+### Top Text Terms
+
+| Word | Frequency | Share |
+|------|-----------|-------|
+| venezuela | 67,211 | 0.36% |
+| state | 63,507 | 0.34% |
+| president | 62,066 | 0.33% |
+| venezuelan | 58,363 | 0.31% |
+| country | 57,605 | 0.31% |
+| government | 49,376 | 0.26% |
+| maduro | 48,382 | 0.26% |
+| united | 47,261 | 0.25% |
+| american | 45,811 | 0.24% |
+| take | 43,798 | 0.23% |
 
 ---
 
@@ -35,7 +75,7 @@
 
 | Month | Events |
 |-------|--------|
-| 2026-01 | 26,252 |
+| 2026-01 | 27,925 |
 | 2019-02 | 11,409 |
 | 2019-03 | 8,700 |
 | 2019-01 | 8,569 |
@@ -45,7 +85,6 @@
 | 2019-04 | 4,874 |
 | 2017-08 | 4,721 |
 | 2015-03 | 4,437 |
-
 
 ---
 
@@ -93,85 +132,110 @@
 ### Top Conflict Events (Lowest Goldstein)
 | Date | Actor 1 | Actor 2 | Code | Goldstein | Title |
 |------|---------|---------|------|-----------|-------|
-| 2013-12-24 | VENEZUELA | UNITED STATES | 193 | -10.0 | 13 stories unforgettable personal essays in parenting, relationships |
-| 2020-08-20 | VENEZUELAN | SAN FRANCISCO | 190 | -10.0 | Crime spikes as Soros-funded DAs take charge: 'They're not progressive, they're rogue' |
-| 2015-03-03 | VENEZUELA | REUTERS | 193 | -10.0 | Venezuela to charge 8 police in young men's disappearance, death |
-| 2019-04-02 | VENEZUELA | UNITED STATES | 190 | -10.0 | The Latest: Venezuela judge seeks to strip Guaido's immunity |
-| 2026-01-04 | UNITED STATES | VENEZUELA | 193 | -10.0 | ‘We’re going to run it’: Trump says military to stay in Venezuela for now |
-
+| 2026-03-25 | CHICAGO | VENEZUELA | 190 | -10.0 | Report: Taxpayers Footed Housing Costs for Illegal Alien Accused of Murdering Sheridan Gorman |
+| 2013-12-29 | SAN ANTONIO | VENEZUELA | 195 | -10.0 | The NSA Uses Powerful Toolbox in Effort to Spy on Global Networks |
+| 2013-12-29 | SAN ANTONIO | VENEZUELA | 195 | -10.0 | The NSA Uses Powerful Toolbox in Effort to Spy on Global Networks |
+| 2018-09-08 | ORLANDO | VENEZUELA | 190 | -10.0 | Wife of critically injured Ofc. Valencia shares story |
+| 2026-03-25 | VENEZUELA | HOUSTON | 190 | -10.0 | Trump has destroyed Venezuela's socialist ideology: opposition leader |
 
 ### Top Cooperation Events (Highest Goldstein)
 | Date | Actor 1 | Actor 2 | Code | Goldstein | Title |
 |------|---------|---------|------|-----------|-------|
-| 2024-04-03 | VENEZUELA | AMERICAN | 874 | 10.0 | Wife's brutal punishment for deported migrant influencer who showed illegals how to squat in US home... |
-| 2025-04-07 | VENEZUELA | UNITED STATES | 874 | 10.0 | The frenzied 24 hours when Venezuelan migrants in the US were shipped to an El Salvador prison |
-| 2026-01-10 | THE US | VENEZUELA | 874 | 10.0 | Rodriguez or Trump: Who Is Really Running Venezuela? |
-| 2018-05-16 | VENEZUELAN | KELLOGG COMPANY | 874 | 10.0 | The Sprout: NAFTA clock ticking and big dog lickings |
-| 2026-01-12 | UNITED STATES | VENEZUELA | 874 | 10.0 | Trump goes rogue against Venezuela and lays out his imperialistic goals |
-
+| 2018-02-02 | VENEZUELA | THE WHITE HOUSE | 874 | 10.0 | Top diplomat leaves State, opens door for Cuba, Venezuela hawks | Miami Herald |
+| 2015-07-20 | VENEZUELA | PITTSBURGH | 874 | 10.0 | Obituary: Mary Loretta Harrison / Swissvale native made difference as volunteer |
+| 2013-07-24 | VENEZUELAN | MIAMI | 874 | 10.0 | Venezuela Consulate Empty But Paying |
+| 2023-12-04 | VENEZUELA | UNITED STATES | 874 | 10.0 | Guyana Says Oil Producers Are Moving Ahead Despite Venezuela’s Threats |
+| 2018-06-20 | VENEZUELA | AMERICAN | 874 | 10.0 | US exits UN rights body: Principled, or another retreat? |
 
 ---
 
-## Scrape Quality
+## Appendix: Data Quality & Methodology
+
+### Scrape Quality
 
 ![Scrape Status](06_scraped_status.png)
 
-### Scrape Status Breakdown
+#### Scrape Status Breakdown
 
 | Status | Count |
 |--------|-------|
-| Success | 166,878 |
-| Error | 60,382 |
+| Success | 173,678 |
+| Error | 61,473 |
 | Success (Archived) | 59,628 |
-| Empty_Content | 5,678 |
+| Empty_Content | 6,228 |
 
+| **Successful Scrapes** | 233,306 |
+| **Scrape Success Rate** | 77.51% |
+| **Duplicate URL Rows** | 192,941 |
 
-### URL Uniqueness
+#### URL Uniqueness
 
 ![URL Uniqueness](07_scraped_url_uniqueness.png)
 
 ---
 
-## Content Analysis: Title
+### Article Length Distribution
 
-![Title Word Cloud](08_title_wordcloud.png)
+![Article Length](10_article_length.png)
 
-### Top Title Terms
+#### Statistics (Included Articles)
 
-| Word | Frequency | Share |
-|------|-----------|-------|
-| venezuela | 102,204 | 5.61% |
-| us | 47,314 | 2.60% |
-| trump | 38,767 | 2.13% |
-| u.s. | 37,324 | 2.05% |
-| venezuelan | 36,918 | 2.03% |
-| maduro | 33,522 | 1.84% |
-| oil | 13,694 | 0.75% |
-| american | 11,532 | 0.63% |
-| sanction | 11,319 | 0.62% |
-| president | 10,775 | 0.59% |
-
-
-## Content Analysis: Text
-
-![Text Word Cloud](09_text_wordcloud.png)
-
-### Top Text Terms
-
-| Word | Frequency | Share |
-|------|-----------|-------|
-| venezuela | 194,588 | 0.35% |
-| state | 185,355 | 0.33% |
-| president | 180,631 | 0.33% |
-| venezuelan | 173,984 | 0.31% |
-| country | 167,674 | 0.30% |
-| government | 145,668 | 0.26% |
-| maduro | 144,143 | 0.26% |
-| united | 141,301 | 0.25% |
-| american | 137,901 | 0.25% |
-| would | 127,229 | 0.23% |
-
+| Metric | Value |
+|--------|-------|
+| **Count** | 67,022 |
+| **Min** | 40 words |
+| **25th Percentile** | 365 words |
+| **Median** | 588 words |
+| **Mean** | 755 words |
+| **75th Percentile** | 925 words |
+| **99th Percentile** | 3,447 words |
+| **Max** | 18,243 words |
 
 ---
 
-*Generated: 2026-03-18*
+### Relevance Score Distribution
+
+![Relevance Score](11_relevance_score.png)
+
+#### Statistics by Inclusion Status (In-Scope Articles)
+
+| Metric | Included | Excluded |
+|--------|----------|----------|
+| **Count** | 67,022 | 22,325 |
+| **Min** | 25.0 | -22.8 |
+| **Median** | 58.3 | 26.1 |
+| **Mean** | 58.5 | 32.8 |
+| **Max** | 121.1 | 117.6 |
+
+---
+
+### Filter Stage Breakdown
+
+![Filter Stage Breakdown](12_filter_stage_breakdown.png)
+
+#### Drop Count by Stage (In-Scope Articles, Stages Not Mutually Exclusive)
+
+| Stage | Dropped | % of In-Scope |
+|-------|---------|---------------|
+| **Duplicate** | 12,688 | 14.2% |
+| **Length** | 3,928 | 4.4% |
+| **Score** | 10,844 | 12.1% |
+| **Anchor** | 16,006 | 17.9% |
+
+---
+
+### Content Filter Funnel
+
+![Content Filter Funnel](13_filter_funnel.png)
+
+#### Funnel Steps
+
+| Step | Articles | Removed |
+|------|----------|---------|
+| **Total Scraped** | 107,934 | — |
+| **After Scope Filter** | 89,347 | 18,587 out of scope |
+| **After Content Filters** | 67,022 | 22,325 failed filters |
+
+---
+
+*Generated: 2026-03-27*

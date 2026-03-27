@@ -98,6 +98,14 @@ URL_CONTENT_REQUIRED_COLUMNS = [
     "Title",
     "Text",
     "Tokens",
+    "text_word_count",
+    "doc_relevance_score",
+    "in_filter_scope",
+    "analysis_include",
+    "filter_duplicate_decision",
+    "filter_length_decision",
+    "filter_score_decision",
+    "filter_anchor_decision",
 ]
 
 
@@ -513,6 +521,206 @@ def plot_url_uniqueness(df: pd.DataFrame) -> dict[str, int]:
     }
 
 
+def plot_article_length(df_urls: pd.DataFrame) -> dict:
+    """Plot article word-count distribution for analysis-included articles.
+
+    Args:
+        df_urls (pd.DataFrame): URL-deduplicated DataFrame.
+
+    Returns:
+        dict: Summary statistics for the report.
+    """
+    included = df_urls[df_urls["analysis_include"] == True]["text_word_count"]
+    p99 = float(included.quantile(0.99))
+    stats = {
+        "count": int(included.shape[0]),
+        "min": int(included.min()),
+        "p25": int(included.quantile(0.25)),
+        "median": int(included.median()),
+        "mean": float(included.mean()),
+        "p75": int(included.quantile(0.75)),
+        "p99": int(p99),
+        "max": int(included.max()),
+    }
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.hist(included.clip(upper=p99), bins=60, color="#1f77b4", alpha=0.8, edgecolor="none")
+    ax.axvline(stats["median"], color="red", linestyle="--", linewidth=1.5, label=f"Median: {stats['median']:,}")
+    ax.axvline(stats["mean"], color="orange", linestyle="--", linewidth=1.5, label=f"Mean: {stats['mean']:,.0f}")
+    ax.set_title("Article Length Distribution (Included Articles)", fontsize=13, fontweight="bold")
+    ax.set_xlabel(f"Word Count  (clipped at 99th percentile: {stats['p99']:,})")
+    ax.set_ylabel("Number of Articles")
+    ax.legend()
+    ax.grid(True, alpha=0.3, axis="y")
+    stats_text = (
+        f"n = {stats['count']:,}\n"
+        f"Min: {stats['min']:,}\n"
+        f"P25: {stats['p25']:,}\n"
+        f"Median: {stats['median']:,}\n"
+        f"P75: {stats['p75']:,}\n"
+        f"Max: {stats['max']:,}"
+    )
+    ax.text(
+        0.98, 0.97, stats_text, transform=ax.transAxes,
+        ha="right", va="top", fontsize=9,
+        bbox={"boxstyle": "round,pad=0.4", "facecolor": "white", "alpha": 0.8},
+    )
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / "10_article_length.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    return stats
+
+
+def plot_relevance_score(df_urls: pd.DataFrame) -> dict:
+    """Plot relevance score distribution for included vs. excluded in-scope articles.
+
+    Args:
+        df_urls (pd.DataFrame): URL-deduplicated DataFrame.
+
+    Returns:
+        dict: Summary statistics for the report.
+    """
+    in_scope = df_urls[df_urls["in_filter_scope"] == True]
+    included = in_scope[in_scope["analysis_include"] == True]["doc_relevance_score"]
+    excluded = in_scope[in_scope["analysis_include"] == False]["doc_relevance_score"]
+
+    stats = {
+        "included_count": int(included.shape[0]),
+        "included_median": float(included.median()),
+        "included_mean": float(included.mean()),
+        "included_min": float(included.min()),
+        "included_max": float(included.max()),
+        "excluded_count": int(excluded.shape[0]),
+        "excluded_median": float(excluded.median()),
+        "excluded_mean": float(excluded.mean()),
+        "excluded_min": float(excluded.min()),
+        "excluded_max": float(excluded.max()),
+    }
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    bins = 60
+    ax.hist(included, bins=bins, color="#2ca02c", alpha=0.6, density=True,
+            label=f"Included (n={stats['included_count']:,})")
+    ax.hist(excluded, bins=bins, color="#d62728", alpha=0.6, density=True,
+            label=f"Excluded (n={stats['excluded_count']:,})")
+    ax.axvline(stats["included_median"], color="#2ca02c", linestyle="--", linewidth=1.5,
+               label=f"Included median: {stats['included_median']:.1f}")
+    ax.axvline(stats["excluded_median"], color="#d62728", linestyle="--", linewidth=1.5,
+               label=f"Excluded median: {stats['excluded_median']:.1f}")
+    ax.set_title("Relevance Score Distribution: Included vs. Excluded (In-Scope Articles)",
+                 fontsize=13, fontweight="bold")
+    ax.set_xlabel("Document Relevance Score")
+    ax.set_ylabel("Density")
+    ax.legend()
+    ax.grid(True, alpha=0.3, axis="y")
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / "11_relevance_score.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    return stats
+
+
+def plot_filter_stage_breakdown(df_urls: pd.DataFrame) -> dict:
+    """Plot per-stage drop counts for in-scope articles.
+
+    Args:
+        df_urls (pd.DataFrame): URL-deduplicated DataFrame.
+
+    Returns:
+        dict: Per-stage drop counts and total in-scope count.
+    """
+    in_scope = df_urls[df_urls["in_filter_scope"] == True]
+    total_in_scope = len(in_scope)
+    stage_cols = {
+        "Duplicate": "filter_duplicate_decision",
+        "Length": "filter_length_decision",
+        "Score": "filter_score_decision",
+        "Anchor": "filter_anchor_decision",
+    }
+    stage_drops = {name: int((in_scope[col] == "drop").sum()) for name, col in stage_cols.items()}
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    colors = ["#ff7f0e", "#9467bd", "#d62728", "#8c564b"]
+    bars = ax.bar(list(stage_drops.keys()), list(stage_drops.values()), color=colors, alpha=0.85)
+    ax.set_title("Filter Stage Breakdown (In-Scope Articles)", fontsize=13, fontweight="bold")
+    ax.set_xlabel("Filter Stage")
+    ax.set_ylabel("Articles Dropped")
+    ax.grid(True, alpha=0.3, axis="y")
+    for bar, count in zip(bars, stage_drops.values()):
+        pct = count / total_in_scope * 100
+        ax.text(
+            bar.get_x() + bar.get_width() / 2, bar.get_height(),
+            f"{count:,}\n({pct:.1f}%)", ha="center", va="bottom", fontsize=10,
+        )
+    ax.text(
+        0.98, 0.97,
+        f"Total in-scope: {total_in_scope:,}\nStages are not mutually exclusive",
+        transform=ax.transAxes, ha="right", va="top", fontsize=9,
+        bbox={"boxstyle": "round,pad=0.4", "facecolor": "white", "alpha": 0.8},
+    )
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / "12_filter_stage_breakdown.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    return {"total_in_scope": total_in_scope, **stage_drops}
+
+
+def plot_filter_funnel(df_urls: pd.DataFrame) -> dict:
+    """Plot waterfall chart showing progression from scraped URLs to analysis corpus.
+
+    Args:
+        df_urls (pd.DataFrame): URL-deduplicated DataFrame.
+
+    Returns:
+        dict: Funnel step counts.
+    """
+    total = len(df_urls)
+    out_of_scope = int((df_urls["in_filter_scope"] == False).sum())
+    in_scope = total - out_of_scope
+    failed = int((df_urls[df_urls["in_filter_scope"] == True]["analysis_include"] == False).sum())
+    included = int((df_urls["analysis_include"] == True).sum())
+
+    funnel = {
+        "total_scraped": total,
+        "out_of_scope": out_of_scope,
+        "in_scope": in_scope,
+        "failed_filters": failed,
+        "included": included,
+    }
+
+    # Waterfall geometry: (label, bar_bottom, bar_height, color)
+    steps = [
+        ("Total\nScraped", 0, total, "#1f77b4"),
+        ("−Out of\nScope", in_scope, out_of_scope, "#d62728"),
+        ("In\nScope", 0, in_scope, "#aec7e8"),
+        ("−Failed\nFilters", included, failed, "#d62728"),
+        ("Included\nin Analysis", 0, included, "#2ca02c"),
+    ]
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    for i, (label, bottom, height, color) in enumerate(steps):
+        ax.bar(i, height, bottom=bottom, color=color, alpha=0.85, width=0.55, edgecolor="white", linewidth=0.5)
+        top = bottom + height
+        value_text = f"{top:,}" if bottom == 0 else f"−{height:,}"
+        ax.text(i, top + total * 0.012, value_text, ha="center", va="bottom", fontsize=10, fontweight="bold")
+
+    # Connecting lines: dotted horizontal from top of each positive bar to base of next floating bar
+    ax.plot([0.28, 0.72], [total, total], color="gray", linestyle=":", linewidth=1)
+    ax.plot([1.28, 1.72], [in_scope, in_scope], color="gray", linestyle=":", linewidth=1)
+    ax.plot([2.28, 2.72], [in_scope, in_scope], color="gray", linestyle=":", linewidth=1)
+    ax.plot([3.28, 3.72], [included, included], color="gray", linestyle=":", linewidth=1)
+
+    ax.set_xticks(range(len(steps)))
+    ax.set_xticklabels([s[0] for s in steps], fontsize=10)
+    ax.set_title("Content Filter Funnel", fontsize=13, fontweight="bold")
+    ax.set_ylabel("Number of Articles")
+    ax.set_ylim(0, total * 1.14)
+    ax.grid(True, alpha=0.3, axis="y")
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{int(v):,}"))
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / "13_filter_funnel.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    return funnel
+
+
 def _token_counter(series: pd.Series) -> Counter:
     """Build token counts using the shared NLTK normalization pipeline.
     
@@ -560,10 +768,10 @@ def _token_counter(series: pd.Series) -> Counter:
 
 def _token_counter_from_precomputed(series: pd.Series) -> Counter:
     """Build token counts from precomputed token lists stored in parquet.
-    
+
     Args:
         series (pd.Series): Series of token-list values.
-    
+
     Returns:
         Counter: Token frequency counter.
     """
@@ -580,7 +788,7 @@ def _token_counter_from_precomputed(series: pd.Series) -> Counter:
 
         for token in tokens:
             token_text = str(token).strip()
-            if token_text:
+            if token_text and token_text not in DOMAIN_STOPWORDS:
                 counts[token_text] += 1
     return counts
 
@@ -641,18 +849,26 @@ def generate_report(
     df: pd.DataFrame,
     scrape_metrics: dict[str, float],
     url_metrics: dict[str, int],
+    length_stats: dict,
+    relevance_stats: dict,
+    filter_stage_stats: dict,
+    funnel_stats: dict,
     top_title_words: list[tuple[str, int, float]],
     top_text_words: list[tuple[str, int, float]],
 ) -> None:
     """Generate comprehensive markdown report.
-    
+
     Args:
         df (pd.DataFrame): Input DataFrame to process.
         scrape_metrics (dict[str, float]): Scrape-quality metrics dictionary.
         url_metrics (dict[str, int]): URL-uniqueness metrics dictionary.
+        length_stats (dict): Article word-count statistics.
+        relevance_stats (dict): Relevance score statistics.
+        filter_stage_stats (dict): Per-stage filter drop counts.
+        funnel_stats (dict): Content filter funnel step counts.
         top_title_words (list[tuple[str, int, float]]): Top title token statistics used in reporting.
         top_text_words (list[tuple[str, int, float]]): Top body-text token statistics used in reporting.
-    
+
     Returns:
         None: No return value.
     """
@@ -685,15 +901,43 @@ def generate_report(
 | **Avg Tone** | {avg_tone:.2f} |
 | **Median Tone** | {median_tone:.2f} |
 | **Initiator Split (VEN / USA)** | {ven_initiated:,} / {usa_initiated:,} |
-| **Successful Scrapes** | {scrape_metrics["success_count"]:,} |
-| **Scrape Success Rate** | {scrape_metrics["success_rate"]:.2f}% |
 | **Unique URLs** | {url_metrics["unique_urls"]:,} |
-| **Duplicate URL Rows** | {url_metrics["duplicate_url_rows"]:,} |
+| **Articles in Analysis Corpus** | {funnel_stats["included"]:,} |
 
 ### Data Source
 - **Dataset**: Analysis-ready GDELT parquet join (Venezuela-US filtered interactions)
 - **Scope**: Event metadata from `analysis_events.parquet` + scraped article title/text content from `analysis_url_content.parquet`
 
+---
+
+## Content Analysis
+
+### Title Word Cloud
+
+![Title Word Cloud](08_title_wordcloud.png)
+
+### Top Title Terms
+
+| Word | Frequency | Share |
+|------|-----------|-------|
+"""
+    for word, freq, share in top_title_words:
+        report += f"| {word} | {freq:,} | {share:.2f}% |\n"
+
+    report += """
+### Text Word Cloud
+
+![Text Word Cloud](09_text_wordcloud.png)
+
+### Top Text Terms
+
+| Word | Frequency | Share |
+|------|-----------|-------|
+"""
+    for word, freq, share in top_text_words:
+        report += f"| {word} | {freq:,} | {share:.2f}% |\n"
+
+    report += f"""
 ---
 
 ## Timeline Analysis
@@ -715,7 +959,6 @@ def generate_report(
         report += f"| {month} | {count:,} |\n"
 
     report += """
-
 ---
 
 ## Yearly Trends
@@ -773,7 +1016,6 @@ def generate_report(
         )
 
     report += """
-
 ### Top Cooperation Events (Highest Goldstein)
 | Date | Actor 1 | Actor 2 | Code | Goldstein | Title |
 |------|---------|---------|------|-----------|-------|
@@ -788,14 +1030,15 @@ def generate_report(
         )
 
     report += """
-
 ---
 
-## Scrape Quality
+## Appendix: Data Quality & Methodology
+
+### Scrape Quality
 
 ![Scrape Status](06_scraped_status.png)
 
-### Scrape Status Breakdown
+#### Scrape Status Breakdown
 
 | Status | Count |
 |--------|-------|
@@ -803,41 +1046,80 @@ def generate_report(
     for status, count in status_counts.items():
         report += f"| {status} | {count:,} |\n"
 
-    report += """
+    report += f"""
+| **Successful Scrapes** | {scrape_metrics["success_count"]:,} |
+| **Scrape Success Rate** | {scrape_metrics["success_rate"]:.2f}% |
+| **Duplicate URL Rows** | {url_metrics["duplicate_url_rows"]:,} |
 
-### URL Uniqueness
+#### URL Uniqueness
 
 ![URL Uniqueness](07_scraped_url_uniqueness.png)
 
 ---
 
-## Content Analysis: Title
+### Article Length Distribution
 
-![Title Word Cloud](08_title_wordcloud.png)
+![Article Length](10_article_length.png)
 
-### Top Title Terms
+#### Statistics (Included Articles)
 
-| Word | Frequency | Share |
-|------|-----------|-------|
+| Metric | Value |
+|--------|-------|
+| **Count** | {length_stats['count']:,} |
+| **Min** | {length_stats['min']:,} words |
+| **25th Percentile** | {length_stats['p25']:,} words |
+| **Median** | {length_stats['median']:,} words |
+| **Mean** | {length_stats['mean']:,.0f} words |
+| **75th Percentile** | {length_stats['p75']:,} words |
+| **99th Percentile** | {length_stats['p99']:,} words |
+| **Max** | {length_stats['max']:,} words |
+
+---
+
+### Relevance Score Distribution
+
+![Relevance Score](11_relevance_score.png)
+
+#### Statistics by Inclusion Status (In-Scope Articles)
+
+| Metric | Included | Excluded |
+|--------|----------|----------|
+| **Count** | {relevance_stats['included_count']:,} | {relevance_stats['excluded_count']:,} |
+| **Min** | {relevance_stats['included_min']:.1f} | {relevance_stats['excluded_min']:.1f} |
+| **Median** | {relevance_stats['included_median']:.1f} | {relevance_stats['excluded_median']:.1f} |
+| **Mean** | {relevance_stats['included_mean']:.1f} | {relevance_stats['excluded_mean']:.1f} |
+| **Max** | {relevance_stats['included_max']:.1f} | {relevance_stats['excluded_max']:.1f} |
+
+---
+
+### Filter Stage Breakdown
+
+![Filter Stage Breakdown](12_filter_stage_breakdown.png)
+
+#### Drop Count by Stage (In-Scope Articles, Stages Not Mutually Exclusive)
+
+| Stage | Dropped | % of In-Scope |
+|-------|---------|---------------|
 """
-    for word, freq, share in top_title_words:
-        report += f"| {word} | {freq:,} | {share:.2f}% |\n"
-
-    report += """
-
-## Content Analysis: Text
-
-![Text Word Cloud](09_text_wordcloud.png)
-
-### Top Text Terms
-
-| Word | Frequency | Share |
-|------|-----------|-------|
-"""
-    for word, freq, share in top_text_words:
-        report += f"| {word} | {freq:,} | {share:.2f}% |\n"
+    total_in_scope = filter_stage_stats["total_in_scope"]
+    for stage in ("Duplicate", "Length", "Score", "Anchor"):
+        n = filter_stage_stats[stage]
+        report += f"| **{stage}** | {n:,} | {n / total_in_scope * 100:.1f}% |\n"
 
     report += f"""
+---
+
+### Content Filter Funnel
+
+![Content Filter Funnel](13_filter_funnel.png)
+
+#### Funnel Steps
+
+| Step | Articles | Removed |
+|------|----------|---------|
+| **Total Scraped** | {funnel_stats['total_scraped']:,} | — |
+| **After Scope Filter** | {funnel_stats['in_scope']:,} | {funnel_stats['out_of_scope']:,} out of scope |
+| **After Content Filters** | {funnel_stats['included']:,} | {funnel_stats['failed_filters']:,} failed filters |
 
 ---
 
@@ -876,16 +1158,30 @@ def main() -> None:
     scrape_metrics = plot_scrape_status(df)
     url_metrics = plot_url_uniqueness(df)
 
+    # URL-level DataFrame reused by filter/content sections
+    df_urls = df.drop_duplicates(subset="url_id")
+
+    # Content quality & filtering
+    print("Generating content quality and filter charts...")
+    length_stats = plot_article_length(df_urls)
+    relevance_stats = plot_relevance_score(df_urls)
+    filter_stage_stats = plot_filter_stage_breakdown(df_urls)
+    funnel_stats = plot_filter_funnel(df_urls)
+
     print("Counting tokens for Title/Text fields...")
-    title_counts = _token_counter(df["Title"])
-    text_counts = _token_counter_from_precomputed(df["Tokens"])
+    title_counts = _token_counter(df_urls["Title"])
+    text_counts = _token_counter_from_precomputed(df_urls["Tokens"])
 
     make_wordcloud_from_counts(title_counts, "Title Word Cloud", "08_title_wordcloud.png")
     make_wordcloud_from_counts(text_counts, "Text Word Cloud", "09_text_wordcloud.png")
 
     top_title_words = top_words_with_share(title_counts, top_n=10)
     top_text_words = top_words_with_share(text_counts, top_n=10)
-    generate_report(df, scrape_metrics, url_metrics, top_title_words, top_text_words)
+    generate_report(
+        df, scrape_metrics, url_metrics,
+        length_stats, relevance_stats, filter_stage_stats, funnel_stats,
+        top_title_words, top_text_words,
+    )
 
     print("=" * 60)
     print("Comprehensive EDA complete")
