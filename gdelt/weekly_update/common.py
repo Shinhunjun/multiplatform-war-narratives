@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import sys
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -113,6 +115,30 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+@contextmanager
+def atomic_write_path(target: Path) -> Generator[Path, None, None]:
+    """Yield a temporary path; on success rename it atomically to *target*.
+
+    Usage::
+
+        with atomic_write_path(output_path) as tmp:
+            df.to_csv(tmp, index=False)
+
+    If the body raises, the temporary file is removed and the target is left
+    untouched.
+    """
+    target = Path(target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_suffix(target.suffix + ".tmp")
+    try:
+        yield tmp
+        os.replace(tmp, target)
+    except BaseException:
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
+        raise
+
+
 def update_manifest(manifest_path: Path, **updates: Any) -> dict[str, Any]:
     """Update a run manifest in place and return the merged payload."""
     payload = read_json(manifest_path, default={})
@@ -197,11 +223,21 @@ def recent_master_subset(master_path: Path, min_date: str) -> pd.DataFrame:
 
 
 def append_rows_to_csv(path: Path, frame: pd.DataFrame, columns: list[str]) -> None:
-    """Append rows to a CSV, creating the file with a header when needed."""
+    """Append rows to a CSV using a staging file for crash safety.
+
+    Rows are first written to ``<path>.staging``.  Only after the staging file
+    is fully written are its bytes appended to the canonical *path*.  If the
+    process is interrupted during the final append the staging file remains on
+    disk and can be inspected or re-applied manually.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     file_exists = path.exists()
     ordered = frame[columns].copy()
-    ordered.to_csv(path, mode="a", header=not file_exists, index=False)
+    staging = path.with_suffix(".staging")
+    ordered.to_csv(staging, mode="w", header=not file_exists, index=False)
+    with staging.open("rb") as src, path.open("ab") as dst:
+        dst.write(src.read())
+    staging.unlink()
 
 
 def write_audit_rows(path: Path, rows: Iterable[dict[str, Any]]) -> None:

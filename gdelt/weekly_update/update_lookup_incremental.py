@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from common import LOOKUP_PATH, bootstrap_project_paths, ensure_empty_csv
+from common import LOOKUP_PATH, atomic_write_path, bootstrap_project_paths, ensure_empty_csv
 
 
 bootstrap_project_paths()
@@ -95,6 +95,7 @@ def changed_reasons(existing_lookup: pd.DataFrame, merged_lookup: pd.DataFrame) 
 def main() -> None:
     """Update url_lookup.csv incrementally and emit changed_url_ids.csv."""
     args = parse_args()
+    print("Loading appended events and existing lookup...")
     events_df = pd.read_csv(args.events, low_memory=False)
     existing_lookup = load_existing_lookup(args.lookup)
     if "row_count" not in existing_lookup.columns:
@@ -110,6 +111,7 @@ def main() -> None:
     events_df["SourceURL"] = events_df["SourceURL"].fillna("").astype(str)
     events_df["SourceURL_Canonical"] = events_df["SourceURL"].map(canonicalize_url)
     weekly_counts = events_df.groupby("SourceURL_Canonical").size().rename("weekly_row_count").astype("Int64")
+    print(f"  {len(existing_lookup):,} existing lookup rows, {events_df['SourceURL_Canonical'].nunique():,} unique canonical URLs in new events")
 
     comparison_df = pd.concat(
         [
@@ -164,16 +166,18 @@ def main() -> None:
         ["url_id", "SourceURL", "SourceURL_Canonical", "Title", "Text", "Tokens", "Scrape_Status", "row_count"]
     ].copy()
 
+    print("Merging lookup and computing changed url_ids...")
     merged_lookup = upsert_lookup(existing_lookup, incoming_lookup)
     changed_df = changed_reasons(existing_lookup, merged_lookup)
 
-    args.lookup.parent.mkdir(parents=True, exist_ok=True)
-    merged_lookup.to_csv(args.lookup, index=False)
+    print(f"Writing updated lookup ({len(merged_lookup):,} rows)...")
+    with atomic_write_path(args.lookup) as tmp:
+        merged_lookup.to_csv(tmp, index=False)
     if changed_df.empty:
         ensure_empty_csv(args.changed_url_ids, ["url_id", "reason"])
     else:
-        args.changed_url_ids.parent.mkdir(parents=True, exist_ok=True)
-        changed_df.to_csv(args.changed_url_ids, index=False)
+        with atomic_write_path(args.changed_url_ids) as tmp:
+            changed_df.to_csv(tmp, index=False)
 
     print(f"Lookup rows after merge: {len(merged_lookup):,}")
     print(f"Changed url_ids emitted: {len(changed_df):,}")

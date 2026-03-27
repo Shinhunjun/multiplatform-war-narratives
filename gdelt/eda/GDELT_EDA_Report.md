@@ -4,14 +4,14 @@
 
 | Metric | Value |
 |--------|-------|
-| **Data Period** | 2013-01-07 ~ 2026-03-25 |
-| **Total Events** | 301,007 |
+| **Data Period** | 2013-01-07 ~ 2026-03-27 |
+| **Total Events** | 301,459 |
 | **Avg Goldstein Scale** | 0.02 |
 | **Avg Tone** | -3.08 |
 | **Median Tone** | -3.24 |
-| **Initiator Split (VEN / USA)** | 140,275 / 160,732 |
-| **Unique URLs** | 108,066 |
-| **Articles in Analysis Corpus** | 67,022 |
+| **Initiator Split (VEN / USA)** | 140,465 / 160,994 |
+| **Unique URLs** | 108,224 |
+| **Articles in Analysis Corpus** | 67,086 |
 
 ### Data Source
 - **Dataset**: Analysis-ready GDELT parquet join (Venezuela-US filtered interactions)
@@ -29,16 +29,16 @@
 
 | Word | Frequency | Share |
 |------|-----------|-------|
-| venezuela | 34,693 | 5.51% |
-| us | 16,398 | 2.60% |
-| trump | 13,744 | 2.18% |
-| u.s. | 12,649 | 2.01% |
-| venezuelan | 11,904 | 1.89% |
-| maduro | 10,863 | 1.72% |
-| oil | 5,609 | 0.89% |
-| sanction | 4,034 | 0.64% |
-| president | 3,750 | 0.60% |
-| american | 3,346 | 0.53% |
+| venezuela | 34,723 | 5.50% |
+| us | 16,438 | 2.61% |
+| trump | 13,758 | 2.18% |
+| u.s. | 12,665 | 2.01% |
+| venezuelan | 11,917 | 1.89% |
+| maduro | 10,920 | 1.73% |
+| oil | 5,611 | 0.89% |
+| sanction | 4,037 | 0.64% |
+| president | 3,758 | 0.60% |
+| american | 3,350 | 0.53% |
 
 ### Text Word Cloud
 
@@ -48,16 +48,16 @@
 
 | Word | Frequency | Share |
 |------|-----------|-------|
-| venezuela | 67,211 | 0.36% |
-| state | 63,507 | 0.34% |
-| president | 62,066 | 0.33% |
-| venezuelan | 58,363 | 0.31% |
-| country | 57,605 | 0.31% |
-| government | 49,376 | 0.26% |
-| maduro | 48,382 | 0.26% |
-| united | 47,261 | 0.25% |
-| american | 45,811 | 0.24% |
-| take | 43,798 | 0.23% |
+| venezuela | 67,309 | 0.38% |
+| state | 63,614 | 0.36% |
+| president | 62,179 | 0.35% |
+| venezuelan | 58,464 | 0.33% |
+| country | 57,693 | 0.32% |
+| government | 49,453 | 0.28% |
+| maduro | 48,463 | 0.27% |
+| united | 47,336 | 0.26% |
+| american | 45,887 | 0.26% |
+| us | 43,752 | 0.24% |
 
 ---
 
@@ -132,20 +132,20 @@
 ### Top Conflict Events (Lowest Goldstein)
 | Date | Actor 1 | Actor 2 | Code | Goldstein | Title |
 |------|---------|---------|------|-----------|-------|
-| 2026-03-25 | CHICAGO | VENEZUELA | 190 | -10.0 | Report: Taxpayers Footed Housing Costs for Illegal Alien Accused of Murdering Sheridan Gorman |
-| 2013-12-29 | SAN ANTONIO | VENEZUELA | 195 | -10.0 | The NSA Uses Powerful Toolbox in Effort to Spy on Global Networks |
-| 2013-12-29 | SAN ANTONIO | VENEZUELA | 195 | -10.0 | The NSA Uses Powerful Toolbox in Effort to Spy on Global Networks |
-| 2018-09-08 | ORLANDO | VENEZUELA | 190 | -10.0 | Wife of critically injured Ofc. Valencia shares story |
-| 2026-03-25 | VENEZUELA | HOUSTON | 190 | -10.0 | Trump has destroyed Venezuela's socialist ideology: opposition leader |
+| 2023-01-26 | VENEZUELA | UNITED STATES | 190 | -10.0 | Venezuelan diplomat convicted of 2012 murder of Amb. Olga Fonseca |
+| 2021-10-26 | UNITED STATES | VENEZUELA | 190 | -10.0 | Illinois Mayor Hires A Formerly Incarcerated Child Sex Offender To Inspect Community Homes And Resid... |
+| 2021-09-24 | VENEZUELA | UNITED STATES | 190 | -10.0 | CNSNews |
+| 2026-01-22 | UNITED STATES | VENEZUELA | 190 | -10.0 | The Board of Discord |
+| 2024-03-09 | VENEZUELA | UNITED STATES | 190 | -10.0 | Greg Gutfeld Praises Joe Biden for Not Saying ‘Undocumented’: ‘Feeble, but at Least He Said ‘Illegal... |
 
 ### Top Cooperation Events (Highest Goldstein)
 | Date | Actor 1 | Actor 2 | Code | Goldstein | Title |
 |------|---------|---------|------|-----------|-------|
-| 2018-02-02 | VENEZUELA | THE WHITE HOUSE | 874 | 10.0 | Top diplomat leaves State, opens door for Cuba, Venezuela hawks | Miami Herald |
-| 2015-07-20 | VENEZUELA | PITTSBURGH | 874 | 10.0 | Obituary: Mary Loretta Harrison / Swissvale native made difference as volunteer |
-| 2013-07-24 | VENEZUELAN | MIAMI | 874 | 10.0 | Venezuela Consulate Empty But Paying |
-| 2023-12-04 | VENEZUELA | UNITED STATES | 874 | 10.0 | Guyana Says Oil Producers Are Moving Ahead Despite Venezuela’s Threats |
-| 2018-06-20 | VENEZUELA | AMERICAN | 874 | 10.0 | US exits UN rights body: Principled, or another retreat? |
+| 2017-06-06 | VENEZUELA | CHICAGO | 874 | 10.0 | United Continental : to axe Venezuela flights from early 3Q17 |
+| 2017-12-31 | VENEZUELAN | AMERICAN | 874 | 10.0 | Events that left their mark on 2017 (PART 2) |
+| 2016-12-09 | CALIFORNIA | VENEZUELA | 874 | 10.0 | This Los Angeles–Based Creative Director Is Bringing Boho Vibes to Her Venezuelan Holiday Traditions |
+| 2015-11-06 | VENEZUELA | AMERICAN | 874 | 10.0 | Venezuela Officially Withdraws from Human Rights Body |
+| 2025-11-07 | UNITED STATES | VENEZUELA | 874 | 10.0 | Senate GOP Blocks War Powers Resolution on U.S. Venezuela Strikes |
 
 ---
 
@@ -159,14 +159,14 @@
 
 | Status | Count |
 |--------|-------|
-| Success | 173,678 |
-| Error | 61,473 |
+| Success | 174,080 |
+| Error | 61,494 |
 | Success (Archived) | 59,628 |
-| Empty_Content | 6,228 |
+| Empty_Content | 6,257 |
 
-| **Successful Scrapes** | 233,306 |
-| **Scrape Success Rate** | 77.51% |
-| **Duplicate URL Rows** | 192,941 |
+| **Successful Scrapes** | 233,708 |
+| **Scrape Success Rate** | 77.53% |
+| **Duplicate URL Rows** | 193,235 |
 
 #### URL Uniqueness
 
@@ -182,13 +182,13 @@
 
 | Metric | Value |
 |--------|-------|
-| **Count** | 67,022 |
+| **Count** | 67,086 |
 | **Min** | 40 words |
-| **25th Percentile** | 365 words |
+| **25th Percentile** | 366 words |
 | **Median** | 588 words |
 | **Mean** | 755 words |
 | **75th Percentile** | 925 words |
-| **99th Percentile** | 3,447 words |
+| **99th Percentile** | 3,448 words |
 | **Max** | 18,243 words |
 
 ---
@@ -201,11 +201,11 @@
 
 | Metric | Included | Excluded |
 |--------|----------|----------|
-| **Count** | 67,022 | 22,325 |
-| **Min** | 25.0 | -22.8 |
-| **Median** | 58.3 | 26.1 |
-| **Mean** | 58.5 | 32.8 |
-| **Max** | 121.1 | 117.6 |
+| **Count** | 67,086 | 22,396 |
+| **Min** | 25.0 | -22.4 |
+| **Median** | 57.2 | 25.5 |
+| **Mean** | 57.4 | 32.1 |
+| **Max** | 118.4 | 115.2 |
 
 ---
 
@@ -217,10 +217,10 @@
 
 | Stage | Dropped | % of In-Scope |
 |-------|---------|---------------|
-| **Duplicate** | 12,688 | 14.2% |
-| **Length** | 3,928 | 4.4% |
-| **Score** | 10,844 | 12.1% |
-| **Anchor** | 16,006 | 17.9% |
+| **Duplicate** | 12,697 | 14.2% |
+| **Length** | 3,929 | 4.4% |
+| **Score** | 11,029 | 12.3% |
+| **Anchor** | 16,018 | 17.9% |
 
 ---
 
@@ -232,9 +232,9 @@
 
 | Step | Articles | Removed |
 |------|----------|---------|
-| **Total Scraped** | 107,934 | — |
-| **After Scope Filter** | 89,347 | 18,587 out of scope |
-| **After Content Filters** | 67,022 | 22,325 failed filters |
+| **Total Scraped** | 108,092 | — |
+| **After Scope Filter** | 89,482 | 18,610 out of scope |
+| **After Content Filters** | 67,086 | 22,396 failed filters |
 
 ---
 

@@ -83,6 +83,64 @@ DOMAIN_STOPWORDS = {
     "two",
     "three",
     "million",
+    # Modal verbs absent from NLTK stopwords
+    "would",
+    "could",
+    "may",
+    "must",
+    # Generic action verbs
+    "take",
+    "come",
+    "tell",
+    "use",
+    "see",
+    "get",
+    "give",
+    "know",
+    "want",
+    "try",
+    "provide",
+    "find",
+    "send",
+    "bring",
+    "look",
+    "put",
+    "set",
+    "happen",
+    "let",
+    "saw",
+    # Generic adverbs and conjunctions
+    "since",
+    "even",
+    "still",
+    "however",
+    "already",
+    "though",
+    "although",
+    "rather",
+    "actually",
+    "particularly",
+    "simply",
+    "instead",
+    "without",
+    "enough",
+    "either",
+    "upon",
+    "along",
+    "around",
+    "away",
+    "sure",
+    # Generic quantifiers and pronouns
+    "every",
+    "something",
+    "nothing",
+    "anyone",
+    "lot",
+    "whose",
+    "able",
+    # Prepositions
+    "via",
+    "per",
 }
 
 SPECIAL_KEEP_TOKENS = {"us", "u.s.", "usa"}
@@ -231,6 +289,9 @@ def normalize_raw_token(token: str) -> str:
 
     if token in {"u.s.", "u.s"}:
         return "u.s."
+
+    if token in {"u.s.a.", "u.s.a"}:
+        return "usa"
 
     if token.endswith("'s"):
         token = token[:-2]

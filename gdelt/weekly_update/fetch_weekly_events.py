@@ -16,6 +16,7 @@ from common import (
     MASTER_DATASET_PATH,
     RAW_EVENT_COLS,
     USER_AGENT,
+    atomic_write_path,
     format_yyyymmdd,
     latest_event_date,
 )
@@ -228,17 +229,22 @@ def main() -> None:
     if args.max_files is not None:
         export_urls = export_urls[: args.max_files]
 
+    total_files = len(export_urls)
+    print(f"Downloading {total_files:,} export files...")
     all_rows: list[dict[str, str]] = []
-    for url in export_urls:
+    for file_num, url in enumerate(export_urls, 1):
         all_rows.extend(fetch_rows_from_export(session, url, start_date=start_date, end_date=end_date, timeout=args.timeout))
+        if file_num % 100 == 0 or file_num == total_files:
+            print(f"  [{file_num}/{total_files}] files downloaded, {len(all_rows):,} rows collected so far")
 
     output_df = pd.DataFrame(all_rows, columns=OUTPUT_COLS)
     if not output_df.empty:
         output_df = output_df.drop_duplicates(subset=["GLOBALEVENTID", "SourceURL"], keep="last")
         output_df = output_df.sort_values(by=["Date", "GDELTExportTimestamp", "GLOBALEVENTID"]).reset_index(drop=True)
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    output_df.to_csv(args.output, index=False)
+    print(f"Writing output to {args.output} ...")
+    with atomic_write_path(args.output) as tmp:
+        output_df.to_csv(tmp, index=False)
 
     print(f"Latest dataset date: {start_date}")
     print(f"Latest available export date: {latest_export_date}")

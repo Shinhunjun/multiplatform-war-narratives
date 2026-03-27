@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from common import LOOKUP_PATH, RELEVANCE_PATH, load_changed_url_ids, write_audit_rows, bootstrap_project_paths
+from common import LOOKUP_PATH, RELEVANCE_PATH, atomic_write_path, bootstrap_project_paths, load_changed_url_ids, write_audit_rows
 
 
 try:
@@ -114,7 +114,8 @@ def main() -> None:
     lookup_df["Tokens"] = lookup_df["Tokens"].astype("object")
 
     if not changed_ids:
-        lookup_df.to_csv(args.lookup, index=False)
+        with atomic_write_path(args.lookup) as tmp:
+            lookup_df.to_csv(tmp, index=False)
         write_audit_rows(
             args.summary_output,
             [
@@ -133,8 +134,10 @@ def main() -> None:
     mask = pd.to_numeric(lookup_df["url_id"], errors="coerce").isin(changed_ids)
     changed_indices = lookup_df.index[mask].tolist()
 
+    total_to_score = len(changed_indices)
+    print(f"Scoring {total_to_score:,} changed lookup rows...")
     nonzero_scores = 0
-    for idx in changed_indices:
+    for i, idx in enumerate(changed_indices):
         text = str(lookup_df.at[idx, "Text"] or "")
         token_set = tokenize(text, lemmatizer, stopword_set) if text.strip() else set()
         lookup_df.at[idx, "Tokens"] = json.dumps(sorted(token_set), ensure_ascii=True)
@@ -145,9 +148,13 @@ def main() -> None:
         lookup_df.at[idx, "doc_relevance_score"] = score
         if score > 0:
             nonzero_scores += 1
+        rows_done = i + 1
+        if rows_done % 500 == 0 or rows_done == total_to_score:
+            print(f"  [{rows_done}/{total_to_score}] rows scored, {nonzero_scores} with non-zero score so far")
 
-    args.lookup.parent.mkdir(parents=True, exist_ok=True)
-    lookup_df.to_csv(args.lookup, index=False)
+    print(f"Writing updated lookup ({len(lookup_df):,} rows)...")
+    with atomic_write_path(args.lookup) as tmp:
+        lookup_df.to_csv(tmp, index=False)
     write_audit_rows(
         args.summary_output,
         [

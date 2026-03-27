@@ -57,6 +57,7 @@ def main() -> None:
     """Rebuild downstream analysis exports and optional weekly outputs."""
     args = parse_args()
 
+    print("Building analysis-ready parquet exports...")
     run_command(
         [
             sys.executable,
@@ -75,12 +76,17 @@ def main() -> None:
             str(args.url_output),
         ]
     )
+    print("Analysis-ready exports complete.")
 
     if args.run_eda:
+        print("Running EDA...")
         run_command([sys.executable, str(PROJECT_DIR / "eda" / "run_eda.py")])
+        print("EDA complete.")
 
     if args.run_analysis:
+        print("Running analysis pipeline...")
         run_command([sys.executable, "-m", "analysis.main", "--all"])
+        print("Analysis pipeline complete.")
 
     print(f"Analysis-ready events parquet: {args.events_output}")
     print(f"Analysis-ready URL-content parquet: {args.url_output}")

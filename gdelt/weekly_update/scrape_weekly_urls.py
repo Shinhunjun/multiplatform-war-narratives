@@ -9,7 +9,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-from common import LOOKUP_PATH, USER_AGENT, bootstrap_project_paths
+from common import LOOKUP_PATH, USER_AGENT, atomic_write_path, bootstrap_project_paths
 
 
 bootstrap_project_paths()
@@ -202,6 +202,9 @@ def main() -> None:
     errors: list[str] = []
     sources: list[str] = []
 
+    total_rows = len(events_df)
+    url_num = 0
+    print(f"Processing {total_rows:,} event rows ({len(existing_lookup):,} canonical URLs already in lookup)...")
     for record in events_df.to_dict(orient="records"):
         canonical = str(record["SourceURL_Canonical"]).strip()
         url = str(record["SourceURL"]).strip()
@@ -211,6 +214,9 @@ def main() -> None:
             reused = reuse_lookup_result(existing_lookup.get(canonical, {}))
             result = reused if reused is not None else scrape_url(url, timeout=args.timeout)
             cache[canonical] = result
+            url_num += 1
+            if url_num % 100 == 0:
+                print(f"  [{url_num}] unique URLs processed (status={result.status}): {url[:80]}")
 
         titles.append(result.title)
         texts.append(result.text)
@@ -224,8 +230,9 @@ def main() -> None:
     events_df["Error_Details"] = errors
     events_df["Scrape_Source"] = sources
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    events_df.to_csv(args.output, index=False)
+    print(f"Writing output to {args.output} ...")
+    with atomic_write_path(args.output) as tmp:
+        events_df.to_csv(tmp, index=False)
 
     fresh_scrapes = sum(1 for value in sources if value != "existing_lookup")
     print(f"Weekly event rows processed: {len(events_df):,}")

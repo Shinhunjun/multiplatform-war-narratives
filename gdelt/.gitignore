@@ -16,7 +16,8 @@ htmlcov/
 .venv/
 venv/
 
-
+TODO.md
+TODO.txt
 notes.txt
 *.png
 !preprocessing/filter_stage_score_histograms.png

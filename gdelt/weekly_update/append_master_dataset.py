@@ -11,6 +11,7 @@ from common import (
     MASTER_DATASET_PATH,
     MASTER_EVENT_COLS,
     append_rows_to_csv,
+    atomic_write_path,
     csv_row_count,
     dataframe_event_keys,
     ensure_empty_csv,
@@ -54,6 +55,7 @@ def rows_to_append(incoming_df: pd.DataFrame, recent_existing_df: pd.DataFrame) 
 def main() -> None:
     """Append new weekly rows into the canonical master dataset and write an append audit."""
     args = parse_args()
+    print("Loading incoming weekly scraped rows...")
     incoming_df = pd.read_csv(args.input, low_memory=False)
     if incoming_df.empty:
         ensure_empty_csv(args.appended_output, MASTER_EVENT_COLS)
@@ -71,21 +73,25 @@ def main() -> None:
 
     canonical_df = incoming_df.reindex(columns=MASTER_EVENT_COLS).copy()
     min_incoming_date = canonical_df["Date"].astype(str).min()
+    print(f"Loading recent master rows on or after {min_incoming_date} for overlap check...")
     recent_existing_df = recent_master_subset(args.master, min_date=min_incoming_date) if args.master.exists() else pd.DataFrame(columns=MASTER_EVENT_COLS)
+    print(f"Deduplicating {len(canonical_df):,} incoming rows against {len(recent_existing_df):,} recent master rows...")
     appended_df = rows_to_append(canonical_df, recent_existing_df)
 
     if appended_df.empty:
         ensure_empty_csv(args.appended_output, MASTER_EVENT_COLS)
     else:
         appended_df = appended_df.reset_index(drop=True)
-        args.appended_output.parent.mkdir(parents=True, exist_ok=True)
-        appended_df.to_csv(args.appended_output, index=False)
+        print(f"Writing {len(appended_df):,} new rows to appended output...")
+        with atomic_write_path(args.appended_output) as tmp:
+            appended_df.to_csv(tmp, index=False)
 
     if not args.master.exists():
         args.master.parent.mkdir(parents=True, exist_ok=True)
         ensure_empty_csv(args.master, MASTER_EVENT_COLS)
 
     if not appended_df.empty:
+        print(f"Appending {len(appended_df):,} rows to master dataset (staging for crash safety)...")
         append_rows_to_csv(args.master, appended_df, MASTER_EVENT_COLS)
 
     skipped = len(canonical_df) - len(appended_df)

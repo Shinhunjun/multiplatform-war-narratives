@@ -15,9 +15,10 @@ from common import (
     FILTER_RULES_PATH,
     FILTER_SUMMARY_PATH,
     LOOKUP_PATH,
-    load_changed_url_ids,
-    ensure_empty_csv,
+    atomic_write_path,
     bootstrap_project_paths,
+    ensure_empty_csv,
+    load_changed_url_ids,
 )
 
 
@@ -162,7 +163,8 @@ def main() -> None:
                 ],
             )
         else:
-            existing_eval.to_csv(args.eval, index=False)
+            with atomic_write_path(args.eval) as tmp:
+                existing_eval.to_csv(tmp, index=False)
         write_weekly_samples(pd.DataFrame(), args.sample_dir, args.sample_size, args.seed)
         subprocess.run(
             [
@@ -236,7 +238,9 @@ def main() -> None:
     final_decisions: list[str] = []
     reasons: list[str] = []
 
-    for record in changed_rows.to_dict(orient="records"):
+    total_changed_rows = len(changed_rows)
+    print(f"Evaluating {total_changed_rows:,} changed rows against static filter rules...")
+    for row_num, record in enumerate(changed_rows.to_dict(orient="records"), 1):
         url_id = int(record["url_id"])
         row_in_scope = bool(record["in_filter_scope"])
         dup_hash = hash_lookup.get(url_id, "")
@@ -292,6 +296,8 @@ def main() -> None:
         anchor_decisions.append(anchor_dec)
         final_decisions.append(final_dec)
         reasons.append(reasons_for_row(duplicate_dec, length_dec, score_dec, anchor_dec, row_in_scope))
+        if row_num % 500 == 0 or row_num == total_changed_rows:
+            print(f"  [{row_num}/{total_changed_rows}] rows evaluated")
 
     changed_rows["duplicate_text_hash"] = duplicate_hashes
     changed_rows["duplicate_cluster_size"] = duplicate_cluster_sizes
@@ -329,8 +335,9 @@ def main() -> None:
     incoming_eval = changed_rows[eval_cols].rename(columns={"doc_relevance_score_num": "doc_relevance_score"})
     merged_eval = upsert_eval(existing_eval, incoming_eval)
 
-    args.eval.parent.mkdir(parents=True, exist_ok=True)
-    merged_eval.to_csv(args.eval, index=False)
+    print(f"Writing evaluation table ({len(merged_eval):,} rows)...")
+    with atomic_write_path(args.eval) as tmp:
+        merged_eval.to_csv(tmp, index=False)
 
     summary_rows = []
     for col in [
@@ -343,7 +350,8 @@ def main() -> None:
         vc = merged_eval[col].value_counts(dropna=False)
         for decision, count in vc.items():
             summary_rows.append({"metric": col, "decision": decision, "count": int(count)})
-    pd.DataFrame(summary_rows).to_csv(args.summary_output, index=False)
+    with atomic_write_path(args.summary_output) as tmp:
+        pd.DataFrame(summary_rows).to_csv(tmp, index=False)
 
     write_weekly_samples(changed_rows, args.sample_dir, args.sample_size, args.seed)
 
