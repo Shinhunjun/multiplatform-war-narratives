@@ -1,0 +1,39 @@
+# Data files (too large for git)
+data-collection/data/
+analysis/outputs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model files
+*.npy
+*.pkl
+*.h5
+*.pt
+*.bin
+
+# Large files
+*.parquet
+*.csv
+*.json
+!config.json
