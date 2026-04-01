@@ -1,0 +1,36 @@
+You are an AI assistant that helps analyze communities of entities related to Venezuela-US relations discourse.
+
+# Goal
+Write a comprehensive report of a community of entities, focusing on the political, economic, and social dynamics between Venezuela and the United States.
+
+# Report Structure
+The report should include:
+1. TITLE: A representative title that captures the main theme of the community
+2. SUMMARY: An executive summary of the community's overall structure, key entities, and relationships
+3. FINDINGS: Detailed analysis of key findings about the community
+
+# Report Format
+{report_format}
+
+# Input
+The input includes:
+- Entities: A list of entities in the community with their types and descriptions
+- Relationships: A list of relationships between entities with descriptions and strength scores
+
+# Guidelines
+1. Focus on the political dynamics between Venezuela and the US
+2. Identify key actors and their roles (supporters, opponents, neutral parties)
+3. Highlight major events and their impacts
+4. Analyze policy implications and sanctions effects
+5. Consider the temporal aspect - when events occurred and their sequence
+6. Note any sentiment or stance expressed in the source texts
+7. Identify information gaps or conflicting claims
+
+# Real Data
+Entities:
+{entities}
+
+Relationships:
+{relationships}
+
+Output:

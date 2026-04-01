@@ -57,34 +57,46 @@ The following sections detail each stage of the pipeline: problem formulation (\
     output/.style={box, fill=purple!12, draw=purple!50},
     arr/.style={-{Stealth[length=6pt]}, thick, gray!70},
   ]
+  % Data Sources
   \node[data] (reddit)  {Reddit\\(Arctic Shift API)};
   \node[data, below=0.6cm of reddit] (gdelt) {GDELT News\\(BigQuery + Scraping)};
   \node[data, below=0.6cm of gdelt] (tiktok) {TikTok\\(Research API)};
-  \node[proc, right=2cm of gdelt] (preproc) {Preprocessing\\Bot Filter / Clean};
-  \node[model, right=2cm of preproc, yshift=1.2cm] (sentiment) {RoBERTa\\Sentiment};
-  \node[model, right=2cm of preproc] (bertopic) {BERTopic\\Topic Modeling};
-  \node[model, right=2cm of preproc, yshift=-1.2cm] (cluster) {HDBSCAN\\Clustering};
-  \node[model, right=2cm of bertopic, yshift=0.6cm, fill=yellow!15, draw=yellow!60] (gemini) {Gemini 2.0 Flash\\Report + Chat};
-  \node[model, right=2cm of bertopic, yshift=-1.2cm, fill=yellow!15, draw=yellow!60] (graphrag) {GraphRAG\\(Llama 3.1)};
-  \node[output, right=2cm of gemini, yshift=-0.3cm] (dashboard) {Interactive\\Dashboard};
+  % Preprocessing
+  \node[proc, right=2cm of gdelt] (preproc) {Preprocessing\\(per-platform)};
+  % Shared embedding
+  \node[proc, right=1.8cm of preproc] (embed) {S-BERT\\Embedding (384d)};
+  % Analysis (all applied to every platform)
+  \node[model, right=2cm of embed, yshift=1.2cm] (sentiment) {RoBERTa\\Sentiment};
+  \node[model, right=2cm of embed] (bertopic) {BERTopic\\Monthly Topics};
+  \node[model, right=2cm of embed, yshift=-1.2cm] (cluster) {HDBSCAN\\Monthly Clusters};
+  % LLM
+  \node[model, right=2cm of bertopic, fill=yellow!15, draw=yellow!60] (gemini) {Gemini 2.0 Flash\\Report + Chat};
+  % Output
+  \node[output, right=2cm of gemini] (dashboard) {Interactive\\Dashboard};
+  % Arrows: data → preproc
   \draw[arr] (reddit.east) -- ++(0.6,0) |- (preproc.west);
   \draw[arr] (gdelt.east) -- (preproc.west);
   \draw[arr] (tiktok.east) -- ++(0.6,0) |- (preproc.west);
-  \draw[arr] (preproc.east) -- ++(0.6,0) |- (sentiment.west);
-  \draw[arr] (preproc.east) -- (bertopic.west);
-  \draw[arr] (preproc.east) -- ++(0.6,0) |- (cluster.west);
+  % preproc → embed
+  \draw[arr] (preproc.east) -- (embed.west);
+  % embed → all 3 models (same pipeline for all platforms)
+  \draw[arr] (embed.east) -- ++(0.5,0) |- (sentiment.west);
+  \draw[arr] (embed.east) -- ++(0.5,0) -- (bertopic.west);
+  \draw[arr] (embed.east) -- ++(0.5,0) |- (cluster.west);
+  % all 3 models → gemini
   \draw[arr] (sentiment.east) -- ++(0.5,0) |- (gemini.west);
-  \draw[arr] (bertopic.east) -- ++(0.5,0) |- (gemini.west);
-  \draw[arr] (cluster.east) -- ++(0.5,0) |- (graphrag.west);
-  \draw[arr] (gemini.east) -- ++(0.5,0) |- (dashboard.west);
-  \draw[arr] (graphrag.east) -- ++(0.5,0) |- (dashboard.west);
+  \draw[arr] (bertopic.east) -- (gemini.west);
+  \draw[arr] (cluster.east) -- ++(0.5,0) |- (gemini.west);
+  % gemini → dashboard
+  \draw[arr] (gemini.east) -- (dashboard.west);
+  % Background groups
   \begin{pgfonlayer}{background}
     \node[fit=(reddit)(tiktok), inner sep=8pt, fill=orange!5, draw=orange!30,
           rounded corners=6pt, label={[font=\footnotesize\sffamily]above:Data Sources}] {};
     \node[fit=(sentiment)(cluster), inner sep=8pt, fill=green!5, draw=green!30,
-          rounded corners=6pt, label={[font=\footnotesize\sffamily]above:NLP Analysis}] {};
-    \node[fit=(gemini)(graphrag), inner sep=8pt, fill=yellow!5, draw=yellow!30,
-          rounded corners=6pt, label={[font=\footnotesize\sffamily]above:LLM Layer}] {};
+          rounded corners=6pt, label={[font=\footnotesize\sffamily]above:\textbf{Unified NLP Pipeline} (applied to all platforms)}] {};
+    \node[fit=(gemini), inner sep=8pt, fill=yellow!5, draw=yellow!30,
+          rounded corners=6pt, label={[font=\footnotesize\sffamily]above:LLM Synthesis}] {};
   \end{pgfonlayer}
 \end{tikzpicture}
 }

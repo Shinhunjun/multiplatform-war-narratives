@@ -374,7 +374,7 @@ def run_tiktok_specific(df: pd.DataFrame):
 def generate_overview(df: pd.DataFrame):
     """Generate overview.json for the webapp."""
     months = sorted(df["year_month"].dropna().unique())
-    sources = sorted(df["source"].unique())
+    sources = sorted(df["source"].dropna().unique())
     n_topics = 0
     ti_path = OUTPUT_DIR / "topics" / "topic_info.csv"
     if ti_path.exists():

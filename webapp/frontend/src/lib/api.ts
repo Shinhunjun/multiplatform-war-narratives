@@ -345,6 +345,32 @@ export interface ChatMessage {
 export const sendChatMessage = (question: string, history?: ChatMessage[], startMonth?: string, endMonth?: string) =>
   api.post<{ answer: string }>('/api/chat', { question, history, start_month: startMonth || null, end_month: endMonth || null }).then(r => r.data);
 
+// Entity network
+export interface EntityNode { id: string; community: number; frequency: number; type: string; }
+export interface EntityEdge { source: string; target: string; weight: number; }
+export interface EntityCommunity { id: number; size: number; total_frequency: number; top_members: string[]; label: string; }
+export interface EntityNetwork { nodes: EntityNode[]; edges: EntityEdge[]; communities: EntityCommunity[]; platform: string; }
+export interface EntityRelationship { source: string; target: string; relation: string; count: number; }
+
+export const fetchEntityNetwork = (platform = 'reddit', start?: string, end?: string) => {
+  const params = new URLSearchParams();
+  params.set('platform', platform);
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  return api.get<EntityNetwork>(`/api/entities/network?${params}`).then(r => r.data);
+};
+
+export const fetchEntityRelationships = (platform = 'reddit', start?: string, end?: string) => {
+  const params = new URLSearchParams();
+  params.set('platform', platform);
+  if (start) params.set('start', start);
+  if (end) params.set('end', end);
+  return api.get<EntityRelationship[]>(`/api/entities/relationships?${params}`).then(r => r.data);
+};
+
+export const fetchEntityMonths = (platform = 'reddit') =>
+  api.get<string[]>(`/api/entities/months?platform=${platform}`).then(r => r.data);
+
 export const fetchTemporalClusters = (limit = 10, start?: string, end?: string, platform?: string) => {
   const params = new URLSearchParams();
   params.set('limit', String(limit));

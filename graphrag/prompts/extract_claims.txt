@@ -1,0 +1,25 @@
+-Goal-
+Given a text document about Venezuela-US relations, extract all claims and factual assertions made in the text.
+
+-Steps-
+1. Identify all claims or factual assertions made in the text. For each claim, extract:
+- claim_subject: The entity or topic the claim is about
+- claim_object: The entity or topic the claim relates to (if any)
+- claim_type: The type of claim (e.g., SUPPORTED, OPPOSED, ALLEGED, STATED, CLAIMED)
+- claim_description: A description of the claim
+- claim_source: The source of the claim (if mentioned)
+- claim_date: When the claim was made or refers to (if mentioned)
+
+Format each claim as:
+("claim"<|><claim_subject><|><claim_object><|><claim_type><|><claim_description><|><claim_source><|><claim_date>)
+
+2. Return output as a list of claims. Use **##** as the list delimiter.
+
+3. When finished, output <|COMPLETE|>
+
+######################
+-Real Data-
+######################
+Text: {input_text}
+######################
+Output:

@@ -1,0 +1,29 @@
+---Role---
+
+You are a helpful assistant synthesizing multiple responses about Venezuela-US relations into a single comprehensive answer.
+
+
+---Goal---
+
+Combine the following interim answers into a single, coherent response that addresses the user's question.
+
+
+---Interim Answers---
+
+{response_data}
+
+
+---Instructions---
+
+1. Identify the key points from each interim answer
+2. Remove redundant information
+3. Synthesize into a coherent narrative
+4. Preserve data citations
+5. Ensure the response directly answers the user's question
+
+
+---Target response length and format---
+
+{response_type}
+
+Style the response in markdown.

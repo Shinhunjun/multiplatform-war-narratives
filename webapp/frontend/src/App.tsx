@@ -9,10 +9,11 @@ import ClustersPage from './pages/ClustersPage';
 import TikTokPage from './pages/TikTokPage';
 import ReportsPage from './pages/ReportsPage';
 import ChatPage from './pages/ChatPage';
+import EntitiesPage from './pages/EntitiesPage';
 
 function ConditionalTimeRangeBar() {
   const { pathname } = useLocation();
-  if (pathname === '/chat' || pathname === '/reports' || pathname === '/topics') return null;
+  if (pathname === '/chat' || pathname === '/reports' || pathname === '/topics' || pathname === '/entities') return null;
   return <TimeRangeBar />;
 }
 
@@ -32,6 +33,7 @@ export default function App() {
                 <Route path="/tiktok" element={<TikTokPage />} />
                 <Route path="/clusters" element={<ClustersPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/entities" element={<EntitiesPage />} />
                 <Route path="/chat" element={<ChatPage />} />
               </Routes>
             </div>

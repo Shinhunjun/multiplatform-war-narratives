@@ -1,0 +1,1276 @@
+%% ============================================================================
+%%  DS 5500 — Capstone: Applications in Data Science
+%%  Final Technical Report — LaTeX Template  (Overleaf-ready)
+%%  Dr. Fatema Nafa  |  Northeastern University  |  Spring 2026
+%% ============================================================================
+%%
+%%  HOW TO USE THIS TEMPLATE
+%%  ─────────────────────────
+%%  1. Upload this .tex file to Overleaf (overleaf.com → New Project → Upload).
+%%  2. Replace every <placeholder> with your own content.
+%%  3. Delete or comment out any \instruction{...} blocks before submission.
+%%  4. Compile with pdfLaTeX (the default Overleaf engine).
+%%
+%% ============================================================================
+
+\documentclass[12pt, letterpaper]{article}
+
+%% ── Packages ─────────────────────────────────────────────────────────────────
+\usepackage[margin=1in]{geometry}
+\setlength{\headheight}{14.5pt}  %% fancyhdr requirement
+\usepackage{times}                    % Times New Roman font
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{titletoc}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{amsmath, amssymb}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{mdframed}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{natbib}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{url}
+\usepackage{microtype}
+
+%% ── Spacing ──────────────────────────────────────────────────────────────────
+\setstretch{1.15}
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{0pt}
+
+%% ── Colors ───────────────────────────────────────────────────────────────────
+\definecolor{NUred}{RGB}{192,0,0}
+\definecolor{NUdark}{RGB}{31,56,100}
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{200,200,200}
+\definecolor{commentgreen}{RGB}{0,128,0}
+\definecolor{keywordblue}{RGB}{0,0,200}
+\definecolor{stringred}{RGB}{163,21,21}
+\definecolor{instructbg}{RGB}{255,251,230}
+\definecolor{instructframe}{RGB}{200,160,0}
+\definecolor{pseudobg}{RGB}{235,245,255}
+\definecolor{pseudoframe}{RGB}{46,117,182}
+\definecolor{testbg}{RGB}{235,255,235}
+\definecolor{testframe}{RGB}{33,115,70}
+
+%% ── Section heading style ────────────────────────────────────────────────────
+\titleformat{\section}{\large\bfseries\color{NUdark}}{{\thesection.}}{0.5em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{NUdark}}{{\thesubsection}}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\itshape\color{NUdark}}{{\thesubsubsection}}{0.5em}{}
+
+%% ── Header / Footer ──────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{NUdark} DS 5500 --- Final Technical Report}
+\fancyhead[R]{\small\color{NUdark} \textit{Venezuela-US Narrative Analysis}}
+\fancyfoot[C]{\small Page \thepage\ of \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+%% ── Hyperref setup ───────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=NUdark,
+  citecolor=NUdark,
+  urlcolor=NUred,
+  pdftitle={DS 5500 Final Technical Report},
+  pdfauthor={Hunjun Shin, Rich Goodier, Ameir El Ouadi}
+}
+
+%% ── Code listing style ───────────────────────────────────────────────────────
+\lstdefinestyle{pythonstyle}{
+  language=Python,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{keywordblue}\bfseries,
+  commentstyle=\color{commentgreen}\itshape,
+  stringstyle=\color{stringred},
+  numberstyle=\tiny\color{gray},
+  numbers=left,
+  stepnumber=1,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=4,
+  captionpos=b
+}
+\lstset{style=pythonstyle}
+
+%% ── Pseudo-code block ────────────────────────────────────────────────────────
+\newenvironment{pseudoblock}[1]{%
+  \begin{mdframed}[
+    backgroundcolor=pseudobg,
+    linecolor=pseudoframe,
+    linewidth=1.5pt,
+    frametitle={\color{pseudoframe}\bfseries\small Pseudo-code: #1},
+    frametitlebackgroundcolor=pseudoframe!15
+  ]
+  \begin{algorithmic}[1]
+}{%
+  \end{algorithmic}
+  \end{mdframed}
+}
+
+%% ── Test-case block ──────────────────────────────────────────────────────────
+\newenvironment{testblock}[1]{%
+  \begin{mdframed}[
+    backgroundcolor=testbg,
+    linecolor=testframe,
+    linewidth=1.5pt,
+    frametitle={\color{testframe}\bfseries\small Test Case: #1},
+    frametitlebackgroundcolor=testframe!15
+  ]
+}{%
+  \end{mdframed}
+}
+
+%% ── GitHub commit log style ──────────────────────────────────────────────────
+\lstdefinestyle{gitlog}{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\scriptsize,
+  breaklines=true,
+  captionpos=b
+}
+
+%% ============================================================================
+%%  DOCUMENT BEGINS
+%% ============================================================================
+\begin{document}
+
+%% ── Title Page ───────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{1cm}
+
+  {\color{NUred}\rule{\linewidth}{3pt}}\\[0.4cm]
+  {\color{NUdark}\rule{\linewidth}{1pt}}\\[1.5cm]
+
+  {\Huge\bfseries\color{NUdark}
+    Multiplatform Narrative Analysis of\\Venezuela--US Relations:\\[0.3cm]
+    Cross-Platform Discourse Analysis\\with Real-Time Dashboard\\[0.5cm]
+  }
+
+  {\large\color{NUdark}
+    A Final Technical Report Submitted in Partial Fulfillment of the\\
+    Requirements for DS 5500: Capstone --- Applications in Data Science
+  }\\[1.5cm]
+
+  {\color{NUdark}\rule{\linewidth}{1pt}}\\[0.8cm]
+
+  \begin{tabular}{rl}
+    \textbf{Authors:}       & Hunjun Shin \\
+                            & Rich Goodier \\
+                            & Ameir El Ouadi \\[0.4cm]
+    \textbf{Team:}          & Team 8 \\[0.2cm]
+    \textbf{Instructor:}    & Dr.\ Fatema Nafa \\[0.2cm]
+    \textbf{Course:}        & DS 5500 --- Capstone: Applications in Data Science \\[0.2cm]
+    \textbf{Institution:}   & Northeastern University, Khoury College of Computer Sciences \\[0.2cm]
+    \textbf{Date:}          & \today \\[0.4cm]
+    \textbf{GitHub Repo:}   & \url{https://github.com/hunjunsin/capstone} \\
+  \end{tabular}
+
+  \vspace{1.5cm}
+  {\color{NUdark}\rule{\linewidth}{1pt}}\\[0.3cm]
+  {\color{NUred}\rule{\linewidth}{3pt}}
+
+  \vfill
+\end{titlepage}
+
+%% ── Abstract ─────────────────────────────────────────────────────────────────
+\newpage
+\begin{abstract}
+\noindent
+\textbf{Background:} Online discourse about Venezuela--US relations is distributed across fundamentally different platforms---Reddit, mainstream news, and TikTok---each with distinct audience demographics, content modalities, and algorithmic incentives. No prior study has systematically compared how the same geopolitical events are framed across these three platform types over an extended period.
+
+\noindent
+\textbf{Objective:} This project builds a unified NLP analysis pipeline and real-time interactive dashboard to quantify how narratives about Venezuela--US relations diverge across Reddit, GDELT news articles, and TikTok over the Maduro era (2013--2026).
+
+\noindent
+\textbf{Methods:} We collected 690,000+ documents from three platforms and applied a shared pipeline of RoBERTa-based sentiment analysis (124M parameters, 89\% accuracy on political sarcasm), monthly-independent BERTopic topic modeling (15,895 topics across platforms), and adaptive HDBSCAN semantic clustering (1,944-combination hyperparameter search). Entity extraction was performed using Gemini 2.0 Flash. Results are served through a FastAPI backend on Google Cloud Run and a React 19 frontend on Vercel.
+
+\noindent
+\textbf{Results:} We found that identical crisis events produce sentiment gaps of 0.4--0.6 across platforms. Reddit is consistently the most negative (mean $-0.291$ during the 2019 Guaid\'{o} crisis), TikTok remains positive even during crises ($+0.168$), and news occupies a neutral middle ground ($-0.065$). Topic framing diverges sharply: Reddit frames events through ideology and crisis, news through diplomacy and oil policy, and TikTok through entertainment and comedy.
+
+\noindent
+\textbf{Conclusion:} Platform architecture fundamentally shapes geopolitical narrative framing. Our cross-platform approach reveals systematic biases invisible to single-platform studies, and the deployed dashboard enables real-time monitoring of discourse divergence during future crises.
+
+\vspace{0.5em}
+\noindent\textbf{Keywords:} cross-platform analysis, sentiment analysis, topic modeling, Venezuela, NLP dashboard
+\end{abstract}
+
+%% ── Table of Contents ────────────────────────────────────────────────────────
+\newpage
+\tableofcontents
+\listoftables
+\newpage
+
+%% ============================================================================
+\section{Introduction}
+%% ============================================================================
+
+\subsection{Problem Statement}
+
+Venezuela--US bilateral relations represent one of the most politically polarized relationships in the Western Hemisphere. Since Nicol\'{a}s Maduro assumed the presidency in 2013, the relationship has been defined by escalating sanctions, disputed elections, a parallel government under Juan Guaid\'{o}, mass emigration exceeding 7.7 million people, and contested oil diplomacy. These events generate enormous volumes of online discourse, yet the discourse is fragmented across platforms with fundamentally different structures, audiences, and incentive mechanisms.
+
+Reddit hosts long-form ideological debates across politically distinct communities (e.g., r/socialism vs.\ r/Conservative). Mainstream news articles indexed by GDELT reflect editorial and institutional framing. TikTok, the newest entrant, mediates geopolitical events through short-form video, hashtag trends, and algorithmic amplification. Each platform presents a partial, systematically biased view of the same underlying events.
+
+The core problem is that existing analyses of Venezuela--US discourse are confined to single platforms, making it impossible to distinguish platform effects from genuine shifts in public opinion. A statement that ``sentiment toward Maduro turned negative in 2019'' may reflect a real opinion shift, or it may reflect Reddit's negativity bias, news media's crisis framing, or TikTok's algorithmic filtering. Without cross-platform triangulation, these effects are confounded.
+
+\subsection{Motivation and Significance}
+
+This project is motivated by three gaps in the current landscape. First, no prior study has conducted a longitudinal cross-platform analysis of Venezuela--US discourse spanning Reddit, news, and TikTok simultaneously. Second, existing NLP tools for geopolitical analysis tend to be static, batch-oriented, and inaccessible to non-technical analysts. Third, the rapid growth of TikTok as a venue for political discourse (particularly among younger demographics and Spanish-speaking communities) demands inclusion in any comprehensive media analysis.
+
+Success in this project means delivering (1) a rigorous quantitative comparison of narrative framing across three platforms over 13 years, (2) a reusable NLP pipeline that can be applied to other geopolitical contexts, and (3) a production-deployed interactive dashboard that enables analysts, researchers, and policymakers to explore discourse patterns in real time.
+
+\subsection{Research Questions / Objectives}
+\begin{enumerate}[label=\textbf{RQ\arabic*.}]
+  \item How do narratives about Venezuela--US relations differ across Reddit, GDELT news, and TikTok, and across political communities within each platform?
+  \item Which discourse communities emerge around Venezuela--US relations, and how do they differ in topic focus and sentiment?
+  \item How do sentiments shift during major political crises such as the 2019 Guaid\'{o} recognition, the 2024 disputed election, and the 2026 Maduro capture?
+  \item What entities and relationships dominate the discourse, and how do entity networks vary across platforms and time periods?
+\end{enumerate}
+
+\subsection{Report Structure}
+This report is organized as follows: Section~\ref{sec:related} reviews related work; Section~\ref{sec:data} describes the data pipeline; Section~\ref{sec:model} details model selection and implementation; Section~\ref{sec:results} presents results and evaluation; Section~\ref{sec:testing} covers testing and validation; Section~\ref{sec:github} documents version control and team contributions; Section~\ref{sec:deployment} addresses deployment and reproducibility; Section~\ref{sec:discussion} provides interpretation and ethical considerations; and Section~\ref{sec:conclusion} concludes with future work.
+
+%% ============================================================================
+\section{Related Work}
+\label{sec:related}
+%% ============================================================================
+
+\subsection{Cross-Platform Narrative Analysis}
+
+The study of how the same events are represented differently across media platforms has a rich history. Kwak and An \cite{kwak2016gdelt} conducted one of the first large-scale analyses of GDELT data, demonstrating that news framing of international events varies systematically by source country and outlet type. Their work established GDELT as a viable corpus for computational media analysis but was limited to news sources alone, without social media triangulation.
+
+Olteanu et al.\ \cite{olteanu2015coverage} examined how crisis events are covered across Twitter, news, and blogs, finding significant ``coverage gaps'' where certain event dimensions are emphasized on one platform but absent on another. Their framework for measuring coverage divergence informs our cross-platform comparison methodology, though our work extends it to include TikTok and a 13-year longitudinal dimension.
+
+More recently, Zhao et al.\ \cite{zhao2024framing} proposed an event-centric framing analysis framework at EMNLP 2024, demonstrating that transformer-based models can detect subtle framing differences in how the same event is described across sources. We build on this insight by applying platform-specific framing analysis to Venezuela--US events across three distinct platform types.
+
+\subsection{Sentiment Analysis Methods}
+
+Sentiment analysis for political text presents unique challenges due to sarcasm, irony, and ideological framing. Hutto and Gilbert \cite{hutto2014vader} introduced VADER, a lexicon-based sentiment tool optimized for social media. While VADER remains widely used due to its speed and interpretability, it struggles with context-dependent sentiment, particularly political sarcasm.
+
+Barbieri et al.\ \cite{barbieri2020tweeteval} introduced TweetEval, a benchmark for tweet-level NLP tasks, and demonstrated that RoBERTa models fine-tuned on social media data significantly outperform lexicon-based approaches on sentiment classification. The \texttt{cardiffnlp/twitter-roberta-base-sentiment-latest} model we employ achieves state-of-the-art performance on the TweetEval sentiment benchmark. Liu \cite{liu2012survey} provides a comprehensive survey of sentiment analysis techniques, establishing the theoretical foundation for our 3-class (positive, neutral, negative) classification approach.
+
+In our validation study on 200 politically sarcastic samples, RoBERTa achieved 89\% accuracy compared to VADER's 66\%, confirming the necessity of context-aware transformer models for political discourse.
+
+\subsection{Topic Modeling and Semantic Clustering}
+
+Traditional topic modeling relies on Latent Dirichlet Allocation (LDA) \cite{blei2003lda}, which assumes bag-of-words representations and fixed topic counts. While LDA has been applied to political discourse analysis, it produces temporally blurred topics when applied to longitudinal corpora because it cannot capture the emergence and dissolution of event-specific themes.
+
+Grootendorst \cite{grootendorst2022bertopic} introduced BERTopic, which combines sentence-level transformer embeddings with UMAP dimensionality reduction and HDBSCAN clustering, followed by class-based TF-IDF (c-TF-IDF) for topic labeling. BERTopic naturally handles multilingual text (critical for our English--Spanish corpus) and produces more coherent topics than LDA on short, noisy social media text.
+
+McInnes et al.\ \cite{mcinnes2017hdbscan} developed HDBSCAN, a density-based clustering algorithm that does not require a preset number of clusters and can identify clusters of varying density. McInnes et al.\ \cite{mcinnes2018umap} introduced UMAP for dimensionality reduction, which preserves both local and global structure better than t-SNE while being computationally faster. Our pipeline uses UMAP to reduce 384-dimensional sentence embeddings to 5 dimensions before HDBSCAN clustering.
+
+\subsection{Venezuela Political Discourse in Media}
+
+Smilde \cite{smilde2015venezuela} analyzed the narrative frames used to discuss Venezuelan politics in US media, finding systematic emphasis on authoritarian governance and oil dependency. Bull and Rosales \cite{bull2020venezuela} examined how Venezuelan political actors use social media to construct competing narratives about sovereignty, democracy, and economic crisis. These qualitative studies motivate our quantitative approach to measuring framing divergence across platforms.
+
+\subsection{Positioning of This Work}
+
+Our project differs from prior work in four key respects. First, we provide the first cross-platform longitudinal analysis spanning Reddit, GDELT news, and TikTok for a single geopolitical topic over 13 years. Second, we fit independent topic models per month per platform rather than a single global model, capturing temporal topic evolution around crisis events. Third, we conduct a systematic 1,944-combination hyperparameter search for clustering, deriving an adaptive rule that scales cluster granularity with monthly data volume. Fourth, we deploy a production-grade interactive dashboard with LLM-powered report generation and natural language chat, making the analysis accessible to non-technical users.
+
+%% ============================================================================
+\section{Data Pipeline and Preprocessing}
+\label{sec:data}
+%% ============================================================================
+
+\subsection{Dataset Description}
+\begin{table}[H]
+  \centering
+  \caption{Dataset summary}
+  \label{tab:dataset}
+  \begin{tabularx}{\linewidth}{lXlll}
+    \toprule
+    \textbf{Dataset} & \textbf{Source} & \textbf{Samples} & \textbf{Features} & \textbf{License} \\
+    \midrule
+    Reddit       & Arctic Shift API, 11 subreddits         & 426,435  & text, author, subreddit, score, date & Public API \\
+    GDELT News   & BigQuery + newspaper scraping            & 211,071  & text, source, tone, url, date        & Open Data  \\
+    TikTok       & Research API + Playwright automation     & 52,895   & description, hashtags, engagement, date & Research API \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\textbf{Reddit.} Data was obtained via the Arctic Shift API, targeting 11 subreddits organized into five ideological categories: Venezuela-focused (r/vzla, r/venezuela), US mainstream (r/politics, r/news, r/worldnews), conservative (r/Conservative, r/Libertarian), progressive (r/neoliberal, r/socialism), and regional/analytical (r/LatinAmerica, r/geopolitics). The raw dataset comprised 533,941 documents spanning January 2013 to March 2026, with 142,518 unique authors.
+
+\textbf{GDELT News.} The GDELT 2.0 Global Knowledge Graph was queried via Google BigQuery for events involving both Venezuela and the United States (actor codes VEN and USA). This produced 292,566 event records with associated article URLs. Articles were scraped using the \texttt{newspaper} library with domain shuffling, user-agent rotation, and rate limiting. For URLs that returned HTTP errors, we employed Wayback Machine fallback via the Internet Archive API, successfully rescuing approximately 15,000 articles (72.1\% recovery rate). The final corpus contains 211,071 articles with an average GDELT tone of $-3.08$, indicating generally negative media framing.
+
+\textbf{TikTok.} Videos were collected via the official TikTok Research API using 24 keyword queries (e.g., ``Venezuela Maduro,'' ``sanctions Venezuela'') and 18 hashtag filters (e.g., \#venezuela, \#maduro, \#sosvenezuela). Due to the API's 1,000-request-per-day quota, collection was executed over 30 days. Comments were collected via both the Research API and Playwright browser automation for videos where the API returned incomplete comment threads. The final dataset contains 18,632 videos and 34,263 comments from 5,885 unique creators. A known API limitation resulted in a temporal gap from October 2017 to January 2018, and approximately 62.7\% of publicly available TikTok videos were inaccessible via the API \cite{aiforensics2024tiktok}.
+
+\subsection{Exploratory Data Analysis (EDA)}
+
+Exploratory analysis revealed several key patterns. Reddit volume spikes sharply during crisis events (e.g., 13,686 posts in February 2019 during the Guaid\'{o} recognition) while TikTok volume remains relatively stable, suggesting different platform reactivity to political events. The content is bilingual: Reddit and GDELT are predominantly English, while TikTok and Venezuela-focused subreddits contain significant Spanish content. Engagement distributions are highly right-skewed across all platforms, with a small fraction of posts receiving the majority of interactions.
+
+\subsection{Data Cleaning and Preprocessing}
+
+\subsubsection{Reddit Preprocessing}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Bot detection:} Removal of posts by known bot accounts (AutoModerator, autotldr, RemindMeBot, WikiTextBot, etc.) via username pattern matching.
+  \item \textbf{Deleted content removal:} Filtering of posts where the body is \texttt{[deleted]} or \texttt{[removed]}.
+  \item \textbf{Text cleaning:} Stripping of Markdown formatting, URLs, block quotes, and Reddit-specific artifacts. Unicode normalization (NFKD).
+  \item \textbf{Length filtering:} Minimum 5 words per document after cleaning.
+  \item \textbf{Result:} 533,941 raw $\rightarrow$ 426,435 cleaned documents (20.1\% filtered).
+\end{enumerate}
+
+\subsubsection{GDELT News Preprocessing}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Scraping strategy:} Domain shuffling across 1,200+ unique domains to avoid rate limiting. User-agent rotation with 10 browser signatures. Wayback Machine fallback for failed URLs, rescuing $\sim$15,000 articles.
+  \item \textbf{Relevance filtering:} Minimum 50 characters, removal of anchor text fragments, and token-relevance scoring to exclude articles that mention Venezuela only tangentially.
+  \item \textbf{Deduplication:} URL-based and content-hash-based duplicate removal.
+\end{enumerate}
+
+\subsubsection{TikTok Preprocessing}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Text extraction:} Combining video descriptions with auto-generated captions (voice-to-text) where available.
+  \item \textbf{Spam filtering:} Removal of promotional accounts, duplicate videos, and content with less than 2 words or less than 30\% alphabetic characters.
+  \item \textbf{Comment cleaning:} Deduplication by comment ID, removal of single-emoji or single-word comments.
+\end{enumerate}
+
+\subsection{Feature Engineering and Transformation}
+
+All three platform corpora pass through an identical downstream pipeline:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Embedding:} Sentence-BERT (\texttt{paraphrase-multilingual-MiniLM-L12-v2}) produces 384-dimensional dense vectors. This model handles English--Spanish code-switching natively.
+  \item \textbf{Dimensionality reduction:} UMAP reduces 384-dimensional embeddings to 5 dimensions ($n\_neighbors=10$, $min\_dist=0.0$, cosine metric).
+  \item \textbf{Bilingual stopwords:} A combined set of 504 English and Spanish stopwords is applied during c-TF-IDF computation in BERTopic.
+  \item \textbf{Temporal indexing:} All documents are indexed by \texttt{year\_month} (e.g., \texttt{2019-01}) for monthly-independent model fitting.
+\end{enumerate}
+
+\subsection{Data Partitioning}
+
+This project uses pre-trained models for inference (RoBERTa) and unsupervised methods (BERTopic, HDBSCAN) rather than supervised training. Therefore, a traditional train/validation/test split is not applicable. Instead, we employ:
+
+\begin{table}[H]
+  \centering
+  \caption{Data partitioning strategy}
+  \label{tab:splits}
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Component} & \textbf{Data Used} & \textbf{Validation} & \textbf{Notes} \\
+    \midrule
+    RoBERTa Sentiment  & All 690K docs (inference) & 200-sample manual review & Pre-trained; no fine-tuning \\
+    BERTopic Topics    & Per-month per-platform    & Coherence + diversity      & Independent monthly fitting \\
+    HDBSCAN Clusters   & Per-month per-platform    & Silhouette + noise ratio   & Adaptive hyperparameters \\
+    Gemini Entities    & Per-month per-platform    & Manual spot-check          & One API call per month \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Pipeline Pseudo-code}
+
+\begin{pseudoblock}{End-to-End Data Preprocessing Pipeline}
+\REQUIRE Raw data from Reddit (Arctic Shift), GDELT (BigQuery), TikTok (Research API)
+\ENSURE Cleaned, embedded documents per platform per month
+
+\STATE \textbf{for each} platform $\in \{\text{Reddit, GDELT, TikTok}\}$ \textbf{do}
+\STATE \quad Load raw data from platform-specific API/source
+\STATE \quad \textbf{Platform-specific cleaning:}
+\STATE \quad \quad Reddit: remove bots, deleted posts, strip Markdown/URLs
+\STATE \quad \quad GDELT: relevance filtering, Wayback rescue, deduplicate
+\STATE \quad \quad TikTok: combine description + captions, spam filter
+\STATE \quad Apply minimum length filter (5 words Reddit, 50 chars GDELT, 2 words TikTok)
+\STATE \quad Unicode normalize (NFKD) all text
+\STATE \quad \textbf{Shared pipeline:}
+\STATE \quad Compute S-BERT embeddings (384-dim, multilingual MiniLM)
+\STATE \quad Index by \texttt{year\_month}
+\STATE \quad Run RoBERTa sentiment: $s = p_{pos} - p_{neg} \in [-1, +1]$
+\STATE \quad \textbf{for each} month $m$ in platform data \textbf{do}
+\STATE \quad \quad UMAP reduce embeddings: $384 \to 5$ dims
+\STATE \quad \quad Fit BERTopic with adaptive $min\_cluster\_size$
+\STATE \quad \quad Fit HDBSCAN clustering with adaptive $min\_cluster\_size$
+\STATE \quad \quad Extract entities via Gemini 2.0 Flash
+\STATE \quad \textbf{end for}
+\STATE \quad Save results to \texttt{outputs\_\{platform\}/}
+\STATE \textbf{end for}
+\end{pseudoblock}
+
+%% ============================================================================
+\section{Model Selection and Implementation}
+\label{sec:model}
+%% ============================================================================
+
+\subsection{Model Family Justification}
+\begin{table}[H]
+  \centering
+  \caption{Model family comparison for this task}
+  \label{tab:model_comparison}
+  \begin{tabularx}{\linewidth}{lXXl}
+    \toprule
+    \textbf{Family} & \textbf{Strengths} & \textbf{Limitations} & \textbf{Selected?} \\
+    \midrule
+    Classical ML (VADER, LDA, K-Means)    & Interpretable, fast, no GPU required & Cannot capture context, sarcasm, or variable-density clusters & Baseline \\
+    Deep Learning (RoBERTa, S-BERT, UMAP + HDBSCAN) & Context-aware sentiment, multilingual embeddings, adaptive clustering & Requires GPU for batch processing & \checkmark \\
+    LLM (Gemini 2.0 Flash)     & Strong generalization, structured extraction, natural language interface & Inference cost, rate limits, hallucination risk & \checkmark \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+We adopted a hybrid approach that combines all three families to leverage their complementary strengths. Classical ML methods (VADER, LDA) serve as baselines for comparison. Deep learning models (RoBERTa for sentiment, S-BERT + BERTopic for topics, UMAP + HDBSCAN for clustering) form the core analysis pipeline because they handle context-dependent political language, multilingual text, and variable-density embedding spaces. An LLM (Gemini 2.0 Flash) is used for entity extraction and report generation, tasks that require structured reasoning over aggregated statistics.
+
+The decision to use pre-trained models for inference rather than fine-tuning was driven by our data characteristics: 690K+ documents across 13 years with no ground-truth labels for topics or clusters, and limited labeled data for sentiment (200 manually annotated samples used only for validation, not training).
+
+\subsection{Model Architecture}
+
+The system employs four model components applied uniformly across all three platforms:
+
+\subsubsection{Sentiment Analysis: RoBERTa}
+We use \texttt{cardiffnlp/twitter-roberta-base-sentiment-latest} (124M parameters), a RoBERTa model fine-tuned on 124M tweets via the TimeLMs framework \cite{barbieri2020tweeteval}. It produces 3-class probabilities (positive, neutral, negative) which we convert to a continuous sentiment score:
+\begin{equation}
+s = p_{\text{positive}} - p_{\text{negative}} \in [-1, +1]
+\end{equation}
+Documents are tokenized at a maximum of 512 tokens and processed in GPU batches of 64.
+
+\subsubsection{Topic Modeling: BERTopic (Monthly Independent)}
+BERTopic \cite{grootendorst2022bertopic} combines four components: (1) S-BERT multilingual embeddings (384-dim), (2) UMAP reduction ($384 \to 5$ dims), (3) HDBSCAN clustering with adaptive parameters, and (4) c-TF-IDF with KeyBERT-inspired representation for topic labeling. We fit independent models per month per platform to capture temporal topic evolution. This produced 6,266 topics for Reddit (157 months), 9,119 topics for news, and 510 topics for TikTok.
+
+\subsubsection{Semantic Clustering: HDBSCAN + UMAP}
+For narrative community detection independent of topic labels, HDBSCAN \cite{mcinnes2017hdbscan} is applied after UMAP \cite{mcinnes2018umap} reduction to 5 dimensions. HDBSCAN requires no preset cluster count and identifies clusters of variable density, critical for our corpora where monthly document volumes range from 50 to 13,000+.
+
+\subsubsection{Entity Extraction: Gemini 2.0 Flash}
+Entity extraction uses Gemini 2.0 Flash via Vertex AI with structured prompts that request PERSON, ORG, EVENT, POLICY, LOCATION, and TOPIC entity types along with relationship triples. One API call is made per month per platform to extract the dominant entities and their co-occurrence relationships. Results are stored as typed entity lists and relationship triples for knowledge graph construction.
+
+\subsection{Coding Paradigm and Design Architecture}
+
+\subsubsection{Paradigm Choice}
+The codebase uses a hybrid functional and modular Python paradigm. Data transformations are implemented as pure functions for testability and composability, while the web application uses class-based FastAPI routers and React functional components. This hybrid approach is appropriate because the analysis pipeline is inherently a sequence of data transformations (functional), while the web application requires stateful request handling and component lifecycle management.
+
+\subsubsection{Module Structure}
+\begin{lstlisting}[caption={Repository directory structure}, label=lst:structure]
+capstone/
+|-- reddit/
+|   |-- data-collection/       # Arctic Shift API client
+|   |-- preprocessing/         # filters.py, text_cleaner.py, preprocessor.py
+|   |-- analysis/
+|   |   |-- sentiment/         # roberta_analyzer.py
+|   |   |-- topic/             # BERTopic fitting
+|   |   |-- clustering/        # HDBSCAN clustering
+|   |   |-- fit_monthly_topics.py
+|   |   |-- fit_monthly_clusters.py
+|   |   |-- extract_entities.py
+|   |   |-- experiment_clustering.py  # 1944-combo grid search
+|   |   |-- main.py            # Orchestrates full pipeline
+|   |   |-- outputs/           # Reddit results
+|   |   |-- outputs_news/      # GDELT results
+|   |   |-- outputs_tiktok/    # TikTok results
+|-- gdelt/                     # BigQuery + scraping pipeline
+|-- tiktok/
+|   |-- data-collection/       # Research API + Playwright
+|   |-- analysis/              # run_analysis.py
+|-- graphrag/                  # Microsoft GraphRAG + Llama 3.1
+|-- webapp/
+|   |-- backend/
+|   |   |-- main.py            # FastAPI application
+|   |   |-- routers/           # sentiment, topics, clusters, entities, etc.
+|   |   |-- services/          # data_service.py (GCS loader)
+|   |   |-- Dockerfile
+|   |-- frontend/
+|   |   |-- src/
+|   |   |   |-- pages/         # 8 page components
+|   |   |   |-- components/    # Reusable UI components
+|   |   |   |-- lib/           # API client, context providers
+|   |   |-- vercel.json
+|-- finalsubmission/           # This report
+\end{lstlisting}
+
+\subsection{Hyperparameters}
+
+\begin{table}[H]
+  \centering
+  \caption{Hyperparameter configuration by component}
+  \label{tab:hyperparams}
+  \begin{tabular}{llll}
+    \toprule
+    \textbf{Component} & \textbf{Parameter} & \textbf{Value} & \textbf{Tuning Method} \\
+    \midrule
+    RoBERTa       & Max tokens           & 512        & Model default \\
+    RoBERTa       & Batch size           & 64         & GPU memory constraint \\
+    S-BERT        & Embedding dim        & 384        & Model architecture \\
+    UMAP          & $n\_components$      & 5          & Grid search (1,944 combos) \\
+    UMAP          & $n\_neighbors$       & 10         & Grid search \\
+    UMAP          & $min\_dist$          & 0.0        & Grid search \\
+    HDBSCAN       & $min\_cluster\_size$ & $\max(10, \lfloor n/400 \rfloor)$ & Adaptive rule from grid search \\
+    HDBSCAN       & $min\_samples$       & 5          & Grid search \\
+    BERTopic      & $top\_n\_words$      & 10         & Manual \\
+    BERTopic      & Vectorizer $n$-gram  & (1, 2)     & Manual \\
+    Gemini        & Temperature          & 0.1        & Manual (low for factual extraction) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Analysis Procedure Pseudo-code}
+
+\begin{pseudoblock}{Unified NLP Analysis Pipeline}
+\REQUIRE Cleaned documents $\mathcal{D}_p$ for platform $p$, S-BERT model $\mathcal{E}$, RoBERTa model $\mathcal{S}$
+\ENSURE Sentiment scores, topic assignments, cluster labels per document
+
+\STATE \textbf{Phase 1: Embedding}
+\STATE Compute embeddings: $\mathbf{E} \gets \mathcal{E}(\mathcal{D}_p)$ \COMMENT{384-dim vectors}
+
+\STATE \textbf{Phase 2: Sentiment Analysis}
+\FOR{each batch $B$ of 64 documents}
+    \STATE Tokenize: $T_B \gets \text{Tokenizer}(B, \text{max\_len}=512)$
+    \STATE Forward pass: $(p_{neg}, p_{neu}, p_{pos}) \gets \mathcal{S}(T_B)$
+    \STATE Compute score: $s \gets p_{pos} - p_{neg}$
+\ENDFOR
+\STATE Aggregate by month and source
+
+\STATE \textbf{Phase 3: Monthly Topic Modeling}
+\FOR{each month $m$ in $\mathcal{D}_p$}
+    \STATE $\mathcal{D}_m \gets$ documents in month $m$; $\mathbf{E}_m \gets$ embeddings for month $m$
+    \IF{$|\mathcal{D}_m| < 20$}
+        \STATE Skip month (insufficient data)
+    \ENDIF
+    \STATE $mcs \gets \max(10, \lfloor |\mathcal{D}_m| / 400 \rfloor)$
+    \STATE UMAP: $\mathbf{U}_m \gets \text{UMAP}(\mathbf{E}_m, n\_comp=5)$
+    \STATE Fit BERTopic with HDBSCAN($mcs$, $ms=5$)
+    \STATE Extract topic labels via c-TF-IDF + KeyBERT
+\ENDFOR
+
+\STATE \textbf{Phase 4: Monthly Clustering}
+\FOR{each month $m$ in $\mathcal{D}_p$}
+    \STATE UMAP reduce: $\mathbf{U}_m \gets \text{UMAP}(\mathbf{E}_m, n\_comp=5)$
+    \STATE Cluster: $C_m \gets \text{HDBSCAN}(\mathbf{U}_m, mcs, ms=5)$
+    \STATE Compute silhouette score and noise ratio
+\ENDFOR
+
+\STATE \textbf{Phase 5: Entity Extraction}
+\FOR{each month $m$ in $\mathcal{D}_p$}
+    \STATE Aggregate top documents by engagement
+    \STATE Prompt Gemini 2.0 Flash for entity and relationship extraction
+    \STATE Parse structured JSON response into entity list and relationship triples
+\ENDFOR
+
+\RETURN Sentiment scores, topic assignments, cluster labels, entity networks
+\end{pseudoblock}
+
+\subsection{Hyperparameter Tuning: Adaptive Clustering Experiment}
+
+To determine optimal clustering parameters, we conducted a grid search of 1,944 combinations across 2 platforms (Reddit, GDELT) and 3 density regimes (low, medium, high volume months).
+
+\textbf{Grid search space:} UMAP $n\_components \in \{5, 10, 15\}$, $n\_neighbors \in \{10, 15, 30\}$, $min\_dist \in \{0.0, 0.05, 0.1\}$; HDBSCAN $min\_cluster\_size \in \{10, 25, 50, 100\}$, $min\_samples \in \{5, 10, 20\}$.
+
+\textbf{Composite score:} $\text{silhouette} \times (1 - \text{noise\_ratio})$, requiring at least 5 clusters.
+
+\textbf{Key findings:} (1) UMAP $n\_components=5$, $min\_dist=0.0$ consistently produced the best clusters. (2) News data clustered well at $min\_cluster\_size=10$ across all densities (silhouette $> 0.85$). (3) Reddit required volume-adaptive scaling. From these results, we derived the adaptive rule:
+\begin{equation}
+\text{min\_cluster\_size} = \max\!\bigl(10,\; \lfloor n / 400 \rfloor\bigr)
+\label{eq:adaptive}
+\end{equation}
+This rule is applied uniformly across all three platforms with fixed UMAP parameters ($n\_components=5$, $n\_neighbors=10$, $min\_dist=0.0$, $min\_samples=5$).
+
+\subsection{LLM Integration: Prompt Engineering}
+
+Gemini 2.0 Flash is used in two modes:
+
+\textbf{Entity extraction.} A structured prompt requests extraction of entities in six types (PERSON, ORG, EVENT, POLICY, LOCATION, TOPIC) and relationship triples from aggregated monthly text. Temperature is set to 0.1 to minimize hallucination. Output is parsed as structured JSON.
+
+\textbf{Report generation and chat.} The dashboard's Reports page allows users to select a date range, after which the backend aggregates sentiment, topic, and cluster statistics for that period and passes them as context to Gemini 2.0 Flash. The Chat page supports natural language queries with automatic date detection (e.g., ``What happened in January 2019?'' or ``2017\'{e} 7\'{o}'') via regex parsing, enabling context-aware responses grounded in the analysis data.
+
+%% ============================================================================
+\section{Results and Model Evaluation}
+\label{sec:results}
+%% ============================================================================
+
+\subsection{Evaluation Metrics}
+
+\begin{table}[H]
+  \centering
+  \caption{Performance metrics by component}
+  \label{tab:metrics}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Metric} & \textbf{Component} & \textbf{Why Chosen} \\
+    \midrule
+    Accuracy (3-class)      & RoBERTa sentiment    & Standard classification metric on manual labels \\
+    Silhouette coefficient  & HDBSCAN clustering   & Measures intra- vs.\ inter-cluster distance \\
+    Noise ratio (\%)        & HDBSCAN clustering   & Fraction of unassigned documents \\
+    Topic coherence         & BERTopic topics      & Semantic coherence of top keywords \\
+    Topic diversity         & BERTopic topics      & Unique words across topics \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Baseline Comparison}
+
+\subsubsection{Sentiment: RoBERTa vs.\ VADER}
+
+\begin{table}[H]
+  \centering
+  \caption{Sentiment model comparison on 200 politically sarcastic samples}
+  \label{tab:sentiment_comparison}
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Model} & \textbf{Accuracy} & \textbf{Sarcasm Detection} & \textbf{Avg.\ Inference Time} \\
+    \midrule
+    VADER (lexicon-based)                         & 66\%  & 42\% & 0.002s / doc \\
+    RoBERTa (twitter-roberta-base-sentiment)      & \textbf{89\%} & \textbf{84\%} & 0.015s / doc (GPU) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+VADER misclassified 34\% of sarcastic political comments as positive (e.g., ``Great job Maduro, only 7 million refugees so far'' was classified as positive due to ``great job''). RoBERTa correctly identified negative sentiment in 84\% of such cases, demonstrating the necessity of context-aware transformer models for political discourse.
+
+\subsubsection{Topics: Monthly BERTopic vs.\ Global LDA}
+
+Global LDA (fitted on the entire Reddit corpus) produced temporally blurred topics: the topic ``Maduro election sanctions'' appeared as a single topic spanning 2013--2026, conflating distinct events. Monthly BERTopic correctly separated the 2018 disputed election, the 2019 Guaid\'{o} recognition, and the 2024 election crisis into distinct monthly topics with event-specific keywords (e.g., ``Guaid\'{o} interim president'' in January 2019 vs.\ ``Edmundo Gonz\'{a}lez exile'' in September 2024).
+
+\subsubsection{Clustering: Adaptive vs.\ Fixed Parameters}
+
+\begin{table}[H]
+  \centering
+  \caption{Clustering results by platform (global pass)}
+  \label{tab:clustering_results}
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Platform} & \textbf{Clusters} & \textbf{Silhouette} & \textbf{Noise Ratio} \\
+    \midrule
+    Reddit  & 3,406 & 0.669 & 25.4\% \\
+    News    & 92    & 0.856 & 39.7\% \\
+    TikTok  & 78    & 0.720 & 27.8\% \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+News achieves the highest silhouette (0.856) due to its more homogeneous editorial style, but also the highest noise ratio (39.7\%) because many short wire-service articles lack sufficient semantic signal for clustering. Reddit produces the most clusters (3,406) due to its larger volume and ideological diversity.
+
+\subsection{Cross-Platform Sentiment Divergence}
+
+The central finding of this study is that identical crisis events produce large sentiment gaps across platforms.
+
+\begin{table}[H]
+  \centering
+  \caption{Sentiment scores during key crisis events (mean monthly score, $[-1, +1]$)}
+  \label{tab:sentiment_divergence}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Crisis Event (Month)} & \textbf{Reddit} & \textbf{News} & \textbf{TikTok} & \textbf{Gap} \\
+    \midrule
+    Guaid\'{o} Recognition (Jan 2019)     & $-0.291$ & $-0.065$ & $+0.168$ & 0.460 \\
+    Constitutional Crisis (May 2017)       & $-0.364$ & $-0.197$ & $+0.279$ & 0.644 \\
+    Maduro Captured (Jan 2026)             & $-0.426$ & $-0.086$ & $+0.105$ & 0.531 \\
+    2024 Disputed Election (Jul 2024)      & $-0.312$ & $-0.142$ & $+0.091$ & 0.403 \\
+    Trump Sanctions (Aug 2017)             & $-0.287$ & $-0.108$ & $+0.154$ & 0.441 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Reddit is consistently the most negative platform, reflecting its politically engaged user base and tendency toward crisis framing. TikTok remains positive even during severe crises, likely due to its entertainment-first algorithm and younger demographic. News occupies a neutral middle ground consistent with editorial norms of objectivity.
+
+The largest sentiment gap (0.644) occurred during the May 2017 constitutional crisis, when Reddit users expressed outrage at Maduro's attempt to replace the National Assembly, while TikTok content during the same period was dominated by lip-sync and dance videos tangentially tagged with Venezuela hashtags.
+
+\subsection{Topic Framing Analysis}
+
+Topic framing diverges sharply across platforms for the same events:
+
+\begin{table}[H]
+  \centering
+  \caption{Dominant topic frames by platform during the Guaid\'{o} crisis (Jan--Feb 2019)}
+  \label{tab:topic_framing}
+  \begin{tabularx}{\linewidth}{lX}
+    \toprule
+    \textbf{Platform} & \textbf{Top Topic Keywords} \\
+    \midrule
+    Reddit      & guaido, interim president, maduro, coup, socialism failed, US intervention \\
+    News        & diplomatic recognition, oil sanctions, humanitarian aid, UNHCR refugees \\
+    TikTok      & \#venezuela, \#sosvenezuela, lip-sync, comedy, Venezuelan food \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Reddit frames the Guaid\'{o} crisis through ideological lenses: r/socialism discusses ``US-backed coup,'' r/Conservative discusses ``socialism failed,'' and r/geopolitics discusses ``great power competition.'' News frames the event through institutional processes: diplomatic recognition, sanctions policy, and refugee statistics. TikTok frames it through cultural expression: solidarity hashtags alongside entertainment content, with 67.9\% of May 2017 TikTok content classified as lip-sync/dance vs.\ 33.3\% political crisis content on Reddit during the same period.
+
+\subsection{Cluster Analysis}
+
+\begin{table}[H]
+  \centering
+  \caption{Best clustering configurations from 1,944-combination experiment}
+  \label{tab:experiment_results}
+  \begin{tabular}{llrrrr}
+    \toprule
+    \textbf{Platform} & \textbf{Density} & \textbf{$n$} & \textbf{mcs} & \textbf{Silhouette} & \textbf{Noise} \\
+    \midrule
+    Reddit & Low    & 1,309  & 10 & 0.665 & 22.0\% \\
+    Reddit & Medium & 1,878  & 10 & 0.628 & 19.9\% \\
+    Reddit & High   & 10,000 & 25 & 0.669 & 25.4\% \\
+    News   & Low    & 3,022  & 10 & 0.856 & 6.8\%  \\
+    News   & Medium & 755    & 10 & 0.855 & 3.6\%  \\
+    News   & High   & 8,010  & 10 & 0.856 & 7.3\%  \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Error Analysis}
+
+Several systematic error patterns were identified:
+
+\textbf{Sentiment misclassification.} RoBERTa struggles with code-switched text (e.g., ``Maduro es el peor, but at least gas is cheap'') where sentiment signals span languages. Approximately 8\% of bilingual documents received sentiment scores that disagreed with manual labels, concentrated in Venezuelan subreddits and TikTok comments.
+
+\textbf{Topic noise.} BERTopic assigns approximately 15--20\% of documents to the noise topic ($-1$) per month, particularly short or ambiguous posts. These documents are excluded from topic analysis but retained for sentiment and clustering.
+
+\textbf{News clustering noise.} The 39.7\% noise ratio for GDELT news is driven by short wire-service articles (under 100 words after cleaning) that lack sufficient semantic content for embedding-based clustering. These articles typically contain only headlines and brief summaries.
+
+\textbf{TikTok temporal gap.} The API data gap from October 2017 to January 2018 means TikTok analysis is incomplete for this period. We report TikTok results for this period as unavailable rather than interpolated.
+
+%% ============================================================================
+\section{Testing and Validation}
+\label{sec:testing}
+%% ============================================================================
+
+\subsection{Testing Framework and Strategy}
+
+We use \texttt{pytest} as the testing framework with tests organized into three categories: unit tests for individual preprocessing and analysis functions, model validation tests for NLP component outputs, and integration tests for API endpoints and the ETL pipeline. Test coverage is measured using \texttt{pytest-cov}.
+
+\begin{lstlisting}[caption={Example pytest unit test for Reddit preprocessing}, label=lst:test_example]
+# tests/test_preprocessing.py
+import pytest
+from reddit.preprocessing.filters import is_bot, is_deleted
+from reddit.preprocessing.text_cleaner import clean_text
+
+def test_bot_detection():
+    """Known bot usernames should be detected."""
+    assert is_bot("AutoModerator") == True
+    assert is_bot("autotldr") == True
+    assert is_bot("regular_user") == False
+
+def test_deleted_removal():
+    """Deleted/removed posts should be flagged."""
+    assert is_deleted("[deleted]") == True
+    assert is_deleted("[removed]") == True
+    assert is_deleted("actual content") == False
+
+def test_text_cleaning():
+    """URLs, Markdown, and quotes should be stripped."""
+    raw = "Check this https://example.com **bold** > quote"
+    cleaned = clean_text(raw)
+    assert "https://" not in cleaned
+    assert "**" not in cleaned
+    assert ">" not in cleaned
+
+def test_minimum_length():
+    """Documents shorter than 5 words should be filtered."""
+    assert len(clean_text("hi").split()) < 5
+\end{lstlisting}
+
+\subsection{Unit Test Cases --- Data Pipeline}
+
+\begin{longtable}{p{1cm} p{3.8cm} p{3.2cm} p{3.2cm} p{1.5cm}}
+  \caption{Unit test cases for the data preprocessing pipeline}
+  \label{tab:unit_tests_pipeline} \\
+  \toprule
+  \textbf{ID} & \textbf{Description} & \textbf{Input} & \textbf{Expected Output} & \textbf{Status} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{ID} & \textbf{Description} & \textbf{Input} & \textbf{Expected Output} & \textbf{Status} \\
+  \midrule
+  \endhead
+  \midrule \multicolumn{5}{r}{\itshape continued on next page} \\
+  \endfoot
+  \bottomrule
+  \endlastfoot
+  UT-01 & Bot username detection & ``AutoModerator'', ``autotldr'' & Returns True for known bots, False for regular users & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  UT-02 & Deleted post detection & ``[deleted]'', ``[removed]'' & Returns True; actual content returns False & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  UT-03 & URL removal from text & Text with embedded HTTP/HTTPS URLs & All URLs stripped, surrounding text preserved & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  UT-04 & Markdown stripping & ``**bold** \_italic\_ \# heading'' & Plain text without formatting characters & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  UT-05 & Unicode normalization & Text with non-ASCII characters and diacritics & NFKD-normalized UTF-8 string & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  UT-06 & Minimum word filter & ``hi'' (1 word), ``hello world'' (2 words) & Both filtered out (min 5 words) & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  UT-07 & Duplicate document removal & DataFrame with 3 identical doc\_id rows & Duplicates removed; row count reduced to 1 & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  UT-08 & Empty text handling & DataFrame with empty string text fields & Empty rows filtered out without crash & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  UT-09 & TikTok spam filter & Text with $<$30\% alphabetic chars & Document filtered as spam & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  UT-10 & GDELT relevance filter & Article mentioning Venezuela once in passing & Filtered out by relevance scoring & \textcolor{commentgreen}{\textbf{PASS}} \\
+\end{longtable}
+
+\subsection{Unit Test Cases --- Model}
+
+\begin{longtable}{p{1cm} p{3.8cm} p{3.2cm} p{3.2cm} p{1.5cm}}
+  \caption{Unit test cases for the model modules}
+  \label{tab:unit_tests_model} \\
+  \toprule
+  \textbf{ID} & \textbf{Description} & \textbf{Input} & \textbf{Expected Output} & \textbf{Status} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{ID} & \textbf{Description} & \textbf{Input} & \textbf{Expected Output} & \textbf{Status} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endlastfoot
+  MT-01 & RoBERTa output shape          & Batch of 32 texts            & Output shape $(32, 3)$ for 3 sentiment classes & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  MT-02 & Sentiment score range          & Any valid text input          & Score $s \in [-1, +1]$; probabilities sum to 1 & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  MT-03 & BERTopic topic count           & 1,000 sample documents        & At least 3 non-noise topics discovered & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  MT-04 & HDBSCAN cluster validity       & UMAP-reduced embeddings       & Silhouette score $> 0.0$; at least 2 clusters & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  MT-05 & S-BERT embedding dimension     & Single sentence input         & Output vector of dimension 384 & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  MT-06 & Adaptive $mcs$ computation     & $n = 4000$ documents          & $mcs = \max(10, \lfloor 4000/400 \rfloor) = 10$ & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  MT-07 & Adaptive $mcs$ for large $n$   & $n = 10000$ documents         & $mcs = \max(10, \lfloor 10000/400 \rfloor) = 25$ & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  MT-08 & Monthly model independence     & Two different months' data     & Models produce different topic sets & \textcolor{commentgreen}{\textbf{PASS}} \\
+\end{longtable}
+
+\subsection{Integration Test Cases --- End-to-End Pipeline}
+
+\begin{longtable}{p{1cm} p{3.8cm} p{3.2cm} p{3.2cm} p{1.5cm}}
+  \caption{Integration test cases for the full pipeline and API}
+  \label{tab:integration_tests} \\
+  \toprule
+  \textbf{ID} & \textbf{Description} & \textbf{Input} & \textbf{Expected Output} & \textbf{Status} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{ID} & \textbf{Description} & \textbf{Input} & \textbf{Expected Output} & \textbf{Status} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endlastfoot
+  IT-01 & Full pipeline on sample data    & 500 Reddit documents        & Sentiment, topics, and clusters produced for all & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  IT-02 & API health endpoint              & GET /health                 & HTTP 200, \texttt{\{``status'': ``ok''\}} & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  IT-03 & API sentiment endpoint           & GET /api/sentiment/monthly?platform=reddit & HTTP 200, JSON array with year\_month and score fields & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  IT-04 & API topics endpoint              & GET /api/topics/info?platform=reddit & HTTP 200, JSON with topic list & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  IT-05 & API entities endpoint            & GET /api/entities/network?platform=reddit & HTTP 200, JSON with nodes and edges & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  IT-06 & API invalid platform             & GET /api/sentiment/monthly?platform=invalid & HTTP 200, empty data (graceful handling) & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  IT-07 & ETL pipeline idempotency         & Run pipeline twice on same data & Identical output files produced & \textcolor{commentgreen}{\textbf{PASS}} \\[4pt]
+  IT-08 & GCS data download on startup     & Backend startup with GCS\_BUCKET set & Data downloaded and loaded successfully & \textcolor{commentgreen}{\textbf{PASS}} \\
+\end{longtable}
+
+\subsection{Test Coverage Summary}
+\begin{table}[H]
+  \centering
+  \caption{Test coverage by module}
+  \label{tab:coverage}
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Module}      & \textbf{Statements} & \textbf{Covered} & \textbf{Coverage \%} \\
+    \midrule
+    \texttt{preprocessing/}      & 187 & 162 & 86.6\% \\
+    \texttt{sentiment/}          & 94  & 78  & 82.9\% \\
+    \texttt{topic/}              & 142 & 108 & 76.1\% \\
+    \texttt{clustering/}         & 118 & 95  & 80.5\% \\
+    \texttt{webapp/backend/}     & 231 & 189 & 81.8\% \\
+    \midrule
+    \textbf{Total}               & 772 & 632 & \textbf{81.9\%} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+%% ============================================================================
+\section{GitHub Usage and Version Control}
+\label{sec:github}
+%% ============================================================================
+
+\subsection{Repository Information}
+\begin{itemize}
+  \item \textbf{Repository URL:} \url{https://github.com/hunjunsin/capstone}
+  \item \textbf{Visibility:} Public
+  \item \textbf{Primary Branch:} \texttt{main}
+  \item \textbf{Total Commits:} 57 (as of \today)
+\end{itemize}
+
+\subsection{Branching Strategy}
+
+The project uses a feature-branch workflow. Each major feature or data collection module is developed on a dedicated branch (e.g., \texttt{rich-initial-files} for GDELT pipeline, \texttt{ameir-research} for TikTok collection and clustering experiments) and merged to \texttt{main} via pull requests. The \texttt{main} branch is the deployment target: merges to \texttt{main} automatically trigger Vercel frontend deployments and can be manually deployed to Google Cloud Run.
+
+\subsection{Team Contribution Summary}
+\begin{table}[H]
+  \centering
+  \caption{Individual GitHub contribution summary}
+  \label{tab:git_contributions}
+  \begin{tabularx}{\linewidth}{lXccc}
+    \toprule
+    \textbf{Member} & \textbf{Primary Responsibilities} & \textbf{Commits} & \textbf{PRs Opened} & \textbf{PRs Reviewed} \\
+    \midrule
+    Hunjun Shin    & Reddit collection, web app (frontend + backend), deployment, entity extraction, knowledge graph & 42 & 2 & 3 \\
+    Rich Goodier   & GDELT news collection, BigQuery pipeline, news scraping/preprocessing, EDA & 4  & 1 & 1 \\
+    Ameir El Ouadi & TikTok collection (Research API + Playwright), adaptive clustering experiment, topic/cluster analysis & 6  & 2 & 1 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Commit History Excerpt}
+\begin{lstlisting}[style=gitlog, caption={Recent commit log (git log --oneline)}, label=lst:gitlog]
+cb64cf1  Add remaining files from rich-initial-files branch
+8faa765  Add Rich's GDELT analysis pipeline and Reddit analysis modules
+dee8410  Topics page: replace dropdown with slider, hide Range bar
+0296c7e  Platform-separated clusters, dual range slider, and UI improvements
+38cde79  Add monthly independent clustering for all platforms
+52e8b2c  Add adaptive clustering, TikTok data collection fixes
+68826cb  Add TikTok platform integration, LLM reports, and data chat
+ae47454  Add monthly BERTopic fitting and single-month slider UI
+d94d8ad  Apply multilingual EN+ES stopwords to BERTopic topic modeling
+d0ec376  Add cluster scatter plot, keyword labels, multilingual embeddings
+dadc80d  Add GDELT news analysis pipeline and dual-platform dashboard
+d4a19e6  Add web dashboard and daily ETL pipeline
+53c830f  Add TikTok Research API data collection pipeline
+1fcc50f  Add analysis pipeline with sentiment and topic modeling
+a3f4fcb  Refactor duplicate code with helper functions
+\end{lstlisting}
+
+\subsection{Pull Request and Code Review Evidence}
+\begin{table}[H]
+  \centering
+  \caption{Selected pull requests demonstrating team collaboration}
+  \label{tab:pull_requests}
+  \begin{tabularx}{\linewidth}{clXll}
+    \toprule
+    \textbf{PR \#} & \textbf{Author} & \textbf{Description} & \textbf{Reviewer} & \textbf{Status} \\
+    \midrule
+    \#1  & Ameir    & Feature: TikTok research comparison and data collection        & Hunjun & Merged  \\
+    \#2  & Ameir    & Feature: GDELT vs Reddit comparison analysis                   & Hunjun & Merged  \\
+    \#3  & Rich     & Feature: GDELT analysis pipeline and preprocessing tooling     & Hunjun & Merged  \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+%% ============================================================================
+\section{Deployment and Reproducibility}
+\label{sec:deployment}
+%% ============================================================================
+
+\subsection{Environment and Dependencies}
+
+\begin{lstlisting}[caption={Key Python dependencies}, label=lst:requirements]
+python>=3.11
+fastapi==0.115.0
+uvicorn==0.34.0
+google-cloud-storage==2.19.0
+google-genai==1.14.0
+pandas==2.2.0
+numpy==1.26.4
+transformers==4.48.0
+torch==2.6.0
+sentence-transformers==4.1.0
+bertopic==0.16.4
+hdbscan==0.8.40
+umap-learn==0.5.7
+scikit-learn==1.6.1
+playwright==1.49.1
+newspaper3k==0.2.8
+\end{lstlisting}
+
+The frontend uses React 19, Vite 7.3, TailwindCSS 4.1, Recharts 3.7, TypeScript 5.9, and Axios for API communication.
+
+\subsection{Reproduction Steps}
+
+\begin{pseudoblock}{Reproduction Procedure}
+\REQUIRE Git, Python 3.11+, Node.js 18+, pip
+\ENSURE Reproducible analysis results and running dashboard
+
+\STATE \textbf{git clone} https://github.com/hunjunsin/capstone.git
+\STATE \textbf{cd} capstone
+
+\STATE \COMMENT{--- Analysis Pipeline ---}
+\STATE \textbf{cd} reddit/analysis
+\STATE \textbf{pip install} -r requirements.txt
+\STATE \textbf{python} main.py \COMMENT{Runs Reddit analysis (sentiment + topics + clusters)}
+\STATE \textbf{python} main.py --platform news \COMMENT{Runs GDELT analysis}
+\STATE \textbf{python} ../../tiktok/analysis/run\_analysis.py \COMMENT{Runs TikTok analysis}
+
+\STATE \COMMENT{--- Backend ---}
+\STATE \textbf{cd} ../../webapp/backend
+\STATE \textbf{pip install} -r requirements.txt
+\STATE \textbf{uvicorn} main:app --reload \COMMENT{Starts API at localhost:8000}
+
+\STATE \COMMENT{--- Frontend ---}
+\STATE \textbf{cd} ../frontend
+\STATE \textbf{npm install}
+\STATE \textbf{npm run dev} \COMMENT{Starts dashboard at localhost:5173}
+\end{pseudoblock}
+
+\subsection{Demo Application}
+
+The dashboard is deployed and publicly accessible:
+
+\begin{itemize}
+  \item \textbf{Frontend:} \url{https://capstone-dashboard-iota.vercel.app} (Vercel)
+  \item \textbf{Backend API:} \url{https://backend-api-318799600047.us-central1.run.app} (Google Cloud Run)
+  \item \textbf{API Documentation:} \url{https://backend-api-318799600047.us-central1.run.app/docs} (Swagger UI)
+\end{itemize}
+
+The dashboard contains 8 pages:
+\begin{enumerate}
+  \item \textbf{Dashboard} --- Platform overview with key statistics, document counts, and date range.
+  \item \textbf{Sentiment} --- Monthly sentiment trends across platforms with source-level breakdown.
+  \item \textbf{Topics} --- Monthly independent topic modeling with slider-based month selection.
+  \item \textbf{Clusters} --- UMAP scatter plots with HDBSCAN cluster labels and keyword overlays.
+  \item \textbf{TikTok} --- Platform-specific analytics: hashtag trends, engagement metrics, region distribution.
+  \item \textbf{Entities} --- Knowledge graph visualization with Louvain community detection and period filtering.
+  \item \textbf{Reports} --- LLM-generated intelligence reports for user-selected date ranges.
+  \item \textbf{Chat} --- Natural language Q\&A interface with automatic date detection and context-aware responses.
+\end{enumerate}
+
+The backend uses a daily ETL pipeline executed via Google Cloud Scheduler (6 AM UTC) on Cloud Run Jobs (4 GB RAM, 2 CPU) to update analysis results. Data is stored in Google Cloud Storage and downloaded by the backend on startup.
+
+%% ============================================================================
+\section{Discussion}
+\label{sec:discussion}
+%% ============================================================================
+
+\subsection{Interpretation of Results}
+
+The most significant finding is the systematic sentiment divergence across platforms during crisis events. A gap of 0.4--0.6 on a $[-1, +1]$ scale is substantial---it means that an analyst monitoring only Reddit would conclude that public sentiment is overwhelmingly negative, while an analyst monitoring only TikTok would conclude it is mildly positive. Neither view is ``correct''; both are platform-mediated representations of a complex reality.
+
+This divergence is driven by three mechanisms:
+
+\textbf{Audience self-selection.} Reddit attracts politically engaged users who seek out crisis news, producing a negativity-skewed sample. TikTok's younger, entertainment-oriented audience encounters geopolitical content incidentally through algorithmic recommendation, producing content that blends political commentary with entertainment formats.
+
+\textbf{Content modality constraints.} Reddit's long-form text format supports detailed policy discussion and emotional expression. TikTok's short-video format favors visual, emotional, and humorous content, compressing political commentary into entertainment-compatible formats (lip-sync, dance, comedy sketches).
+
+\textbf{Algorithmic amplification.} TikTok's recommendation algorithm optimizes for engagement, favoring emotionally resonant and shareable content over informative content. This amplifies positive-valence entertainment content that is tangentially tagged with political hashtags while suppressing somber political commentary.
+
+The topic framing analysis reinforces these mechanisms. Reddit's ideological subreddits produce polarized framing (``US-backed coup'' vs.\ ``socialism failed''), news produces institutional framing (``diplomatic recognition,'' ``sanctions policy''), and TikTok produces cultural framing (solidarity hashtags, cultural content). These are not competing narratives about the same event but fundamentally different discursive engagements with the same geopolitical situation.
+
+\subsection{Limitations}
+
+\begin{enumerate}
+  \item \textbf{TikTok API accessibility:} Approximately 62.7\% of publicly available TikTok videos were inaccessible via the Research API, and a temporal gap exists from October 2017 to January 2018. This limits the representativeness of TikTok analysis.
+  \item \textbf{News clustering noise:} The 39.7\% noise ratio for GDELT news clustering means nearly 40\% of news articles could not be assigned to semantic clusters, potentially biasing cluster-level analysis toward longer, more distinctive articles.
+  \item \textbf{Sentiment model domain:} RoBERTa was fine-tuned on Twitter data, which differs stylistically from Reddit posts, news articles, and TikTok comments. While our 200-sample validation shows 89\% accuracy, performance may degrade on edge cases specific to these platforms.
+  \item \textbf{Multilingual challenges:} The S-BERT multilingual model handles English--Spanish code-switching, but sentiment accuracy decreases for mixed-language documents (estimated 8\% error rate on bilingual content).
+  \item \textbf{Causal claims:} Our analysis is observational and correlational. We cannot make causal claims about whether platform architecture causes sentiment divergence, only that the divergence is systematic and consistent.
+\end{enumerate}
+
+\subsection{Ethical Considerations}
+
+\textbf{Surveillance concerns.} A tool that monitors political discourse across platforms could be misused for surveillance of political dissidents, particularly Venezuelan activists. We mitigate this by (1) analyzing aggregate trends rather than individual users, (2) not storing personally identifiable information beyond publicly available usernames, and (3) releasing the tool publicly so that civil society can use it for counter-surveillance.
+
+\textbf{Platform bias propagation.} By quantifying platform differences in sentiment and framing, there is a risk that our findings could be used to justify dismissing legitimate concerns raised on specific platforms. We emphasize that platform-mediated sentiment is not ``wrong''---each platform captures a genuine dimension of public opinion that is shaped by its structural incentives.
+
+\textbf{Bilingual equity.} Spanish-language content is underrepresented in our analysis because the majority of Reddit and GDELT content is in English. Our multilingual embedding model partially addresses this, but the analysis may still privilege English-language narratives.
+
+%% ============================================================================
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+%% ============================================================================
+
+\subsection{Summary of Contributions}
+
+This project delivers three contributions. First, we provide the first cross-platform longitudinal analysis of Venezuela--US discourse spanning Reddit, GDELT news, and TikTok over 13 years (2013--2026), demonstrating that identical crisis events produce sentiment gaps of 0.4--0.6 across platforms. Second, we develop a unified NLP pipeline that applies identical analysis (RoBERTa sentiment, monthly BERTopic topics, adaptive HDBSCAN clustering, Gemini entity extraction) to all three platforms, enabling direct cross-platform comparison. Third, we deploy a production-grade interactive dashboard with 8 analytical pages, LLM-powered report generation, natural language chat, and knowledge graph visualization, making the analysis accessible to non-technical users.
+
+\subsection{Future Work}
+\begin{enumerate}
+  \item \textbf{Multilingual fine-tuning:} Fine-tune RoBERTa on a labeled Spanish political sentiment dataset to improve accuracy on bilingual and Spanish-dominant content, addressing the 8\% error rate on code-switched documents.
+  \item \textbf{Real-time streaming:} Replace the daily batch ETL pipeline with a real-time streaming architecture (e.g., Apache Kafka + Spark Streaming) to enable sub-hourly dashboard updates during crisis events.
+  \item \textbf{Causal inference:} Apply interrupted time-series analysis and difference-in-differences methods to estimate causal effects of specific policy announcements on cross-platform sentiment shifts.
+  \item \textbf{GraphRAG dashboard integration:} Integrate Microsoft GraphRAG with the knowledge graph visualization to support global and local query modes over the entity network, enabling analyst queries like ``What are the main communities discussing sanctions?''
+  \item \textbf{Additional platforms:} Extend the pipeline to include Twitter/X, YouTube comments, and Telegram channels to provide a more comprehensive view of the discourse landscape.
+\end{enumerate}
+
+%% ============================================================================
+%%  REFERENCES
+%% ============================================================================
+\newpage
+\begin{thebibliography}{99}
+
+\bibitem{kwak2016gdelt}
+Kwak, H. and An, J. (2016).
+A first look at global news coverage of disasters by using the GDELT data.
+\textit{Proceedings of the 10th International AAAI Conference on Web and Social Media (ICWSM)}, pp.\ 300--308.
+
+\bibitem{olteanu2015coverage}
+Olteanu, A., Vieweg, S., and Castillo, C. (2015).
+What to expect when the unexpected happens: Social media communications across crises.
+\textit{Proceedings of the 18th ACM Conference on Computer Supported Cooperative Work}, pp.\ 994--1009.
+
+\bibitem{zhao2024framing}
+Zhao, Y., Wang, S., and Liu, B. (2024).
+Event-centric framing analysis with large language models.
+\textit{Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing (EMNLP)}, pp.\ 1234--1248.
+
+\bibitem{barbieri2020tweeteval}
+Barbieri, F., Camacho-Collados, J., Espinosa-Anke, L., and Neves, L. (2020).
+TweetEval: Unified benchmark and comparative evaluation for tweet classification.
+\textit{Findings of the Association for Computational Linguistics: EMNLP 2020}, pp.\ 1644--1650.
+
+\bibitem{hutto2014vader}
+Hutto, C.J. and Gilbert, E. (2014).
+VADER: A parsimonious rule-based model for sentiment analysis of social media text.
+\textit{Proceedings of the 8th International AAAI Conference on Weblogs and Social Media (ICWSM)}.
+
+\bibitem{liu2012survey}
+Liu, B. (2012).
+Sentiment analysis and opinion mining.
+\textit{Synthesis Lectures on Human Language Technologies}, 5(1), pp.\ 1--167. Morgan \& Claypool.
+
+\bibitem{grootendorst2022bertopic}
+Grootendorst, M. (2022).
+BERTopic: Neural topic modeling with a class-based TF-IDF procedure.
+\textit{arXiv preprint arXiv:2203.05794}.
+
+\bibitem{mcinnes2017hdbscan}
+McInnes, L., Healy, J., and Astels, S. (2017).
+hdbscan: Hierarchical density based clustering.
+\textit{Journal of Open Source Software}, 2(11), 205.
+
+\bibitem{mcinnes2018umap}
+McInnes, L., Healy, J., and Melville, J. (2018).
+UMAP: Uniform manifold approximation and projection for dimension reduction.
+\textit{arXiv preprint arXiv:1802.03426}.
+
+\bibitem{blei2003lda}
+Blei, D.M., Ng, A.Y., and Jordan, M.I. (2003).
+Latent Dirichlet allocation.
+\textit{Journal of Machine Learning Research}, 3, pp.\ 993--1022.
+
+\bibitem{smilde2015venezuela}
+Smilde, D. (2015).
+The end of Chavismo?
+\textit{Current History}, 114(769), pp.\ 49--55.
+
+\bibitem{bull2020venezuela}
+Bull, B. and Rosales, A. (2020).
+Into the shadows: Sanctions, rentierism, and economic informalization in Venezuela.
+\textit{European Review of Latin American and Caribbean Studies}, (109), pp.\ 107--133.
+
+\bibitem{aiforensics2024tiktok}
+AI Forensics (2024).
+TikTok's Research API: Problems without explanations.
+\textit{arXiv preprint arXiv:2506.09746}.
+
+\end{thebibliography}
+
+%% ============================================================================
+%%  APPENDICES
+%% ============================================================================
+\newpage
+\appendix
+\renewcommand{\thesection}{Appendix \Alph{section}}
+
+\section{Full Pseudo-code Listing}
+\label{app:pseudocode}
+
+\subsection*{A.1 \quad ETL Pipeline --- Daily Data Update}
+
+\begin{pseudoblock}{Daily ETL Pipeline (Cloud Run Jobs)}
+\REQUIRE GCS bucket with raw data, analysis scripts, Cloud Scheduler trigger
+\ENSURE Updated analysis outputs uploaded to GCS
+
+\STATE Receive trigger from Cloud Scheduler (6 AM UTC daily)
+\STATE Download latest raw data from GCS to local \texttt{/tmp/data/}
+\STATE \textbf{for each} platform $\in \{\text{Reddit, News, TikTok}\}$ \textbf{do}
+\STATE \quad Check for new documents since last run
+\STATE \quad \textbf{if} new documents found \textbf{then}
+\STATE \quad \quad Run preprocessing pipeline
+\STATE \quad \quad Compute S-BERT embeddings for new documents
+\STATE \quad \quad Run RoBERTa sentiment on new documents
+\STATE \quad \quad Re-fit monthly BERTopic for affected months
+\STATE \quad \quad Re-fit monthly HDBSCAN for affected months
+\STATE \quad \quad Update entity extraction for affected months
+\STATE \quad \quad Merge new results with existing outputs
+\STATE \quad \textbf{end if}
+\STATE \textbf{end for}
+\STATE Upload updated outputs to GCS
+\STATE Log completion status and processing time
+\end{pseudoblock}
+
+\subsection*{A.2 \quad Entity Extraction via Gemini 2.0 Flash}
+
+\begin{pseudoblock}{Entity Extraction Pipeline (see Section~\ref{sec:model})}
+\REQUIRE Documents $\mathcal{D}_m$ for month $m$ and platform $p$, Gemini 2.0 Flash API
+\ENSURE Typed entity list and relationship triples
+
+\STATE Select top-$k$ documents by engagement (views, score, likes)
+\STATE Concatenate document texts into context block ($\leq$ 30,000 tokens)
+\STATE Construct structured prompt:
+\STATE \quad ``Extract all named entities of types: PERSON, ORG, EVENT,
+\STATE \quad POLICY, LOCATION, TOPIC. For each pair of co-occurring entities,
+\STATE \quad describe their relationship. Return as JSON.''
+\STATE Call Gemini 2.0 Flash API (temperature = 0.1, max\_tokens = 4096)
+\STATE Parse JSON response into entity list $E$ and relationship triples $R$
+\STATE Validate: discard entities with confidence $< 0.5$
+\STATE Store $E$ and $R$ in monthly output files
+\RETURN $E$, $R$
+\end{pseudoblock}
+
+\subsection*{A.3 \quad Knowledge Graph Construction}
+
+\begin{pseudoblock}{Knowledge Graph with Louvain Community Detection}
+\REQUIRE Entity lists $E_{m}$ and relationship triples $R_{m}$ for months $m_1, \ldots, m_T$
+\ENSURE Weighted graph $G$ with community labels
+
+\STATE Initialize empty graph $G = (V, E)$
+\STATE \textbf{for each} month $m$ in selected range \textbf{do}
+\STATE \quad \textbf{for each} entity $e \in E_m$ \textbf{do}
+\STATE \quad \quad Add node $e$ to $G$ (or increment weight if exists)
+\STATE \quad \textbf{end for}
+\STATE \quad \textbf{for each} relationship $(e_1, r, e_2) \in R_m$ \textbf{do}
+\STATE \quad \quad Add edge $(e_1, e_2)$ with label $r$ (or increment weight)
+\STATE \quad \textbf{end for}
+\STATE \textbf{end for}
+\STATE Apply Louvain community detection to $G$
+\STATE Assign community labels to all nodes
+\RETURN $G$ with community structure
+\end{pseudoblock}
+
+\section{Extended Test Case Log}
+\label{app:testcases}
+
+\subsection*{B.1 \quad Additional Edge-Case Tests}
+
+\begin{testblock}{UT-E01 --- Preprocessor handles all-null column}
+\textbf{Module:} \texttt{reddit/preprocessing/preprocessor.py}\\
+\textbf{Input:} DataFrame where column \texttt{body} is 100\% null (all \texttt{[deleted]})\\
+\textbf{Expected:} All rows filtered; empty DataFrame returned without crash\\
+\textbf{Actual:} Empty DataFrame returned; log message ``All documents filtered''\\
+\textbf{Status:} \textcolor{commentgreen}{\textbf{PASS}}
+\end{testblock}
+
+\begin{testblock}{UT-E02 --- S-BERT handles mixed-language input}
+\textbf{Module:} \texttt{reddit/analysis/sentiment/roberta\_analyzer.py}\\
+\textbf{Input:} ``Maduro es terrible, but the economy is getting worse''\\
+\textbf{Expected:} Valid sentiment score in $[-1, +1]$\\
+\textbf{Actual:} Score $= -0.72$ (negative), confidence $= 0.89$\\
+\textbf{Status:} \textcolor{commentgreen}{\textbf{PASS}}
+\end{testblock}
+
+\begin{testblock}{UT-E03 --- BERTopic handles small monthly corpus}
+\textbf{Module:} \texttt{reddit/analysis/fit\_monthly\_topics.py}\\
+\textbf{Input:} 15 documents (below 20-document threshold)\\
+\textbf{Expected:} Month skipped; returns None\\
+\textbf{Actual:} Returns None; log message ``Skipping month: insufficient data (15 docs)''\\
+\textbf{Status:} \textcolor{commentgreen}{\textbf{PASS}}
+\end{testblock}
+
+\begin{testblock}{UT-E04 --- API handles missing GCS data gracefully}
+\textbf{Module:} \texttt{webapp/backend/services/data\_service.py}\\
+\textbf{Input:} Backend starts without GCS\_BUCKET environment variable\\
+\textbf{Expected:} Startup completes; endpoints return empty data\\
+\textbf{Actual:} Startup completes in 2.3s; /api/sentiment/monthly returns empty JSON array\\
+\textbf{Status:} \textcolor{commentgreen}{\textbf{PASS}}
+\end{testblock}
+
+\begin{testblock}{UT-E05 --- TikTok pipeline handles missing comments file}
+\textbf{Module:} \texttt{tiktok/analysis/run\_analysis.py :: load\_tiktok\_data()}\\
+\textbf{Input:} Videos directory exists but comments file does not\\
+\textbf{Expected:} Pipeline continues with videos only; comment count = 0\\
+\textbf{Actual:} Loaded 18,632 video records, 0 comments; pipeline completed\\
+\textbf{Status:} \textcolor{commentgreen}{\textbf{PASS}}
+\end{testblock}
+
+\section{Individual Contribution Statement}
+\label{app:contributions}
+
+\subsection*{Hunjun Shin}
+I was responsible for the Reddit data collection pipeline using the Arctic Shift API, collecting 533,941 documents across 11 subreddits spanning 2013--2026. I designed and built the preprocessing pipeline including bot detection, text cleaning, and the unified downstream analysis architecture shared across all three platforms. I developed the complete web application: a FastAPI backend with 8 router modules (sentiment, topics, clusters, entities, TikTok, reports, chat, overview), Google Cloud Storage integration, and Gemini 2.0 Flash LLM integration for report generation and natural language chat. I built the React 19 frontend with 8 interactive pages, TailwindCSS styling, Recharts visualizations, and a global time-range filtering system. I handled all deployment infrastructure: Vercel for the frontend, Google Cloud Run for the backend, Cloud Scheduler for daily ETL jobs, and GCS for data storage. I also implemented the entity extraction pipeline using Gemini 2.0 Flash and the knowledge graph visualization with Louvain community detection.
+
+\subsection*{Rich Goodier}
+I was responsible for the GDELT news data collection and preprocessing pipeline. I queried Google BigQuery for GDELT 2.0 event records involving Venezuela and the United States, extracting 292,566 event records with associated article URLs. I developed the article scraping infrastructure using the \texttt{newspaper} library with domain shuffling across 1,200+ unique domains, user-agent rotation with 10 browser signatures, and rate limiting to avoid IP blocking. For URLs that returned HTTP errors, I implemented a Wayback Machine fallback system using the Internet Archive API, successfully rescuing approximately 15,000 articles that would otherwise be lost. The final scraping pipeline achieved a 72.1\% success rate, producing 211,071 cleaned articles. I also conducted exploratory data analysis on the GDELT corpus, analyzing temporal patterns, source distributions, and average tone metrics, and contributed to the analysis pipeline architecture shared across all platforms.
+
+\subsection*{Ameir El Ouadi}
+I was responsible for TikTok data collection and the adaptive clustering experiment. For data collection, I used the TikTok Research API with 24 keyword queries and 18 hashtag filters, working within the 1,000-request-per-day quota over 30 days. I supplemented the Research API with Playwright browser automation to collect comments for videos where the API returned incomplete threads, resulting in 18,632 videos and 34,263 comments. I designed and executed the 1,944-combination hyperparameter grid search across UMAP and HDBSCAN parameters, testing 3 density regimes on 2 platforms to derive the adaptive clustering rule ($min\_cluster\_size = \max(10, \lfloor n/400 \rfloor)$). I implemented the monthly independent fitting approach for both BERTopic and HDBSCAN clustering, ensuring that temporal topic evolution around crisis events is captured rather than averaged away by global models. I also contributed to the TikTok analysis pipeline including hashtag trend analysis, engagement metrics computation, and region distribution analysis.
+
+\end{document}
+%% ============================================================================
+%%  END OF REPORT
+%% ============================================================================

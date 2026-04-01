@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import chat, clusters, overview, reports, sentiment, tiktok, topics
+from .routers import chat, clusters, entities, overview, reports, sentiment, tiktok, topics
 from .services.data_service import download_from_gcs
 
 logging.basicConfig(level=logging.INFO)
@@ -59,6 +59,7 @@ app.include_router(clusters.router)
 app.include_router(tiktok.router)
 app.include_router(reports.router)
 app.include_router(chat.router)
+app.include_router(entities.router)
 
 
 @app.get("/")

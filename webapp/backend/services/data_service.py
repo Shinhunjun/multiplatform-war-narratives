@@ -160,6 +160,175 @@ def get_cluster_summary_table() -> Optional[pd.DataFrame]:
     return None
 
 
+def get_entity_network(platform: str = "reddit") -> dict:
+    path = ANALYSIS_DIR / "entities" / f"network_{platform}.json"
+    if path.exists():
+        with open(path) as f:
+            return json.load(f)
+    return {}
+
+
+def get_entity_relationships(platform: str = "reddit") -> list:
+    path = ANALYSIS_DIR / "entities" / f"top_relationships_{platform}.json"
+    if path.exists():
+        with open(path) as f:
+            return json.load(f)
+    return []
+
+
+# --- Dynamic entity network building from parquet data ---
+
+@functools.lru_cache(maxsize=3)
+def _load_entities_parquet(platform: str) -> Optional[pd.DataFrame]:
+    path = ANALYSIS_DIR / "entities" / f"entities_{platform}.parquet"
+    if path.exists():
+        return pd.read_parquet(path)
+    return None
+
+
+@functools.lru_cache(maxsize=3)
+def _load_relationships_parquet(platform: str) -> Optional[pd.DataFrame]:
+    path = ANALYSIS_DIR / "entities" / f"relationships_{platform}.parquet"
+    if path.exists():
+        return pd.read_parquet(path)
+    return None
+
+
+def get_entity_months(platform: str = "reddit") -> list[str]:
+    """Return all available months for entity data."""
+    df = _load_entities_parquet(platform)
+    if df is None:
+        return []
+    return sorted(df["year_month"].unique().tolist())
+
+
+def build_entity_network(platform: str, start: str | None = None, end: str | None = None) -> dict:
+    """Build entity co-occurrence network dynamically from parquet, filtered by period."""
+    import networkx as nx
+
+    ent_df = _load_entities_parquet(platform)
+    rel_df = _load_relationships_parquet(platform)
+    if ent_df is None:
+        return {}
+
+    # Filter by period
+    if start:
+        ent_df = ent_df[ent_df["year_month"] >= start]
+        if rel_df is not None:
+            rel_df = rel_df[rel_df["year_month"] >= start]
+    if end:
+        ent_df = ent_df[ent_df["year_month"] <= end]
+        if rel_df is not None:
+            rel_df = rel_df[rel_df["year_month"] <= end]
+
+    if ent_df.empty:
+        return {"nodes": [], "edges": [], "communities": [], "platform": platform}
+
+    # Aggregate entities across months
+    agg = ent_df.groupby(["name", "type"]).agg({"count": "sum"}).reset_index()
+    agg = agg.sort_values("count", ascending=False)
+
+    # Top 150 entities for graph
+    top_entities = agg.head(150)
+    entity_set = set(top_entities["name"])
+    entity_type = dict(zip(top_entities["name"], top_entities["type"]))
+    entity_freq = dict(zip(top_entities["name"], top_entities["count"]))
+
+    # Build co-occurrence from relationships
+    G = nx.Graph()
+    for _, row in top_entities.iterrows():
+        G.add_node(row["name"], type=row["type"], frequency=int(row["count"]))
+
+    if rel_df is not None and not rel_df.empty:
+        rel_agg = rel_df.groupby(["source", "target"]).agg({"count": "sum"}).reset_index()
+        for _, row in rel_agg.iterrows():
+            if row["source"] in entity_set and row["target"] in entity_set:
+                if G.has_edge(row["source"], row["target"]):
+                    G[row["source"]][row["target"]]["weight"] += int(row["count"])
+                else:
+                    G.add_edge(row["source"], row["target"], weight=int(row["count"]))
+
+    # Also build co-occurrence from same-month entity pairs
+    months = ent_df[ent_df["name"].isin(entity_set)].groupby("year_month")["name"].apply(list)
+    for names in months:
+        for i in range(len(names)):
+            for j in range(i + 1, min(len(names), i + 30)):
+                a, b = names[i], names[j]
+                if a != b and a in entity_set and b in entity_set:
+                    if G.has_edge(a, b):
+                        G[a][b]["weight"] += 1
+                    else:
+                        G.add_edge(a, b, weight=1)
+
+    # Community detection
+    if len(G.nodes) > 1:
+        try:
+            communities_map = nx.community.louvain_communities(G, seed=42)
+        except Exception:
+            communities_map = [{n} for n in G.nodes]
+    else:
+        communities_map = [{n} for n in G.nodes]
+
+    # Assign community IDs
+    node_community = {}
+    for cid, members in enumerate(communities_map):
+        for m in members:
+            node_community[m] = cid
+
+    # Build output
+    nodes = []
+    for n in G.nodes:
+        nodes.append({
+            "id": n,
+            "community": node_community.get(n, 0),
+            "frequency": G.nodes[n].get("frequency", entity_freq.get(n, 1)),
+            "type": G.nodes[n].get("type", entity_type.get(n, "UNKNOWN")),
+        })
+
+    edges = []
+    for u, v, d in G.edges(data=True):
+        edges.append({"source": u, "target": v, "weight": d.get("weight", 1)})
+
+    communities_list = []
+    for cid, members in enumerate(communities_map):
+        sorted_members = sorted(members, key=lambda m: entity_freq.get(m, 0), reverse=True)
+        total_freq = sum(entity_freq.get(m, 0) for m in members)
+        communities_list.append({
+            "id": cid,
+            "size": len(members),
+            "total_frequency": total_freq,
+            "top_members": sorted_members[:10],
+            "label": ", ".join(sorted_members[:3]),
+        })
+    communities_list.sort(key=lambda c: c["total_frequency"], reverse=True)
+
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "communities": communities_list,
+        "platform": platform,
+    }
+
+
+def get_entity_relationships_filtered(platform: str, start: str | None = None, end: str | None = None) -> list:
+    """Get top relationships filtered by period."""
+    rel_df = _load_relationships_parquet(platform)
+    if rel_df is None:
+        return []
+
+    if start:
+        rel_df = rel_df[rel_df["year_month"] >= start]
+    if end:
+        rel_df = rel_df[rel_df["year_month"] <= end]
+
+    if rel_df.empty:
+        return []
+
+    agg = rel_df.groupby(["source", "target", "relation"]).agg({"count": "sum"}).reset_index()
+    agg = agg.sort_values("count", ascending=False).head(50)
+    return agg.to_dict("records")
+
+
 @functools.lru_cache(maxsize=1)
 def get_embeddings_2d() -> Optional[np.ndarray]:
     """Load 2D UMAP embeddings for scatter plot (360K x 2)."""
