@@ -99,17 +99,30 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 - **Clustering:** HDBSCAN (min_cluster_size=50)
 - **Stopwords:** Combined EN+ES (504 words) for bilingual topic representation
 - **Monthly fitting:** Independent BERTopic models per month for all 3 platforms
-- **Result:** Reddit 647 topics, News 1,169 topics, TikTok 19 topics
+- **Result:** Reddit 6,266 monthly topics (157 months), News 9,119 monthly topics (157 months), TikTok 2,819 monthly topics (92 months)
 
 ### Semantic Clustering — HDBSCAN + UMAP
 - **Separate from BERTopic** — finer-grained global clustering
-- **Result:** 3,406 clusters with keywords, temporal evolution, and 2D UMAP visualization
+- **Adaptive parameter tuning:** 1,944 combinations tested; derived rule `min_cluster_size = max(10, floor(n/400))`
+- **Monthly independent fitting** for temporal analysis
+
+| Platform | Clusters | Silhouette | Noise Ratio |
+|----------|----------|------------|-------------|
+| Reddit | 3,406 | 0.669 | 25.4% |
+| GDELT News | 92 | 0.856 | 39.7% |
+| TikTok | 78 | 0.72 | 27.8% |
 
 ### TikTok-Specific Analytics
 - **Hashtag trends:** 3,147 unique hashtags with frequency and sentiment over time
 - **Engagement metrics:** Views, likes, shares, comments aggregated monthly
 - **Region distribution:** Video origin by country code
 - **Voice-to-text:** Auto-caption text included in analysis
+
+### Entity Extraction — Gemini 2.0 Flash
+- **Cross-platform extraction:** PERSON, ORG, EVENT, POLICY, LOCATION, TOPIC
+- **Relationship mapping:** co-occurrence networks, entity evolution over time
+- **Monthly aggregation:** per platform per month
+- **Output:** entities, relationships, and co-occurrence parquet files for all 3 platforms
 
 ### Knowledge Graph — Microsoft GraphRAG
 - **Framework:** [Microsoft GraphRAG](https://github.com/microsoft/graphrag) with local LLM
@@ -143,6 +156,9 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 | `GET /api/tiktok/hashtags` | TikTok hashtag trends |
 | `GET /api/tiktok/engagement` | TikTok engagement metrics |
 | `GET /api/tiktok/regions` | TikTok region distribution |
+| `GET /api/entities/monthly` | Monthly entity extraction per platform |
+| `GET /api/entities/relationships` | Entity relationship networks |
+| `GET /api/entities/cooccurrence` | Entity co-occurrence graphs |
 | `GET /api/reports/generate` | AI-generated intelligence report |
 | `POST /api/chat` | Natural language data chat |
 
@@ -153,8 +169,9 @@ End-to-end pipeline for collecting, analyzing, and visualizing online discourse 
 | **Dashboard** | 3-platform StatCards, Cross-platform Sentiment Timeline, Volume Distribution (Reddit/News/TikTok) |
 | **Sentiment** | Multi-source comparison, Composite Timeline, Box Plots |
 | **Topics** | 3-column monthly BERTopic (Reddit/News/TikTok), Topic Evolution AreaCharts |
-| **TikTok** | Hashtag trends, Engagement metrics, Region distribution, Monthly topics |
 | **Clusters** | UMAP scatter (30K points), Top 20 clusters, Temporal bar charts |
+| **TikTok** | Hashtag trends, Engagement metrics, Region distribution, Monthly topics |
+| **Entities** | Cross-platform entity networks, relationship evolution, co-occurrence graphs |
 | **Reports** | AI intelligence report generation with period selector, platform stats cards |
 | **Chat** | Natural language Q&A with suggested questions, conversation history |
 
@@ -182,8 +199,10 @@ npm run build && npx vercel --prod
 |------|-------|
 | 2013-04 | Maduro Inauguration |
 | 2014-02 | Venezuelan Protests |
+| 2017-05 | Constitutional Crisis (largest cross-platform sentiment gap: 0.644) |
 | 2017-08 | Trump Administration Sanctions |
 | 2019-01 | Guaido Recognition Crisis |
+| 2019-05 | Failed Uprising Aftermath |
 | 2024-07 | 2024 Election Crisis |
 | 2026-01 | Maduro Captured by US Forces |
 
@@ -195,28 +214,38 @@ capstone/
 ├── reddit/                                # Reddit data + analysis
 │   ├── data-collection/                   # Arctic Shift API collection
 │   ├── preprocessing/                     # Text cleaning pipeline
-│   ├── analysis/                          # Sentiment, topics, clustering
-│   │   ├── outputs/                       # Reddit analysis results
-│   │   ├── outputs_news/                  # GDELT analysis results
-│   │   └── outputs_tiktok/                # TikTok analysis results
-│   └── eda/                               # Exploratory data analysis
+│   ├── eda/                               # Exploratory data analysis
+│   └── analysis/                          # Sentiment, topics, clustering
+│       ├── outputs/                       # Reddit analysis results
+│       ├── outputs_news/                  # GDELT analysis results
+│       └── outputs_tiktok/                # TikTok analysis results
 ├── gdelt/                                 # GDELT news data
-│   ├── data-collection/                   # BigQuery export + web scraping
-│   ├── preprocessing/                     # Text relevance filtering
-│   └── analysis/                          # EDA + analyze_gdelt.py
+│   ├── data_collection/                   # BigQuery export + web scraping
+│   ├── preprocessing/                     # Text relevance filtering + rule-based pipeline
+│   ├── analysis/                          # Sentiment, topics, clustering, visualizations
+│   ├── eda/                               # EDA plots + report
+│   ├── tests/                             # Pytest suite (analysis, preprocessing, tools, etc.)
+│   ├── tools/                             # Snapshot, revert, corpus token counter
+│   ├── weekly_update/                     # Weekly ETL pipeline (fetch, scrape, filter, append)
+│   └── data/                              # Raw data files (gitignored)
 ├── tiktok/                                # TikTok data pipeline
 │   ├── data-collection/                   # TikTok Research API + Playwright comments
+│   ├── preprocessing/                     # Video/comment filtering
 │   ├── analysis/                          # run_analysis.py (sentiment + topics + specific)
-│   └── preprocessing/                     # Video/comment filtering
+│   └── data/                              # Raw data files (gitignored)
 ├── comment_scrape/                        # Playwright-based TikTok comment scraper
-├── graphrag/                              # GraphRAG knowledge graph instance
+├── graphrag/                              # GraphRAG knowledge graph (Microsoft GraphRAG + Ollama)
 ├── webapp/
 │   ├── backend/                           # FastAPI + GCS + Gemini (Cloud Run)
-│   │   ├── routers/                       # overview, sentiment, topics, clusters, tiktok, reports, chat
+│   │   ├── routers/                       # overview, sentiment, topics, clusters, tiktok, entities, reports, chat
 │   │   └── services/                      # data_service, llm_service
 │   ├── frontend/                          # React + Vite + Recharts + TailwindCSS (Vercel)
-│   │   └── src/pages/                     # Dashboard, Sentiment, Topics, TikTok, Clusters, Reports, Chat
+│   │   └── src/pages/                     # Dashboard, Sentiment, Topics, Clusters, TikTok, Entities, Reports, Chat
 │   └── pipeline/                          # Daily ETL (Cloud Run Jobs)
+├── tests/                                 # API & preprocessing tests
+├── docs/                                  # Project documentation (pipeline, code walk, research questions)
+├── report/                                # Presentation materials & final report
+├── finalsubmission/                       # Final technical report (LaTeX) & rubrics
 └── data/                                  # Raw data files (gitignored)
 ```
 
