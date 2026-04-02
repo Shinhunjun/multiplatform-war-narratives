@@ -1,0 +1,124 @@
+Example Preprocessing Output
+
+========================================================================
+Step 1/7: Build URL Index
+========================================================================
+Command: python multiplatform-war-narratives\gdelt\preprocessing\build_url_index.py --input ..\data\gdelt_scraped.csv --lookup multiplatform-war-narratives\gdelt\data\preprocessing\url_lookup.csv
+Loading input CSV...
+  Rows loaded: 292,566
+Canonicalizing SourceURL values...
+Canonicalizing URLs: 100%|██████████████| 292566/292566 [00:02<00:00, 119047.98it/s]
+Selecting representative row per canonical URL...
+Loading existing url_lookup mapping...
+Assigning/rehydrating url_id values...
+Writing output files...
+Input rows: 292,566
+Unique canonical URLs: 104,967
+New url_id assigned this run: 104,967
+Lookup written: multiplatform-war-narratives\gdelt\data\preprocessing\url_lookup.csv
+Input dataset not written (use --write-input or --output to write gdelt_scraped with url_id).
+Completed in 23.3s
+
+========================================================================
+Step 2/7: Tokenize URL Lookup
+========================================================================
+Command: python multiplatform-war-narratives\gdelt\preprocessing\tokenize_url_lookup.py --lookup multiplatform-war-narratives\gdelt\data\preprocessing\url_lookup.csv --force
+Tokenizing url_lookup rows: 100%|████████████| 79738/79738 [32:32<00:00, 40.85row/s]
+Lookup rows: 104,967
+Rows with non-empty text: 79,738
+Rows tokenized this run: 79,738
+Output written: multiplatform-war-narratives\gdelt\data\preprocessing\url_lookup.csv
+Completed in 1972.3s
+
+========================================================================
+Step 3/7: Build Duplicate Filter Eval (Early)
+========================================================================
+Command: python build_duplicate_filter_eval.py --lookup url_lookup.csv --output url_filter_eval.csv --summary-output url_filter_summary_counts.csv
+Loading url_lookup...
+  Rows loaded: 104,967
+Hashing in-scope texts for duplicate clustering: 79,738
+Hashing texts: 100%|██████████████████████| 79738/79738 [00:01<00:00, 69621.37row/s]
+Writing duplicate-filter evaluation outputs...
+In-scope rows: 79,738
+Duplicate-drop rows: 11,869
+Rows used for token training: 67,869
+Evaluation table: multiplatform-war-narratives\gdelt\data\preprocessing\url_filter_eval.csv
+Summary counts: multiplatform-war-narratives\gdelt\data\preprocessing\url_filter_summary_counts.csv
+Completed in 30.4s
+
+========================================================================
+Step 4/7: Build Token Relevance Scores
+========================================================================
+Command: python build_text_relevance_tokens.py --lookup url_lookup.csv --output text_relevance_tokens.csv --eval url_filter_eval.csv --exclude-duplicate-drops --require-success-status
+Duplicate-filter training gate: kept 67,869/79,738 rows (excluded 11,869; missing eval rows=0)
+Loading token arrays: 100%|████████████████| 67869/67869 [00:26<00:00, 2600.78row/s] 
+Building document frequencies: 100%|██████| 67856/67856 [00:05<00:00, 12948.65doc/s]
+Scoring tokens: 100%|███████████████| 150031/150031 [00:00<00:00, 2464654.64token/s] 
+Lookup rows after filters: 67,869
+Tokenized docs used: 67,856
+Seed docs: 65,241 | Non-seed docs: 2,615
+Scored tokens written: 1,428
+Output: multiplatform-war-narratives\gdelt\data\preprocessing\text_relevance_tokens.csv
+Completed in 46.3s
+
+========================================================================
+Step 5/7: Score URL Relevance
+========================================================================
+Command: python multiplatform-war-narratives\gdelt\preprocessing\score_url_relevance.py --lookup multiplatform-war-narratives\gdelt\data\preprocessing\url_lookup.csv --relevance multiplatform-war-narratives\gdelt\data\preprocessing\text_relevance_tokens.csv        
+Scoring url_lookup: 100%|███████████████| 104967/104967 [00:05<00:00, 17773.66row/s]
+Rows scored: 104,967
+Rows with non-zero doc_relevance_score: 79,374
+Output written: multiplatform-war-narratives\gdelt\data\preprocessing\url_lookup.csv
+Completed in 24.8s
+
+========================================================================
+Step 6/7: Evaluate Filter Strategy (Full)
+========================================================================
+Command: python multiplatform-war-narratives\gdelt\preprocessing\evaluate_filter_strategy.py --lookup multiplatform-war-narratives\gdelt\data\preprocessing\url_lookup.csv --anchors multiplatform-war-narratives\gdelt\preprocessing\anchor_token_sets.json --output multiplatform-war-narratives\gdelt\data\preprocessing\url_filter_eval.csv --summary-output multiplatform-war-narratives\gdelt\data\preprocessing\url_filter_summary_counts.csv --sample-dir multiplatform-war-narratives\gdelt\data\preprocessing\filter_samples --sample-size 25 --seed 42     
+Loading url_lookup...
+  Rows loaded: 104,967
+Loading anchor token sets...
+Preparing scope and feature columns...
+  Parsing token arrays for scope rows: 79,738
+Parsing token arrays: 100%|████████████████| 79738/79738 [00:08<00:00, 9761.97row/s]
+Computing duplicate text clusters...
+Applying anchor logic...
+Evaluating anchor signals: 100%|█████████| 79738/79738 [00:00<00:00, 212537.10row/s] 
+Computing step decisions...
+Applying filter rules: 100%|████████████████| 79738/79738 [02:05<00:00, 634.85row/s]
+Building row-level filter reasons...
+Building reason labels: 100%|████████████| 104967/104967 [00:14<00:00, 7466.76row/s] 
+Writing evaluation outputs...
+Writing step sample files...
+Evaluation table: multiplatform-war-narratives\gdelt\data\preprocessing\url_filter_eval.csv
+Summary counts: multiplatform-war-narratives\gdelt\data\preprocessing\url_filter_summary_counts.csv
+Sample directory: multiplatform-war-narratives\gdelt\data\preprocessing\filter_samples
+Decision counts (final):
+filter_final_decision
+keep            51193
+out_of_scope    25229
+drop            20729
+review           7816
+Completed in 195.1s
+
+========================================================================
+Step 7/7: Plot Filter Stage Histograms
+========================================================================
+Command: python multiplatform-war-narratives\gdelt\preprocessing\plot_filter_stage_score_histograms.py --eval-csv multiplatform-war-narratives\gdelt\data\preprocessing\url_filter_eval.csv --output multiplatform-war-narratives\gdelt\data\preprocessing\filter_stage_score_histograms.png --bins 60 --mode stacked
+Saved: multiplatform-war-narratives\gdelt\data\preprocessing\filter_stage_score_histograms.png
+Stage counts:
+  Duplicate -> drop=11,869, review=0, keep=67,869, total=79,738
+  Length -> drop=1,291, review=1,924, keep=64,654, total=67,869
+  Score  -> drop=3,047, review=9,527, keep=54,004, total=66,578
+  Anchor -> drop=4,522, review=1,547, keep=57,462, total=63,531
+Completed in 4.0s
+
+Pipeline complete.
+Input processed: ..\data\gdelt_scraped.csv
+url_lookup: multiplatform-war-narratives\gdelt\data\preprocessing\url_lookup.csv
+token scores: multiplatform-war-narratives\gdelt\data\preprocessing\text_relevance_tokens.csv
+filter eval: multiplatform-war-narratives\gdelt\data\preprocessing\url_filter_eval.csv
+summary counts: multiplatform-war-narratives\gdelt\data\preprocessing\url_filter_summary_counts.csv
+sample dir: multiplatform-war-narratives\gdelt\data\preprocessing\filter_samples
+histogram PNG: multiplatform-war-narratives\gdelt\data\preprocessing\filter_stage_score_histograms.png
+PS multiplatform-war-narratives\gdelt\preprocessing>

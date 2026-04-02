@@ -1,8 +1,10 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
+import json
 import math
 import re
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -11,6 +13,7 @@ import pandas as pd
 from nltk import pos_tag
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
 from tqdm import tqdm
 
 
@@ -25,6 +28,7 @@ DEFAULT_SEED_TERMS = [
     "united",
     "state",
     "us",
+    "u.s.",
     "usa",
     "washington",
     "white",
@@ -59,6 +63,7 @@ DOMAIN_STOPWORDS = {
     "last",
     "new",
     "old",
+    "house",
     "call",
     "called",
     "include",
@@ -78,24 +83,96 @@ DOMAIN_STOPWORDS = {
     "two",
     "three",
     "million",
-    "member",
-    "hold",
-    "back",
-    "add",
+    # Modal verbs absent from NLTK stopwords
+    "would",
+    "could",
+    "may",
+    "must",
+    # Generic action verbs
+    "take",
+    "come",
+    "tell",
+    "use",
+    "see",
+    "get",
+    "give",
+    "know",
+    "want",
+    "try",
+    "provide",
+    "find",
+    "send",
+    "bring",
+    "look",
+    "put",
+    "set",
+    "happen",
+    "let",
+    "saw",
+    # Generic adverbs and conjunctions
+    "since",
+    "even",
+    "still",
+    "however",
+    "already",
+    "though",
+    "although",
+    "rather",
+    "actually",
+    "particularly",
+    "simply",
+    "instead",
+    "without",
+    "enough",
+    "either",
+    "upon",
+    "along",
+    "around",
+    "away",
+    "sure",
+    # Generic quantifiers and pronouns
+    "every",
+    "something",
+    "nothing",
+    "anyone",
+    "lot",
+    "whose",
+    "able",
+    # Prepositions
+    "via",
+    "per",
 }
 
-TOKEN_RE = re.compile(r"[a-z][a-z']{2,}")
+SPECIAL_KEEP_TOKENS = {"us", "u.s.", "usa"}
+CONTRACTION_FRAGMENTS = {"n't", "'re", "'ve", "'ll", "'d", "'m", "'s"}
+US_DOTTED_RE = re.compile(r"(?<!\w)u\.s\.(?!\w)", re.IGNORECASE)
+LETTER_TOKEN_RE = re.compile(r"^[a-z]+(?:'[a-z]+)?$")
+EDGE_CLEAN_RE = re.compile(r"^[^a-z0-9'.]+|[^a-z0-9'.]+$")
 
 
 def parse_args() -> argparse.Namespace:
-    default_data = Path(__file__).resolve().parents[1] / "data" / "gdelt_scraped.csv"
-    default_out = Path(__file__).resolve().parent / "text_relevance_tokens.csv"
+    """Parse command-line arguments for token relevance scoring.
+    
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
+    artifact_dir = Path(__file__).resolve().parents[1] / "data" / "preprocessing"
+    default_lookup = artifact_dir / "url_lookup.csv"
+    default_out = artifact_dir / "text_relevance_tokens.csv"
 
     parser = argparse.ArgumentParser(
-        description="Build token relevance scores from gdelt_scraped Text field."
+        description="Build token relevance scores from pre-tokenized url_lookup.csv Tokens."
     )
-    parser.add_argument("--input", type=Path, default=default_data, help="Path to gdelt_scraped.csv")
+    parser.add_argument("--lookup", type=Path, default=default_lookup, help="Path to url_lookup.csv")
     parser.add_argument("--output", type=Path, default=default_out, help="Path to output token score CSV")
+    parser.add_argument(
+        "--eval",
+        type=Path,
+        default=None,
+        help="Optional path to url_filter_eval.csv for filtering training rows",
+    )
+    parser.add_argument("--tokens-col", default="Tokens", help="Name of token-array column")
+    parser.add_argument("--status-col", default="Scrape_Status", help="Name of scrape status column")
     parser.add_argument(
         "--seed-terms",
         nargs="+",
@@ -122,11 +199,22 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Only use rows where Scrape_Status contains 'success'",
     )
+    parser.add_argument(
+        "--exclude-duplicate-drops",
+        action="store_true",
+        help="Exclude rows marked duplicate-drop in --eval (or rows where used_for_token_training is false)",
+    )
     return parser.parse_args()
 
 
 def ensure_nltk_resources() -> None:
+    """Ensure required NLTK tokenization, tagging, and lexical resources are available locally.
+    
+    Returns:
+        None: No return value.
+    """
     resources = [
+        ("tokenizers/punkt", "punkt"),
         ("corpora/stopwords", "stopwords"),
         ("corpora/wordnet", "wordnet"),
         ("corpora/omw-1.4", "omw-1.4"),
@@ -137,7 +225,15 @@ def ensure_nltk_resources() -> None:
         except LookupError:
             nltk.download(download_name, quiet=True)
 
-    # NLTK tagger path differs by version.
+    # Newer NLTK builds may require punkt_tab separately.
+    try:
+        nltk.data.find("tokenizers/punkt_tab")
+    except LookupError:
+        try:
+            nltk.download("punkt_tab", quiet=True)
+        except Exception:
+            pass
+
     try:
         nltk.data.find("taggers/averaged_perceptron_tagger_eng")
     except LookupError:
@@ -148,11 +244,24 @@ def ensure_nltk_resources() -> None:
 
 
 def build_stopword_set() -> set[str]:
+    """Build the stopword vocabulary by combining NLTK English stopwords and domain stopwords.
+    
+    Returns:
+        set[str]: Combined stopword set.
+    """
     ensure_nltk_resources()
     return set(stopwords.words("english")) | DOMAIN_STOPWORDS
 
 
 def penn_to_wordnet(tag: str) -> str:
+    """Map a Penn Treebank POS tag to the closest WordNet POS category.
+    
+    Args:
+        tag (str): Penn Treebank tag from NLTK POS tagging.
+    
+    Returns:
+        str: WordNet POS constant used by the lemmatizer.
+    """
     if tag.startswith("J"):
         return wordnet.ADJ
     if tag.startswith("V"):
@@ -164,76 +273,264 @@ def penn_to_wordnet(tag: str) -> str:
     return wordnet.NOUN
 
 
-def normalize_seed_terms(seed_terms: list[str], lemmatizer: WordNetLemmatizer) -> set[str]:
-    normalized: set[str] = set()
-    for term in seed_terms:
-        lowered = term.lower().strip()
-        tokens = TOKEN_RE.findall(lowered)
-        if tokens:
-            tagged = pos_tag(tokens)
-            for token, pos in tagged:
-                lemma = lemmatizer.lemmatize(token, pos=penn_to_wordnet(pos)).strip("'")
-                if lemma:
-                    normalized.add(lemma)
-        else:
-            collapsed = re.sub(r"[^a-z]+", "", lowered)
-            if collapsed:
-                normalized.add(collapsed)
-    return normalized
+def normalize_raw_token(token: str) -> str:
+    """Normalize a raw token by lowercasing and cleaning punctuation/contractions.
+    
+    Args:
+        token (str): Raw token produced by tokenization.
+    
+    Returns:
+        str: Normalized token string, or an empty string if nothing usable remains.
+    """
+    token = token.lower().replace("’", "'").replace("`", "'")
+    token = EDGE_CLEAN_RE.sub("", token)
+    if not token:
+        return ""
+
+    if token in {"u.s.", "u.s"}:
+        return "u.s."
+
+    if token in {"u.s.a.", "u.s.a"}:
+        return "usa"
+
+    if token.endswith("'s"):
+        token = token[:-2]
+    elif token.endswith("s'"):
+        token = token[:-1]
+
+    token = token.strip("'")
+    return token
+
+
+def parse_text_tokens(text: str) -> list[str]:
+    """Tokenize free text and apply project-specific token normalization rules.
+    
+    Args:
+        text (str): Raw document text.
+    
+    Returns:
+        list[str]: Ordered list of normalized tokens.
+    """
+    raw_tokens = word_tokenize(text)
+    parsed: list[str] = []
+    for raw in raw_tokens:
+        token = normalize_raw_token(raw)
+        if not token:
+            continue
+        if token in CONTRACTION_FRAGMENTS:
+            continue
+        parsed.append(token)
+
+    # Explicit project rule: if "U.S." appears in text, force-add "u.s." token.
+    if US_DOTTED_RE.search(text):
+        parsed.append("u.s.")
+
+    return parsed
 
 
 def tokenize(text: str, lemmatizer: WordNetLemmatizer, stopword_set: set[str]) -> set[str]:
-    raw_tokens = TOKEN_RE.findall(text.lower())
-    if not raw_tokens:
+    """Convert document text into a cleaned, lemmatized set of lexical tokens.
+    
+    Args:
+        text (str): Raw document text.
+        lemmatizer (WordNetLemmatizer): Initialized WordNet lemmatizer.
+        stopword_set (set[str]): Stopword set used to remove low-information tokens.
+    
+    Returns:
+        set[str]: Unique normalized token set for the document.
+    """
+    if text is None:
         return set()
 
-    tagged_tokens = pos_tag(raw_tokens)
-    return {
-        lemma
-        for token, pos in tagged_tokens
-        for lemma in [lemmatizer.lemmatize(token, pos=penn_to_wordnet(pos)).strip("'")]
-        if lemma and lemma not in stopword_set and not lemma.isdigit()
-    }
-
-
-def seed_tokens_in_text(text: str, lemmatizer: WordNetLemmatizer) -> set[str]:
-    text_lower = text.lower().replace("u.s.", " usa ").replace("u.s", " usa ")
-    tokens = TOKEN_RE.findall(text_lower)
-    if not tokens:
+    parsed_tokens = parse_text_tokens(str(text))
+    if not parsed_tokens:
         return set()
-    tagged = pos_tag(tokens)
-    return {
-        lemmatizer.lemmatize(token, pos=penn_to_wordnet(pos)).strip("'")
-        for token, pos in tagged
-        if token
-    }
+
+    special = {tok for tok in parsed_tokens if tok in SPECIAL_KEEP_TOKENS}
+    lexical = [tok for tok in parsed_tokens if tok not in special and LETTER_TOKEN_RE.fullmatch(tok)]
+
+    lemmas: set[str] = set()
+    if lexical:
+        tagged_tokens = pos_tag(lexical)
+        for token, pos in tagged_tokens:
+            lemma = lemmatizer.lemmatize(token, pos=penn_to_wordnet(pos)).strip("'")
+            if not lemma:
+                continue
+            if lemma in CONTRACTION_FRAGMENTS:
+                continue
+            if lemma.isdigit():
+                continue
+            if lemma in stopword_set and lemma not in SPECIAL_KEEP_TOKENS:
+                continue
+            lemmas.add(lemma)
+
+    for token in special:
+        if token not in stopword_set or token in SPECIAL_KEEP_TOKENS:
+            lemmas.add(token)
+
+    return lemmas
 
 
-def has_seed_term(text: str, seed_term_set: set[str], lemmatizer: WordNetLemmatizer) -> bool:
-    text_seed_tokens = seed_tokens_in_text(text, lemmatizer)
-    return bool(text_seed_tokens & seed_term_set)
+def normalize_seed_terms(seed_terms: list[str], lemmatizer: WordNetLemmatizer) -> set[str]:
+    """Normalize seed terms using the same tokenization and lemmatization logic as documents.
+    
+    Args:
+        seed_terms (list[str]): Seed term list that defines likely in-scope documents.
+        lemmatizer (WordNetLemmatizer): Initialized WordNet lemmatizer.
+    
+    Returns:
+        set[str]: Normalized seed-term token set.
+    """
+    normalized: set[str] = set()
+    for term in seed_terms:
+        parsed = parse_text_tokens(str(term))
+        for token in parsed:
+            if token in SPECIAL_KEEP_TOKENS:
+                normalized.add(token)
+                continue
+            if not LETTER_TOKEN_RE.fullmatch(token):
+                continue
+            lemma = lemmatizer.lemmatize(token, pos=wordnet.NOUN).strip("'")
+            if lemma:
+                normalized.add(lemma)
+    return normalized
+
+
+def parse_token_array(value: object) -> set[str]:
+    """Parse token arrays stored as JSON/list-like strings in CSV fields.
+    
+    Args:
+        value (object): Serialized token field value from the lookup table.
+    
+    Returns:
+        set[str]: Normalized token set parsed from the input value.
+    """
+    if value is None or pd.isna(value):
+        return set()
+
+    s = str(value).strip()
+    if not s:
+        return set()
+
+    try:
+        parsed = json.loads(s)
+    except json.JSONDecodeError:
+        parsed = None
+
+    if isinstance(parsed, list):
+        candidates = [str(x).strip() for x in parsed if str(x).strip()]
+    elif "," in s:
+        candidates = [p.strip() for p in s.split(",") if p.strip()]
+    else:
+        candidates = [s]
+
+    normalized: set[str] = set()
+    for token in candidates:
+        t = normalize_raw_token(token)
+        if not t or t in CONTRACTION_FRAGMENTS:
+            continue
+        if t in SPECIAL_KEEP_TOKENS:
+            normalized.add(t)
+            continue
+        if LETTER_TOKEN_RE.fullmatch(t):
+            normalized.add(t)
+    return normalized
 
 
 def main() -> None:
+    """Compute per-token relevance scores from tokenized lookup rows and write ranked output.
+    
+    Returns:
+        None: No return value.
+    """
     args = parse_args()
+    ensure_nltk_resources()
 
-    if not args.input.exists():
-        raise FileNotFoundError(f"Input file not found: {args.input}")
+    if not args.lookup.exists():
+        raise FileNotFoundError(f"Lookup file not found: {args.lookup}")
 
-    df = pd.read_csv(args.input, low_memory=False)
-    if "Text" not in df.columns:
-        raise ValueError("Expected a 'Text' column in input CSV")
+    df = pd.read_csv(args.lookup, low_memory=False)
+    required_cols = {args.tokens_col}
+    missing = required_cols - set(df.columns)
+    if missing:
+        raise ValueError(f"Lookup missing required columns: {sorted(missing)}")
 
-    if args.require_success_status and "Scrape_Status" in df.columns:
-        success_mask = df["Scrape_Status"].fillna("").str.contains("success", case=False)
+    if args.require_success_status:
+        if args.status_col not in df.columns:
+            raise ValueError(f"--require-success-status requested but missing status column: {args.status_col}")
+        success_mask = df[args.status_col].fillna("").str.contains("success", case=False)
         df = df[success_mask].copy()
 
-    texts = df["Text"].dropna().astype(str)
-    texts = texts[texts.str.strip() != ""]
+    if args.exclude_duplicate_drops:
+        if args.eval is None:
+            raise ValueError("--exclude-duplicate-drops requires --eval <url_filter_eval.csv>")
+        if not args.eval.exists():
+            raise FileNotFoundError(f"Eval file not found: {args.eval}")
+        if "url_id" not in df.columns:
+            raise ValueError("--exclude-duplicate-drops requires 'url_id' in lookup CSV")
 
-    total_docs = int(len(texts))
+        eval_df = pd.read_csv(args.eval, low_memory=False)
+        if "url_id" not in eval_df.columns:
+            raise ValueError(f"Eval file missing required column: url_id ({args.eval})")
+
+        keep_col = None
+        if "used_for_token_training" in eval_df.columns:
+            keep_col = "used_for_token_training"
+            eval_keep = eval_df[["url_id", keep_col]].copy()
+            eval_keep[keep_col] = (
+                eval_keep[keep_col]
+                .fillna(False)
+                .astype(str)
+                .str.strip()
+                .str.lower()
+                .isin({"true", "1", "yes", "y"})
+            )
+        elif "filter_duplicate_decision" in eval_df.columns:
+            keep_col = "filter_duplicate_decision"
+            eval_keep = eval_df[["url_id", keep_col]].copy()
+            eval_keep[keep_col] = eval_keep[keep_col].fillna("out_of_scope").astype(str)
+        else:
+            raise ValueError(
+                "Eval file must contain either 'used_for_token_training' or 'filter_duplicate_decision' "
+                "to support --exclude-duplicate-drops"
+            )
+
+        eval_keep["url_id"] = pd.to_numeric(eval_keep["url_id"], errors="coerce").astype("Int64")
+        df["url_id"] = pd.to_numeric(df["url_id"], errors="coerce").astype("Int64")
+        merged = df.merge(eval_keep, on="url_id", how="left")
+
+        if keep_col == "used_for_token_training":
+            keep_mask = merged[keep_col] == True
+        else:
+            keep_mask = merged[keep_col] != "drop"
+            keep_mask = keep_mask & merged[keep_col].notna()
+
+        missing_eval = int(merged[keep_col].isna().sum())
+        before_dedup = len(merged)
+        df = merged[keep_mask].copy()
+        df = df.drop(columns=[keep_col], errors="ignore")
+        after_dedup = len(df)
+        print(
+            f"Duplicate-filter training gate: kept {after_dedup:,}/{before_dedup:,} rows "
+            f"(excluded {before_dedup - after_dedup:,}; missing eval rows={missing_eval:,})",
+            flush=True,
+        )
+
+    token_sets: list[set[str]] = []
+    for token_value in tqdm(
+        df[args.tokens_col],
+        total=len(df),
+        desc="Loading token arrays",
+        unit="row",
+        file=sys.stdout,
+    ):
+        token_set = parse_token_array(token_value)
+        if token_set:
+            token_sets.append(token_set)
+
+    total_docs = len(token_sets)
     if total_docs == 0:
-        raise ValueError("No non-empty text rows available after filtering")
+        raise ValueError("No tokenized documents found in lookup. Run tokenize_url_lookup.py first.")
 
     df_counter: Counter[str] = Counter()
     seed_df_counter: Counter[str] = Counter()
@@ -243,36 +540,42 @@ def main() -> None:
     nonseed_docs = 0
 
     lemmatizer = WordNetLemmatizer()
-    stopword_set = build_stopword_set()
     seed_term_set = normalize_seed_terms(args.seed_terms, lemmatizer)
 
-    for text in tqdm(texts, total=total_docs, desc="Tokenizing documents", unit="doc"):
-        tokens = tokenize(text, lemmatizer, stopword_set)
-        if not tokens:
-            continue
-
-        is_seed_doc = has_seed_term(text, seed_term_set, lemmatizer)
+    for token_set in tqdm(
+        token_sets,
+        total=total_docs,
+        desc="Building document frequencies",
+        unit="doc",
+        file=sys.stdout,
+    ):
+        is_seed_doc = bool(token_set & seed_term_set)
         if is_seed_doc:
             seed_docs += 1
-            seed_df_counter.update(tokens)
+            seed_df_counter.update(token_set)
         else:
             nonseed_docs += 1
-            nonseed_df_counter.update(tokens)
-
-        df_counter.update(tokens)
+            nonseed_df_counter.update(token_set)
+        df_counter.update(token_set)
 
     usable_docs = seed_docs + nonseed_docs
     if usable_docs == 0:
-        raise ValueError("No tokenized documents available")
+        raise ValueError("No documents available after filtering.")
     if seed_docs == 0 or nonseed_docs == 0:
         raise ValueError(
             f"Need both seed and non-seed documents for scoring (seed_docs={seed_docs}, nonseed_docs={nonseed_docs})"
         )
 
-    rows: list[dict[str, float | int | str]] = []
+    rows: list[dict[str, float | int | str | bool]] = []
     alpha = args.alpha
 
-    for token, doc_freq in tqdm(df_counter.items(), total=len(df_counter), desc="Scoring tokens", unit="token"):
+    for token, doc_freq in tqdm(
+        df_counter.items(),
+        total=len(df_counter),
+        desc="Scoring tokens",
+        unit="token",
+        file=sys.stdout,
+    ):
         is_protected_seed_token = token in seed_term_set
         doc_frac = doc_freq / usable_docs
         if (doc_frac < args.min_doc_frac or doc_frac > args.max_doc_frac) and not is_protected_seed_token:
@@ -289,7 +592,6 @@ def main() -> None:
         p_nonseed = (nonseed_freq + alpha) / (nonseed_docs + 2 * alpha)
         lift = p_seed / p_nonseed
         log2_lift = math.log2(lift)
-
         idf = math.log((1 + usable_docs) / (1 + doc_freq)) + 1
         relevance_score = log2_lift * idf
 
@@ -320,9 +622,8 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     out_df.to_csv(args.output, index=False)
 
-    print(f"Input rows after filters: {len(df):,}")
-    print(f"Non-empty text docs: {total_docs:,}")
-    print(f"Tokenized docs used: {usable_docs:,}")
+    print(f"Lookup rows after filters: {len(df):,}")
+    print(f"Tokenized docs used: {total_docs:,}")
     print(f"Seed docs: {seed_docs:,} | Non-seed docs: {nonseed_docs:,}")
     print(f"Scored tokens written: {len(out_df):,}")
     print(f"Output: {args.output}")

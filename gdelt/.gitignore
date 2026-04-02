@@ -1,5 +1,26 @@
 # Data files
-data/
+data/*
+!data/README.md
+!data/preprocessing/
+data/preprocessing/*
+!data/preprocessing/README.md
 
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
 
+# Virtual environments
+.venv/
+venv/
+
+TODO.md
+TODO.txt
 notes.txt
+*.png
+!preprocessing/filter_stage_score_histograms.png
+preprocessing/feature_dictionary.txt
+preprocessing/filter_strategy.txt
+preprocessing/example_preprocessing_output.txt

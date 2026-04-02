@@ -1,0 +1,310 @@
+{
+  "version": "2026-03-05",
+  "source": {
+    "score_file": "../data/preprocessing/text_relevance_tokens.csv",
+    "notes": "Initial anchor seeds derived from current relevance scores + prior review work. Adjust groups iteratively after manual QA. candidate_tokens_for_review merged into relation_context_secondary. us_secondary_ambiguous replaced with explicit us_primary_token_pairs for pair matching logic."
+  },
+  "anchors": {
+    "venezuela_primary": [
+      "pdvsa",
+      "chavez",
+      "guaido",
+      "caracas",
+      "maduro",
+      "venezuelan",
+      "venezuela"
+    ],
+    "us_primary": [
+      "usa",
+      "america",
+      "american",
+      "treasury",
+      "department",
+      "washington",
+      "sanction",
+      "congress",
+      "federal",
+      "administration",
+      "pentagon",
+      "dollar",
+      "trump",
+      "biden",
+      "pence",
+      "obama",
+      "harris",
+      "clinton",
+      "bush",
+      "rubio",
+      "desantis",
+      "florida",
+      "miami"
+    ],
+    "us_primary_token_pairs": [
+      [
+        "united",
+        "state"
+      ],
+      [
+        "white",
+        "house"
+      ]
+    ],
+    "relation_context_secondary": [
+      "lawmaker",
+      "migrant",
+      "immigrant",
+      "immigration",
+      "border",
+      "opposition",
+      "oil",
+      "military",
+      "election",
+      "aircraft",
+      "senate",
+      "senator",
+      "ambassador",
+      "diplomat",
+      "asylum",
+      "refugee",
+      "humanitarian",
+      "troop",
+      "soldier",
+      "navy",
+      "drone",
+      "petroleum",
+      "pipeline",
+      "gasoline",
+      "cartel",
+      "narcotic",
+      "castro",
+      "valencia"
+    ]
+  },
+  "token_stats": {
+    "aircraft": {
+      "relevance_score": 15.955839693555772,
+      "doc_freq": 4301,
+      "in_text_relevance_tokens": true
+    },
+    "ambassador": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "asylum": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "border": {
+      "relevance_score": 12.044999886796488,
+      "doc_freq": 13070,
+      "in_text_relevance_tokens": true
+    },
+    "caracas": {
+      "relevance_score": 26.36761718821824,
+      "doc_freq": 26434,
+      "in_text_relevance_tokens": true
+    },
+    "cartel": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "castro": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "chavez": {
+      "relevance_score": 36.063549376349535,
+      "doc_freq": 7472,
+      "in_text_relevance_tokens": true
+    },
+    "congress": {
+      "relevance_score": 14.51393932101672,
+      "doc_freq": 9204,
+      "in_text_relevance_tokens": true
+    },
+    "department": {
+      "relevance_score": 29.554843810095104,
+      "doc_freq": 18540,
+      "in_text_relevance_tokens": true
+    },
+    "diplomat": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "drone": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "election": {
+      "relevance_score": 7.714963623056469,
+      "doc_freq": 21367,
+      "in_text_relevance_tokens": true
+    },
+    "gasoline": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "guaido": {
+      "relevance_score": 35.36250588313715,
+      "doc_freq": 8395,
+      "in_text_relevance_tokens": true
+    },
+    "humanitarian": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "immigrant": {
+      "relevance_score": 13.25991211428151,
+      "doc_freq": 6034,
+      "in_text_relevance_tokens": true
+    },
+    "immigration": {
+      "relevance_score": 12.02471104755311,
+      "doc_freq": 8219,
+      "in_text_relevance_tokens": true
+    },
+    "lawmaker": {
+      "relevance_score": 16.185667078981457,
+      "doc_freq": 6318,
+      "in_text_relevance_tokens": true
+    },
+    "maduro": {
+      "relevance_score": 21.579995683026706,
+      "doc_freq": 42315,
+      "in_text_relevance_tokens": true
+    },
+    "migrant": {
+      "relevance_score": 14.13886895777806,
+      "doc_freq": 7685,
+      "in_text_relevance_tokens": true
+    },
+    "military": {
+      "relevance_score": 9.620516313480518,
+      "doc_freq": 26612,
+      "in_text_relevance_tokens": true
+    },
+    "narcotic": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "navy": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "oil": {
+      "relevance_score": 10.446668976742366,
+      "doc_freq": 23617,
+      "in_text_relevance_tokens": true
+    },
+    "opposition": {
+      "relevance_score": 13.308551278590452,
+      "doc_freq": 24713,
+      "in_text_relevance_tokens": true
+    },
+    "pdvsa": {
+      "relevance_score": 37.88634553392576,
+      "doc_freq": 5318,
+      "in_text_relevance_tokens": true
+    },
+    "petroleum": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "pipeline": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "refugee": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "sanction": {
+      "relevance_score": 28.351151148886157,
+      "doc_freq": 21300,
+      "in_text_relevance_tokens": true
+    },
+    "senate": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "senator": {
+      "relevance_score": 15.241892530624543,
+      "doc_freq": 5475,
+      "in_text_relevance_tokens": true
+    },
+    "soldier": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "state": {
+      "relevance_score": 18.22174403029196,
+      "doc_freq": 56983,
+      "in_text_relevance_tokens": true
+    },
+    "treasury": {
+      "relevance_score": 38.78872625608592,
+      "doc_freq": 4368,
+      "in_text_relevance_tokens": true
+    },
+    "troop": {
+      "relevance_score": null,
+      "doc_freq": null,
+      "in_text_relevance_tokens": false
+    },
+    "united": {
+      "relevance_score": 21.75287152402415,
+      "doc_freq": 41645,
+      "in_text_relevance_tokens": true
+    },
+    "usa": {
+      "relevance_score": 40.41618264710279,
+      "doc_freq": 2800,
+      "in_text_relevance_tokens": true
+    },
+    "valencia": {
+      "relevance_score": -6.21117702929571,
+      "doc_freq": 3284,
+      "in_text_relevance_tokens": true
+    },
+    "venezuela": {
+      "relevance_score": 17.8572698272824,
+      "doc_freq": 58777,
+      "in_text_relevance_tokens": true
+    },
+    "venezuelan": {
+      "relevance_score": 19.27670404180636,
+      "doc_freq": 52022,
+      "in_text_relevance_tokens": true
+    },
+    "washington": {
+      "relevance_score": 25.598152710899367,
+      "doc_freq": 28637,
+      "in_text_relevance_tokens": true
+    },
+    "white": {
+      "relevance_score": 30.353492728031608,
+      "doc_freq": 16846,
+      "in_text_relevance_tokens": true
+    },
+    "house": {
+      "relevance_score": 28.37825886214818,
+      "doc_freq": 21235,
+      "in_text_relevance_tokens": true
+    }
+  }
+}

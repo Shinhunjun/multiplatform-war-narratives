@@ -1,0 +1,23 @@
+Pre-processing notes
+
+TODO:
+1) Define the final inclusion rule.
+   - Decide how `review` is handled (`drop`, manual adjudication, or include with flag).
+   - Lock score cutoffs and anchor sets in one config file.
+
+2) Add lightweight validation gates.
+   - Fail fast if required columns are missing.
+   - Fail fast if keep-rate is unexpectedly low/high.
+   - Fail fast if token-empty rates spike.
+
+3) Build one analysis-ready dataset.
+   - Create a single output (e.g., `analysis_input.parquet`) from `url_lookup` + `url_filter_eval` + required event fields.
+   - Include only final in-scope rows per the chosen rule and keep provenance columns.
+
+4) Add run manifest and QA summary.
+   - Save run metadata each pipeline run: input file, row counts per stage, thresholds, timestamp, git commit hash.
+   - Track weekly drift in keep/drop/review rates.
+
+5) Decide policy for language/content quality.
+   - If analysis is English-only, add language filtering.
+   - Keep short/boilerplate text exclusions explicit and versioned.

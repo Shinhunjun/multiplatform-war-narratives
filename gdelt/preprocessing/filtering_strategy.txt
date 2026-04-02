@@ -1,0 +1,45 @@
+Filtering Strategy
+
+Scope
+- Apply this strategy only to rows with:
+  - successful scrape status
+  - non-empty Text
+  - non-empty Tokens
+
+Each filter returns one of: Drop, Review, Keep.
+Final decision priority:
+- If any filter returns Drop -> final = Drop
+- Else if any filter returns Review -> final = Review
+- Else final = Keep
+
+1) Duplicate Text
+- Drop: hash of Text is identical to hash of another Text
+- Keep: hash of Text is unique
+
+2) Length Filter (text_word_count)
+- Drop: text_word_count < 40
+- Review: 40 <= text_word_count < 80
+- Keep: text_word_count >= 80
+
+3) Document Relevance Score Filter (doc_relevance_score)
+- Drop: score < 25
+- Review: 25 <= score < 40
+- Keep: score >= 40
+
+4) Anchor Token Filter
+Definitions:
+- has_ven = document contains >= 1 token from venezuela_primary
+- has_us_primary = document satisfies at least one of:
+  - contains >= 1 token from us_primary
+  - contains token pair (united, state)
+  - contains token pair (white, house)
+- has_relation_secondary = document contains >= 1 token from relation_context_secondary
+
+Rules:
+- Drop: not has_ven
+- Review: has_ven and (not has_us_primary) and has_relation_secondary
+- Keep: has_ven and has_us_primary
+
+Notes
+- Standalone ambiguous tokens are not enough for Keep by themselves.
+- Only the explicit token pairs above can upgrade ambiguous US tokens into has_us_primary.

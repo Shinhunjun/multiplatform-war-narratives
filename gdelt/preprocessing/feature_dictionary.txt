@@ -1,0 +1,241 @@
+Feature Dictionary
+
+This file documents the columns used in:
+- data/gdelt_scraped.csv
+- data/preprocessing/url_lookup.csv
+- data/preprocessing/url_filter_eval.csv
+
+============================================================
+data/gdelt_scraped.csv
+============================================================
+
+Date
+- Event date from GDELT (as stored in the consolidated dataset).
+
+Year
+- Year value used for yearly grouping/analysis.
+
+Actor1Name
+- Primary actor name for the event record.
+
+Actor1CountryCode
+- Country code for Actor1 (GDELT actor country code).
+
+Actor2Name
+- Secondary actor name for the event record.
+
+Actor2CountryCode
+- Country code for Actor2 (GDELT actor country code).
+
+EventCode
+- CAMEO event code for the event.
+
+QuadClass
+- GDELT quad class (verbal/material cooperation/conflict grouping).
+
+GoldsteinScale
+- Event intensity/cooperation-conflict score from GDELT.
+
+AvgTone
+- Average tone score from GDELT.
+
+SourceURL
+- Original source URL associated with the event.
+
+Title
+- Scraped article title for SourceURL.
+
+Text
+- Scraped article body text for SourceURL.
+
+Scrape_Status
+- Scraper outcome/status label (for example, success or failure reason).
+
+Error_Details
+- Scraper error details/message for failed or partial scrapes.
+
+url_id
+- Stable URL identifier assigned in preprocessing; joins to data/preprocessing/url_lookup.csv.
+
+============================================================
+data/preprocessing/url_lookup.csv
+============================================================
+
+url_id
+- Stable integer identifier for a canonicalized URL.
+
+SourceURL
+- Representative/original URL string retained for this url_id.
+
+SourceURL_Canonical
+- Canonicalized URL used to deduplicate URLs and assign url_id.
+
+Title
+- Representative title value for this URL entry.
+
+Text
+- Representative scraped text value for this URL entry.
+
+Tokens
+- JSON array of normalized document tokens (deduplicated token set per URL).
+
+Scrape_Status
+- Representative scrape status for this URL entry.
+
+row_count
+- Number of rows in gdelt_scraped.csv that map to this canonical URL.
+
+doc_relevance_sum
+- Sum of matched token relevance scores for this document.
+
+doc_relevance_matches
+- Number of tokens in this document that matched scored terms.
+
+doc_token_count
+- Number of tokens in Tokens used in the score denominator.
+
+doc_relevance_score
+- Document relevance score computed as:
+- doc_relevance_sum / sqrt(doc_token_count)
+
+text_len_norm
+- Character length of normalized text (lowercased/whitespace-normalized form).
+
+text_hash
+- SHA-256 hash of normalized text, used for duplicate-text cluster detection.
+
+domain
+- Domain/netloc extracted from SourceURL.
+
+text_hash_url_count
+- Distinct URL count sharing the same text_hash.
+
+text_hash_domain_count
+- Distinct domain count sharing the same text_hash.
+
+suspect_redirect_content
+- Boolean flag for likely redirect/fallback duplicate content clusters.
+
+============================================================
+data/preprocessing/url_filter_eval.csv
+============================================================
+
+url_id
+- URL key from url_lookup.csv.
+
+in_filter_scope
+- True when row is eligible for filtering:
+- Scrape_Status indicates success, Text is non-empty, Tokens is non-empty, and doc_relevance_score is numeric.
+
+duplicate_text_hash
+- SHA-256 hash of normalized Text used for duplicate-text filtering within in-scope rows.
+
+duplicate_cluster_size
+- Number of in-scope rows sharing duplicate_text_hash.
+
+text_word_count
+- Word count computed from Text (regex token count used by length filter).
+
+doc_relevance_score
+- Numeric document relevance score copied from url_lookup.csv.
+
+has_ven_anchor
+- True if Tokens contains at least one Venezuela primary anchor token.
+
+has_us_primary_token
+- True if Tokens contains at least one direct US primary anchor token.
+
+has_us_primary_pair
+- True if Tokens contains at least one configured US token pair (for example, united+state, white+house).
+
+has_us_primary
+- Combined US-primary flag:
+- has_us_primary_token OR has_us_primary_pair.
+
+has_relation_secondary
+- True if Tokens contains at least one relation-context secondary token.
+
+filter_duplicate_decision
+- Duplicate-text-stage decision: drop, keep, or out_of_scope.
+- Current logic: drop when duplicate_cluster_size > 1; else keep.
+
+filter_length_decision
+- Length-stage decision: drop, review, keep, or out_of_scope.
+
+filter_score_decision
+- Score-stage decision: drop, review, keep, or out_of_scope.
+- Current thresholds in strategy: drop < 25, review 25 to <40, keep >= 40.
+
+filter_anchor_decision
+- Anchor-stage decision: drop, review, keep, or out_of_scope.
+
+filter_final_decision
+- Final decision after combining stage decisions:
+- Any drop -> drop; else any review -> review; else keep.
+
+filter_reasons
+- Pipe-delimited reason tags explaining non-keep decisions (or pass_all/out_of_scope).
+
+============================================================
+data/analysis_ready/analysis_events.parquet
+============================================================
+
+This table keeps one row per original event row from `gdelt_scraped.csv`.
+
+All original event-level columns are retained except:
+- `Title`
+- `Text`
+
+Those raw content columns are omitted by default in order to avoid duplicating large article text across many event rows. They can be retained by running:
+- `build_analysis_ready_datasets.py --keep-raw-content-cols`
+
+Additional joined columns include:
+- `SourceURL_Canonical`
+- `row_count`
+- `doc_relevance_sum`
+- `doc_relevance_matches`
+- `doc_token_count`
+- `doc_relevance_score`
+- `in_filter_scope`
+- duplicate/filter stage columns from `url_filter_eval.csv`
+
+filter_final_decision_effective
+- Effective final decision used by the analysis export after applying `review_handling` from `filter_rule_config.json`.
+- Current default behavior:
+- `review` becomes `keep`
+
+analysis_include
+- Boolean-like inclusion flag for downstream analysis filtering.
+- `True` when the effective decision is `keep`.
+- `False` when the effective decision is `drop` or `out_of_scope`.
+- `<NA>` when `review_handling` is set to manual adjudication and the row remains unresolved.
+
+analysis_review_flag
+- True when the raw `filter_final_decision` was `review`, even if the effective analysis decision includes the row.
+
+============================================================
+data/analysis_ready/analysis_url_content.parquet
+============================================================
+
+This table keeps one row per `url_id`.
+
+It contains the representative URL-level content and metadata used for downstream text analysis:
+- `url_id`
+- `SourceURL`
+- `SourceURL_Canonical`
+- `Title`
+- `Text`
+- `Tokens`
+- `Scrape_Status`
+- `row_count`
+- `doc_relevance_sum`
+- `doc_relevance_matches`
+- `doc_token_count`
+- `doc_relevance_score`
+- all filter columns from `url_filter_eval.csv`
+- `filter_final_decision_effective`
+- `analysis_include`
+- `analysis_review_flag`
+
+Tokens
+- Stored in parquet as a parsed list of normalized token strings, not as the serialized JSON string used in `data/preprocessing/url_lookup.csv`.
